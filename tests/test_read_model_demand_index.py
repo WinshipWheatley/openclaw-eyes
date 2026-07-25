@@ -165,6 +165,29 @@ def test_shared_selector_skips_already_loaded_read_models(tmp_path: Path) -> Non
     assert [row.id for row in selection.rows] == ["agent_presence_history"]
 
 
+def test_common_token_alone_does_not_drag_in_unrelated_read_models(
+    tmp_path: Path,
+) -> None:
+    """A word shared by half the library must not count as relevance.
+
+    Without this, "how do I route TH-U into Logic Pro X" pulls invoice and
+    intake read-models because they happen to contain 'route' or 'pro'.
+    """
+
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(root, "capital_hilton_invoice.json", {"amount": 1})
+    for index in range(8):
+        _write_read_model(root, f"weekly_status_report_{index}.json", {"status": "ok"})
+    rows = demand_index.build_demand_index(root, repo_root=tmp_path)
+
+    selected = demand_index.select_read_models(
+        rows, "what is the capital hilton invoice status"
+    )
+
+    assert [row.id for row in selected] == ["capital_hilton_invoice"]
+
+
 def test_spine_is_the_small_always_loaded_layer(tmp_path: Path) -> None:
     root = tmp_path / "read_models"
     root.mkdir()

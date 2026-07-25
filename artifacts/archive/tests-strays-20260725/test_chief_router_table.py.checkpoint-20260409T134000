@@ -1,0 +1,365 @@
+"""
+Table-driven tests for chief_router intent functions and routing.
+
+Group 1: individual intent-detection functions (pure bool/str returns)
+Group 2: billing_mode_from_text disambiguation
+Group 3: routing precedence (route_message end-to-end)
+"""
+import sys
+import types
+
+import pytest
+
+from chief_router import (
+    billing_mode_from_text,
+    brainstorm_capture_intent,
+    calendar_intent,
+    cpa_intent,
+    email_intent,
+    financial_intent,
+    looks_like_cancel,
+    looks_like_correction,
+    marketing_intent,
+    phone_intent,
+    reporter_intent,
+    route_message,
+    scout_intent,
+    scheduler_intent,
+    sms_intent,
+    stack_restart_intent,
+)
+
+
+# ---------------------------------------------------------------------------
+# Group 1 — individual intent-detection function tables
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("restart stack", True),
+    ("restart the stack", True),
+    ("reload stack", True),
+    ("restart chief", True),
+    ("restart openclaw", True),
+    ("reboot stack", True),
+    # False
+    ("restart", False),
+    ("stack", False),
+    ("restart the server", False),
+    ("the stack needs a restart", False),
+    ("send email to client", False),
+])
+def test_stack_restart_intent_table(text: str, expected: bool) -> None:
+    assert stack_restart_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("what did i make", True),
+    ("income this month", True),
+    ("log expense", True),
+    ("quarterly tax", True),
+    ("what can i deduct", True),
+    # False
+    ("restart the stack", False),
+    ("send email to client", False),
+])
+def test_cpa_intent_table(text: str, expected: bool) -> None:
+    assert cpa_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("send email to mike", True),
+    ("draft email follow up", True),
+    ("invoice email", True),
+    ("email log", True),
+    # False
+    ("send sms to client", False),
+    ("what did i make", False),
+])
+def test_email_intent_table(text: str, expected: bool) -> None:
+    assert email_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("send sms to band", True),
+    ("send a text to james", True),
+    ("draft sms", True),
+    ("text history", True),
+    # False
+    ("send email to band", False),
+    ("draft email", False),
+])
+def test_sms_intent_table(text: str, expected: bool) -> None:
+    assert sms_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("log call with venue manager", True),
+    ("just got off a call", True),
+    ("call script for booking", True),
+    ("  GOT OFF THE PHONE with the promoter  ", True),
+    ("recent calls", True),
+    ("call log from this week", True),
+    ("show call history", True),
+    ("just talked to the venue", True),
+    ("what should i say to the venue owner", True),
+    ("CALL SCRIPT for booking", True),
+    # False
+    ("callback from client", False),
+    ("call me back", False),
+    ("i have a phone", False),
+    ("conference call scheduled", False),
+    ("phone call tomorrow", False),
+    ("send sms", False),
+    ("what did i earn", False),
+])
+def test_phone_intent_table(text: str, expected: bool) -> None:
+    assert phone_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("financial report", True),
+    ("outstanding invoices", True),
+    ("who owes me", True),
+    ("revenue this month", True),
+    ("how's business", True),
+    # False — cpa-level (income/expense detail)
+    ("what did i make", False),
+    ("log expense", False),
+])
+def test_financial_intent_table(text: str, expected: bool) -> None:
+    assert financial_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("scout report", True),
+    ("what's new in ai this week", True),
+    ("  MUSIC TECH updates  ", True),
+    ("research notes from yesterday", False),
+    ("new toolkit for mixing", False),
+    ("status report", False),
+])
+def test_scout_intent_table(text: str, expected: bool) -> None:
+    assert scout_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("marketing plan for this release", True),
+    ("what should i post today", True),
+    ("draft a caption for instagram", True),
+    # False
+    ("send email to mike", False),
+    ("financial report", False),
+    ("restart stack", False),
+])
+def test_marketing_intent_table(text: str, expected: bool) -> None:
+    assert marketing_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("what's my week", True),
+    ("what's coming up", True),
+    ("calendar", True),
+    ("what do i have today", True),
+    # Note: "content calendar" also matches because it contains "calendar" —
+    # content_calendar_intent takes routing priority but the pure function still fires.
+    # False — texts that contain no calendar keywords at all
+    ("send email", False),
+    ("financial report", False),
+    ("restart stack", False),
+])
+def test_calendar_intent_table(text: str, expected: bool) -> None:
+    assert calendar_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("brainstorm new single concept", True),
+    ("capture idea for reel", True),
+    ("new idea for the album", True),
+    # Note: "brainstorm status"/"brainstorm queue" also match the pure function because
+    # they contain "brainstorm"; routing order ensures watch/queue handlers fire first.
+    ("capture this idea", True),
+    ("jot down a concept", False),
+    ("new brainstorm session", True),
+    # False — texts with no brainstorm capture keywords
+    ("send a text", False),
+    ("what's my schedule", False),
+])
+def test_brainstorm_capture_intent_table(text: str, expected: bool) -> None:
+    assert brainstorm_capture_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("cancel", True),
+    ("never mind", True),
+    ("nevermind", True),
+    ("start over", True),
+    ("stop", True),
+    # False
+    ("what did i make", False),
+    ("restart stack", False),
+])
+def test_looks_like_cancel_table(text: str, expected: bool) -> None:
+    assert looks_like_cancel(text) is expected
+
+@pytest.mark.parametrize("text,expected", [
+    # True cases
+    ("that was wrong", True),
+    ("hold up, use the other venue", True),
+    ("wait, not that draft", True),
+    ("correction: send it tomorrow", True),
+    ("change that to friday", True),
+    ("go back to the first version", True),
+    ("undo that action", True),
+    ("the last thing was wrong", True),
+    ("wait a minute", True),
+    ("please change that", True),
+    # False cases
+    ("hold on a second", False),
+    ("please change the venue", False),
+    ("circle back tomorrow", False),
+    ("undoing this takes time", False),
+    ("wrong number", False),
+    ("the last song was strong", False),
+    ("just checking", False),
+    ("what was that", False),
+])
+def test_looks_like_correction_table(text: str, expected: bool) -> None:
+    assert looks_like_correction(text) is expected
+
+
+@pytest.mark.parametrize("text,scheduler_status,expected", [
+    ("schedule deep work for 45 minutes", "idle", True),
+    ("timer status", "idle", True),
+    ("stop session", "idle", True),
+    ("done for now", "idle", True),
+    ("continue", "running", True),
+    ("take break for 10", "running", True),
+    ("switch to email", "running", True),
+    ("stop", "running", True),
+    ("restart stack", "idle", False),
+    ("send email to mike", "idle", False),
+    ("status update", "idle", False),
+    ("continue", "idle", False),
+    ("take break for 10", "idle", False),
+    ("switch to email", "idle", False),
+])
+def test_scheduler_intent_table(
+    monkeypatch: pytest.MonkeyPatch,
+    text: str,
+    scheduler_status: str,
+    expected: bool,
+) -> None:
+    monkeypatch.setitem(
+        scheduler_intent.__globals__,
+        "_sched_load",
+        lambda: {"status": scheduler_status},
+    )
+    assert scheduler_intent(text) is expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("system report", True),
+    ("daily report", True),
+    ("what ran today", True),
+    ("status report", True),
+    ("worker report", True),
+    ("watcher report", True),
+    # False
+    ("what happened this week", False),
+    ("financial report", False),
+    ("status update", False),
+    ("send email to mike", False),
+])
+def test_reporter_intent_table(text: str, expected: bool) -> None:
+    assert reporter_intent(text) is expected
+
+
+# ---------------------------------------------------------------------------
+# Group 2 — billing_mode_from_text disambiguation table
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text,expected_mode", [
+    # INVOICE signals
+    ("I need to send an invoice", "INVOICE"),
+    ("create invoice for DJ set", "INVOICE"),
+    ("make an invoice", "INVOICE"),
+    ("draft invoice for the event", "INVOICE"),
+    # PAYMENT signals
+    ("payment received from venue", "PAYMENT"),
+    ("got paid today", "PAYMENT"),
+    ("deposit received for the gig", "PAYMENT"),
+    ("mark payment received", "PAYMENT"),
+    # FOLLOWUP signals — must not contain "payment" or "invoice" (those keywords
+    # shadow followup because INVOICE and PAYMENT blocks are checked first)
+    ("follow up with the client", "FOLLOWUP"),
+    ("follow-up with the venue next week", "FOLLOWUP"),
+    ("nudge the client about the balance", "FOLLOWUP"),
+    # RECEIPT signals — must not contain "invoice" (INVOICE block fires first)
+    ("issue receipt for the booking", "RECEIPT"),
+    ("send receipt to client", "RECEIPT"),
+    # None — unrelated
+    ("what did i make this month", None),
+    ("restart stack", None),
+    ("send email to mike", None),
+])
+def test_billing_mode_from_text_table(text: str, expected_mode: str | None) -> None:
+    assert billing_mode_from_text(text) == expected_mode
+
+
+# ---------------------------------------------------------------------------
+# Group 3 — routing precedence (route_message end-to-end)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text,expected_intent", [
+    # Stack restart takes highest priority
+    ("restart stack", "stack_restart"),
+    ("restart the stack", "stack_restart"),
+    # Cancel is high priority
+    ("cancel", "cancel"),
+    # CPA-level
+    ("what did i make", "cpa_query"),
+    ("log expense", "cpa_query"),
+    # Billing mode
+    ("I need to send an invoice", "billing_start"),
+    # Brainstorm
+    ("brainstorm new single concept", "brainstorm_capture"),
+])
+def test_routing_precedence_table(
+    monkeypatch: pytest.MonkeyPatch,
+    text: str,
+    expected_intent: str,
+) -> None:
+    monkeypatch.setitem(route_message.__globals__, "_log_route", lambda *args, **kwargs: None)
+    monkeypatch.setitem(route_message.__globals__, "append_history", lambda *args, **kwargs: None)
+    monkeypatch.setitem(route_message.__globals__, "set_workflow", lambda *args, **kwargs: None)
+    monkeypatch.setitem(route_message.__globals__, "set_workflow_state", lambda *args, **kwargs: None)
+    monkeypatch.setitem(route_message.__globals__, "reset_session", lambda: None)
+    monkeypatch.setitem(route_message.__globals__, "mark_cancelled", lambda: None)
+    monkeypatch.setitem(route_message.__globals__, "cpa_handle", lambda _: ["stub cpa"])
+    monkeypatch.setitem(route_message.__globals__, "brainstorm_handle", lambda _: ["stub brainstorm"])
+
+    class _NoopThread:
+        def __init__(self, target=None, daemon=None):
+            self.target = target
+            self.daemon = daemon
+
+        def start(self) -> None:
+            return None
+
+    monkeypatch.setitem(
+        sys.modules,
+        "subprocess",
+        types.SimpleNamespace(Popen=lambda *args, **kwargs: None, STDOUT=-1),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "threading",
+        types.SimpleNamespace(Thread=_NoopThread),
+    )
+
+    result = route_message(text)
+    assert result["intent"] == expected_intent, (
+        f"route_message({text!r}) returned intent={result['intent']!r}, "
+        f"expected {expected_intent!r}"
+    )

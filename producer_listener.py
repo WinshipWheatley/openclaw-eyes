@@ -1,5 +1,6 @@
 import asyncio
 import contextvars
+import hashlib
 import json
 import os
 import sys
@@ -19,6 +20,7 @@ from telegram_listener_integrity import (
 )
 from telegram_receipt_adapter import (
     contract_delivery_descriptor,
+    register_operator_text_delivery_v2,
     register_telegram_delivery,
     render_verified_receipt_reply,
     resolve_telegram_receipt_request,
@@ -222,6 +224,21 @@ def _is_bare_status_query(text: str) -> bool:
     return normalized in _BARE_STATUS_PHRASES
 
 
+def _apply_niles_grounded_fallback(result: str, text: str) -> str:
+    """Answer from Niles' own knowledge when intake could not route.
+
+    Logic lives in niles_context_grounding so it stays testable without the
+    Telegram runtime. Strictly an upgrade of a dead end: with no relevant
+    knowledge, or on failure, the original honest reply is returned untouched.
+    """
+    try:
+        from niles_context_grounding import apply_grounded_fallback
+
+        return apply_grounded_fallback(result, text)
+    except Exception:
+        return result
+
+
 def build_niles_bare_status_answer() -> str:
     from agent_contract_renderers import render_niles_status
 
@@ -240,6 +257,37 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _TYPED_CONTRACT_RECEIPT.set(None)
     effective_chat = getattr(update, "effective_chat", None)
     chat_id = effective_chat.id if effective_chat else AUTHORIZED_USER_ID
+    delivery_source_message_id = str(getattr(update.message, "message_id", "") or "")
+    source_binding = hashlib.sha256(
+        f"niles|{chat_id}|{delivery_source_message_id}".encode("utf-8")
+    ).hexdigest()[:12]
+    source_request_id = (
+        f"niles_telegram_{delivery_source_message_id}_{source_binding}"
+    )
+
+    async def _reply_text(reply_text: str, **kwargs):
+        delivered = await update.message.reply_text(reply_text, **kwargs)
+        try:
+            register_operator_text_delivery_v2(
+                delivered_text=reply_text,
+                source_request_id=source_request_id,
+                chat_id=chat_id,
+                source_message_id=delivery_source_message_id,
+                delivered_message=delivered,
+                effective_service="niles-listener.service",
+                effective_surface="niles_producer_listener",
+                effective_bot_identity="niles",
+                token_owner_label="NILES_BOT_TOKEN",
+                bot_token=BOT_TOKEN,
+                response_author="niles",
+                carrier_identity="niles",
+            )
+        except Exception as exc:
+            print(
+                f"[producer_listener] v2 delivery receipt skipped: {type(exc).__name__}",
+                flush=True,
+            )
+        return delivered
     try:
         receipt_resolution = resolve_telegram_receipt_request(
             text,
@@ -250,20 +298,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as exc:
         print(f"[producer_listener] receipt lookup failed: {type(exc).__name__}", flush=True)
-        await update.message.reply_text(_final_operator_reply(
+        await _reply_text(_final_operator_reply(
             "The receipt index is unavailable right now. No send, workflow, model, tool, "
             "ledger, payment, or external action ran.",
             source_request=text,
         ))
         return
     if receipt_resolution is not None:
-        await update.message.reply_text(
+        await _reply_text(
             _final_operator_reply(receipt_resolution.text, source_request=text)
         )
         return
 
     trace_source_message_id = str(getattr(update, "update_id", "") or "")
-    delivery_source_message_id = str(getattr(update.message, "message_id", "") or "")
     first_touch = first_touch_decision.attempt_first_touch(
         text,
         agent="niles",
@@ -274,7 +321,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             first_touch.decision.reply,
             source_request=text,
         )
-        await update.message.reply_text(reply)
+        await _reply_text(reply)
         return
 
     record_telegram_listener_update_safe(
@@ -373,7 +420,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             _typed_reply = _enforced_reply
         except Exception:
             pass
-        delivered_message = await update.message.reply_text(_typed_reply)
+        delivered_message = await _reply_text(_typed_reply)
         try:
             register_telegram_delivery(
                 _typed_descriptor,
@@ -401,12 +448,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     refusal = None if first_touch.attempted else _operator_refusal_reply(text)
     if refusal is not None:
         refusal = _final_operator_reply(refusal, source_request=text)
-        await update.message.reply_text(refusal)
+        await _reply_text(refusal)
         _fire_agent_voice("niles", refusal, update)
         return
 
     if text.lower() in ("/start", "/help"):
-        await update.message.reply_text(
+        await _reply_text(
             _final_operator_reply("Niles online. Producer intake active.", source_request=text)
         )
         return
@@ -416,7 +463,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             build_niles_bare_status_answer(),
             source_request=text,
         )
-        await update.message.reply_text(status_reply)
+        await _reply_text(status_reply)
         _fire_agent_voice("niles", status_reply, update)
         return
 
@@ -434,8 +481,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if "first_touch_receipt" not in str(exc):
                 raise
             result = await _run_producer_intake(text)
+        result = _apply_niles_grounded_fallback(result, text)
         result = _final_operator_reply(result, source_request=text)
-        await update.message.reply_text(result)
+        await _reply_text(result)
         _fire_agent_voice("niles", result, update)
     finally:
         typing_task.cancel()

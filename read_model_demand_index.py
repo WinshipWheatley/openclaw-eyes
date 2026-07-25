@@ -17,6 +17,7 @@ identity, topic tags, key field names, freshness and size only.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,10 @@ from generated_read_model_files import (
 # Right-sizing budget for one selection (bytes). Tuned so a small local
 # model receives a useful slice without a bloated context.
 DEFAULT_SELECTION_BYTE_BUDGET = 60_000
+
+# A candidate is kept only if it scores at least this fraction of the best
+# match, so weak common-word matches cannot ride along beside a strong one.
+RELATIVE_SELECTION_FRACTION = 0.25
 
 _STOPWORDS = frozenset(
     """a an and are as at be by do does for from get give has have how i in is it
@@ -95,14 +100,34 @@ def select_read_models(
     query_tokens = _tokenize(query)
     if not query_tokens:
         return ()
+    # Weight each matched token by how rare it is across the library. A word
+    # half the read-models contain ("status", "route", "pro") is near-zero
+    # evidence; a distinctive one ("hilton", "kqueue") is strong evidence.
+    # Without this, common tokens drag unrelated read-models into the packet.
+    total = len(index) or 1
+    frequency: dict[str, int] = {}
+    for row in index:
+        for token in row.match_tokens():
+            frequency[token] = frequency.get(token, 0) + 1
+
+    def _score(row: ReadModelIndexRow) -> float:
+        # Smoothed inverse document frequency: a token most of the library
+        # contains is weak evidence, a distinctive one is strong.
+        return sum(
+            math.log((total + 1) / (frequency.get(token, 1) + 0.5))
+            for token in query_tokens & row.match_tokens()
+        )
+
+    scored = [(score, row) for score, row in ((_score(row), row) for row in index) if score > 0]
+    if not scored:
+        return ()
+    # Rarity RANKS; the cut is relative to the best match. When a question has a
+    # distinctive hit, read-models matching only on common words are dropped
+    # instead of riding along as noise. In a tiny library where every token is
+    # common by construction, nothing is unfairly excluded.
+    best = max(score for score, _ in scored)
     matches = sorted(
-        (
-            (score, row)
-            for score, row in (
-                (len(query_tokens & row.match_tokens()), row) for row in index
-            )
-            if score > 0
-        ),
+        ((score, row) for score, row in scored if score >= RELATIVE_SELECTION_FRACTION * best),
         key=lambda item: (-item[0], item[1].id),
     )
     selected: list[ReadModelIndexRow] = []
