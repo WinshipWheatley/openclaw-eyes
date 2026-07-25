@@ -35,6 +35,8 @@ DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/.openclaw/business_ops/ledger
 DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
 CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL = "client_invoice_workflow_framework.json"
 RECEIVABLES_MONTH_BOUNDED_READ_MODEL = "receivables_month_bounded.json"
+import read_model_demand_index
+
 KNOWN_READ_MODELS = (
     "agent_presence.json",
     "openclaw_capability_index.json",
@@ -1442,7 +1444,71 @@ def _generic_gig_read_model_facts(root: Path, known_payloads: Mapping[str, Mappi
     return facts, refs, {"generic_gig_read_model_fact_count": len(facts)}
 
 
-def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
+def _demand_selected_read_model_facts(
+    root: Path,
+    *,
+    question: str,
+    already_loaded: set[str],
+) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
+    """Reach read-models beyond the hardcoded allowlist, by demand.
+
+    ``KNOWN_READ_MODELS`` covers ~23 read-models with bespoke extraction. The
+    rest of the library is otherwise invisible to the packet no matter how
+    relevant it is. This selects the question-relevant remainder deterministically
+    (harness-owned token match against the demand index — never a model guess),
+    loads only those, and stays inside a byte budget so the packet is not bloated.
+    """
+
+    facts: list[dict[str, Any]] = []
+    refs: list[str] = []
+    if not str(question or "").strip():
+        return facts, refs, {"demand_selected_read_models": []}
+
+    try:
+        # Resolve first: production passes a repo-relative nested root, and an
+        # unresolved one would silently find nothing.
+        resolved = Path(root).resolve()
+        index = read_model_demand_index.build_demand_index(
+            resolved, repo_root=resolved.parent
+        )
+        candidates = tuple(
+            row for row in index if row.relative_path not in already_loaded
+        )
+        selected = read_model_demand_index.select_read_models(candidates, question)
+    except Exception as exc:  # selection must never break the packet ...
+        # ... but it must never disguise a failure as an honest "no match".
+        return (
+            facts,
+            refs,
+            {
+                "demand_selected_read_models": [],
+                "demand_selection_error": type(exc).__name__,
+            },
+        )
+
+    chosen: list[str] = []
+    for row in selected:
+        path = root / row.relative_path
+        payload = _read_json(path)
+        if not payload:
+            continue
+        chosen.append(row.id)
+        refs.append(_display_read_model_ref(path))
+        _append_fact(
+            facts,
+            topic="demand_read_model",
+            label=f"Read-model: {row.id}",
+            value=_compact(stable_json(payload)),
+            provenance="generated_read_model",
+            source_ref=_display_read_model_ref(path),
+            freshness=_freshness(path, payload),
+        )
+    return facts, refs, {"demand_selected_read_models": chosen}
+
+
+def _read_model_facts(
+    root: Path, *, question: str = ""
+) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
     proof: dict[str, Any] = {"read_model_presence": {}}
@@ -1782,6 +1848,13 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             source_ref=_display_read_model_ref(root / "niles_album_review_packet.json"),
             freshness=_freshness(root / "niles_album_review_packet.json", niles_review),
         )
+
+    demand_facts, demand_refs, demand_proof = _demand_selected_read_model_facts(
+        root, question=question, already_loaded=set(KNOWN_READ_MODELS)
+    )
+    facts.extend(demand_facts)
+    refs.extend(demand_refs)
+    proof.update(demand_proof)
 
     return facts, refs, proof
 
@@ -2815,7 +2888,7 @@ def build_maestro_context_packet(
     )
     truth_facts = _resolve_operator_truth_drift(truth_facts, receivable_temporal_facts)
     contacts_facts, contacts_proof = _contacts_registry_facts(question)
-    read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root)
+    read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root, question=question)
     pending_action_facts = _guardian_action_state_facts()
     facts = [
         *pending_action_facts,
