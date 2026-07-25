@@ -1755,6 +1755,35 @@ Response discipline:
 - Maintain a professional, results-oriented partnership with Winship.
 """
 
+def _chief_demand_context(question: str, *, root: "_Path | None" = None) -> str:
+    """Question-relevant read-model grounding for Chief.
+
+    Chief has no context packet: its conversational grounding is a fixed
+    snapshot plus three hardcoded read-models, so the rest of the library is
+    unreachable however relevant it is. This selects the question-relevant
+    remainder deterministically (harness-owned, never a model guess) and stays
+    inside a byte budget. Returns "" when nothing matches or selection fails —
+    Chief's existing grounding is never degraded by this.
+    """
+    import json as _json
+
+    import read_model_demand_index
+
+    source_root = root if root is not None else _Path("generated/read_models")
+    selection = read_model_demand_index.select_demand_read_models(
+        source_root, question=question
+    )
+    if selection.error or not selection.rows:
+        return ""
+    lines: list[str] = []
+    for row in selection.rows:
+        payload, _ = _read_json_read_model(source_root, row.relative_path)
+        if not payload:
+            continue
+        lines.append(f"- {row.id}: {_json.dumps(payload, sort_keys=True)[:900]}")
+    return "\n".join(lines)
+
+
 def _chief_fallback_reply(text: str) -> list[str]:
     """Last-resort conversational fallback for Chief."""
     from adaptive_model_call import adaptive_ollama_text
@@ -1762,6 +1791,9 @@ def _chief_fallback_reply(text: str) -> list[str]:
     from cassandra_brain import build_context_snapshot
 
     context = build_context_snapshot()
+    demand_context = _chief_demand_context(text)
+    if demand_context:
+        context = f"{context}\n\nQuestion-relevant read-models:\n{demand_context}"
     prompt = (
         f"{_CHIEF_SYSTEM_PROMPT}\n\n"
         f"Current system context:\n{context}\n\n"
