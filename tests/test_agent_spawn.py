@@ -132,3 +132,102 @@ def test_oversized_packet_fails_honestly_not_silently(monkeypatch) -> None:
     assert spawn.result is None
     assert "prompt" in (spawn.error or "").lower()
     assert spawn.receipt["error"]
+
+
+def _uncovered_builder(**_kwargs: Any) -> Mapping[str, Any]:
+    """A packet that simply does not contain the answer."""
+
+    return {
+        "status": "READY",
+        "facts": [
+            {
+                "fact_id": "presence:1",
+                "topic": "presence",
+                "label": "Agents online",
+                "value": "6 of 6 agents online.",
+                "provenance": "generated_read_model",
+                "source_ref": "generated/read_models/agent_presence.json",
+            }
+        ],
+        "source_refs": ["generated/read_models/agent_presence.json"],
+        "packet_text": "- Agents online: 6 of 6 agents online.",
+    }
+
+
+def test_uncovered_target_reports_the_gap_instead_of_guessing() -> None:
+    """Dank af or an honest gap -- never a confident fabrication. If the packet
+    does not cover the target, the doer must not be asked to invent it."""
+
+    called: list[str] = []
+
+    def model(prompt: str, **_kw: Any) -> str:
+        called.append(prompt)
+        return "TH-U is a modular synthesizer module."
+
+    spawn = agent_spawn.spawn_doer(
+        agent="niles",
+        target="explain what TH-U is and how it routes into Logic Pro X",
+        legacy_builder=_uncovered_builder,
+        model_call=model,
+        research=False,  # this test isolates the gap path; lookup has its own tests
+    )
+
+    assert spawn.result is None
+    assert "cover" in (spawn.error or "")
+    assert not called, "a doer must not be asked to answer from a packet that lacks the facts"
+    assert spawn.receipt["gap"]
+
+
+def test_covered_target_still_runs_normally() -> None:
+    spawn = agent_spawn.spawn_doer(
+        agent="cassandra",
+        target="prepare the LAMD invoice",
+        legacy_builder=_builder,
+        model_call=lambda prompt, **kw: "drafted",
+    )
+
+    assert spawn.result == "drafted"
+
+
+def test_gap_triggers_a_lookup_and_the_doer_then_answers(monkeypatch) -> None:
+    """Operator: if it does not know what TH-U is, look it up."""
+
+    monkeypatch.setattr(
+        "gap_research.research_gap",
+        lambda **kw: {
+            "fact_id": "web_lookup:thu",
+            "topic": "web_lookup",
+            "label": "Looked up: TH-U",
+            "value": "TH-U is a guitar amp simulator plugin by Overloud.",
+            "provenance": "web_lookup",
+            "source_ref": "https://overloud.com/th-u",
+            "freshness": {"retrieved_at": "2026-07-26T00:00:00Z"},
+        },
+    )
+    prompts: list[str] = []
+
+    spawn = agent_spawn.spawn_doer(
+        agent="niles",
+        target="explain what TH-U is",
+        legacy_builder=_uncovered_builder,
+        model_call=lambda prompt, **kw: prompts.append(prompt) or "TH-U is an amp sim plugin.",
+    )
+
+    assert spawn.result == "TH-U is an amp sim plugin."
+    assert "amp simulator plugin" in prompts[0]
+    assert spawn.receipt["researched"]
+
+
+def test_research_can_be_turned_off_and_the_gap_stands(monkeypatch) -> None:
+    monkeypatch.setattr("gap_research.research_gap", lambda **kw: None)
+
+    spawn = agent_spawn.spawn_doer(
+        agent="niles",
+        target="explain what TH-U is",
+        legacy_builder=_uncovered_builder,
+        model_call=lambda prompt, **kw: "should not be asked",
+        research=False,
+    )
+
+    assert spawn.result is None
+    assert "cover" in (spawn.error or "")

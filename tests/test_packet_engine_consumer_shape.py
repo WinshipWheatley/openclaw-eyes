@@ -119,3 +119,59 @@ def test_doer_facts_are_concentrated_not_raw_dumps() -> None:
     )
 
     assert len(packet["packet_text"]) < 2000
+
+
+def _blob_builder(**_kwargs: Any) -> Mapping[str, Any]:
+    """One fact whose signal is buried deep inside a long JSON dump."""
+
+    filler = ", ".join(f'"noise_{i}": "irrelevant padding value"' for i in range(60))
+    return {
+        "status": "READY",
+        "facts": [
+            {
+                "fact_id": "gear:1",
+                "topic": "gear",
+                "label": "TH-U",
+                "value": "{" + filler + ', "th_u_kind": "software amp sim plugin (AU/VST)"}',
+                "provenance": "niles_rig_kb",
+                "source_ref": "niles_rig_kb.py",
+            },
+            {
+                "fact_id": "noise:1",
+                "topic": "weather",
+                "label": "Forecast",
+                "value": "Unrelated chatter about tomorrow's forecast." * 20,
+                "provenance": "generated_read_model",
+                "source_ref": "generated/read_models/weather.json",
+            },
+        ],
+        "source_refs": ["niles_rig_kb.py", "generated/read_models/weather.json"],
+        "packet_text": "irrelevant",
+    }
+
+
+def test_potency_keeps_the_signal_buried_in_a_long_value() -> None:
+    """Cured, not merely small: distil the resinous part, do not cut at an
+    arbitrary character and lose the one fact that mattered."""
+
+    packet = build_agent_packet(
+        agent="niles",
+        question="is th u a plugin",
+        consumer_kind="spawned",
+        target="explain how TH-U is used in Logic",
+        legacy_builder=_blob_builder,
+    )
+
+    assert "software amp sim plugin" in packet["packet_text"]
+
+
+def test_potency_spends_the_budget_on_relevant_facts_not_noise() -> None:
+    packet = build_agent_packet(
+        agent="niles",
+        question="is th u a plugin",
+        consumer_kind="spawned",
+        target="explain how TH-U is used in Logic",
+        legacy_builder=_blob_builder,
+    )
+
+    assert "forecast" not in packet["packet_text"].lower()

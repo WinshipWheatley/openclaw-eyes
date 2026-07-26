@@ -79,7 +79,7 @@ def build_agent_packet(
 
     build_ms = _elapsed_ms(started)
     if packet is not None and normalized_consumer == "spawned":
-        packet = _concentrate_for_doer(packet)
+        packet = _concentrate_for_doer(packet, target=target, question=question)
     if packet is None:
         return _failure_packet(
             agent=normalized_agent,
@@ -362,25 +362,66 @@ def _shape_for_doer(
     return packet
 
 
-def _concentrate_for_doer(packet: dict[str, Any]) -> dict[str, Any]:
-    """Cure the legacy packet down to signal before decoration.
+def _concentrate_for_doer(packet: dict[str, Any], *, target: str = "", question: str = ""
+) -> dict[str, Any]:
+    """Cure the legacy packet to its signal, before decoration.
 
-    Premium potency: max signal per token. Runs BEFORE persona and doctrine are
-    merged in, so concentrating can never cost a doer its identity or its rules
-    — only the raw data dump it does not need in full.
+    Premium potency is not "smaller" — it is maximum signal per token. So:
+    rank facts against the assignment, spend the budget on the ones that earn
+    it, and distil the resinous part out of each long value instead of cutting
+    at an arbitrary character. Runs BEFORE persona and doctrine merge in, so
+    curing the data can never cost a doer its identity or its rules.
     """
-    facts = []
-    for row in packet.get("facts", ()):
-        if not isinstance(row, Mapping):
-            continue
-        row = dict(row)
-        row["value"] = str(row.get("value") or "")[:DOER_FACT_VALUE_CHARS]
-        facts.append(row)
-    packet["facts"] = facts
+    import read_model_demand_index as _dmi
+
+    tokens = _dmi._tokenize(f"{target} {question}")
+    rows = [dict(r) for r in packet.get("facts", ()) if isinstance(r, Mapping)]
+
+    def _relevance(row: Mapping[str, Any]) -> int:
+        text = " ".join(
+            str(row.get(k, "")) for k in ("topic", "label", "value", "source_ref")
+        )
+        return len(tokens & _dmi._tokenize(text))
+
+    ranked = sorted(rows, key=lambda r: -_relevance(r))
+    earning = [r for r in ranked if _relevance(r) > 0] or ranked
+
+    # Spend the budget top-down: the most relevant fact gets room to be useful.
+    kept: list[dict[str, Any]] = []
+    spent = 0
+    for row in earning:
+        if spent >= DOER_PACKET_TEXT_CHARS:
+            break
+        row["value"] = _distil_value(str(row.get("value") or ""), tokens)
+        kept.append(row)
+        spent += len(str(row.get("label") or "")) + len(row["value"]) + 4
+
+    packet["facts"] = kept
     packet["packet_text"] = "\n".join(
-        f"- {row.get('label')}: {row.get('value')}" for row in facts
+        f"- {row.get('label')}: {row.get('value')}" for row in kept
     )[:DOER_PACKET_TEXT_CHARS]
     return packet
+
+
+def _distil_value(value: str, tokens: set[str]) -> str:
+    """Keep the parts of a value that bear on the assignment.
+
+    A long JSON dump truncated at a fixed character loses whatever mattered if
+    it happened to sit at the end. Instead keep the fragments that match the
+    assignment, and only fall back to a head-cut when nothing matches.
+    """
+    import re
+
+    import read_model_demand_index as _dmi
+
+    if len(value) <= DOER_FACT_VALUE_CHARS:
+        return value
+    fragments = [f for f in re.split(r"[,\n]", value) if f.strip()]
+    hits = [f.strip().strip("{}\"' ") for f in fragments if tokens & _dmi._tokenize(f)]
+    if hits:
+        joined = "; ".join(dict.fromkeys(hits))
+        return joined[:DOER_FACT_VALUE_CHARS]
+    return value[:DOER_FACT_VALUE_CHARS]
 
 
 def _decorate_packet(

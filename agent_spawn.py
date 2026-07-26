@@ -96,6 +96,34 @@ def _default_model_call(prompt: str, *, lane: str = "", model: str = "") -> str:
     return adaptive_ollama_text(prompt, timeout=120, task_class="doer_spawn")
 
 
+def _coverage_gap(packet: Mapping[str, Any], *, target: str, question: str) -> str:
+    """Name what the packet fails to cover, or "" when it covers the target.
+
+    Potency selects the best facts available — it cannot concentrate a fact the
+    knowledge base does not hold. When nothing in the packet bears on the
+    target, asking the model anyway is an invitation to confabulate. Dank af or
+    an honest gap; never a confident fabrication.
+    """
+    import read_model_demand_index as _dmi
+
+    tokens = _dmi._tokenize(f"{target} {question}")
+    if not tokens:
+        return ""
+    for row in packet.get("facts", ()):
+        if not isinstance(row, Mapping):
+            continue
+        marker = f"{row.get('topic','')} {row.get('fact_id','')}".lower()
+        if "persona" in marker or "doctrine" in marker:
+            continue  # identity is not coverage
+        text = " ".join(
+            str(row.get(key, "")) for key in ("topic", "label", "value", "source_ref")
+        )
+        if tokens & _dmi._tokenize(text):
+            return ""
+    missing = ", ".join(sorted(tokens)[:6])
+    return f"packet_does_not_cover_target:{missing}"
+
+
 def spawn_doer(
     agent: str,
     target: str,
@@ -107,6 +135,7 @@ def spawn_doer(
     legacy_builder: Callable[..., Mapping[str, Any]] | None = None,
     model_call: Callable[..., str] | None = None,
     max_prompt_chars: int = DEFAULT_MAX_PROMPT_CHARS,
+    research: bool = True,
     **builder_kwargs: Any,
 ) -> DoerSpawn:
     """Spawn ``agent`` as a doer against ``target`` and return its work product."""
@@ -138,7 +167,44 @@ def spawn_doer(
     caller = model_call or _default_model_call
     result: str | None = None
     error: str | None = None
-    if max_prompt_chars and len(prompt) > max_prompt_chars:
+    gap = _coverage_gap(packet, target=target, question=question)
+    researched = ""
+    if gap and research:
+        # Do not invite a guess — go and learn it, then answer from what was
+        # learned. Only the unknown term is searched, and what comes back is
+        # labelled web-sourced with its URL.
+        import gap_research
+
+        learned = gap_research.research_gap(
+            target=target, uncovered_terms=gap.split(":", 1)[-1].split(", ")
+        )
+        if learned:
+            packet = dict(packet)
+            packet["facts"] = [*packet.get("facts", ()), learned]
+            packet["packet_text"] = "\n".join(
+                part
+                for part in (
+                    str(packet.get("packet_text") or "").strip(),
+                    f"- {learned['label']}: {learned['value']} "
+                    f"[web source: {learned['source_ref']}]",
+                )
+                if part
+            )
+            prompt = "\n\n".join(
+                part
+                for part in (
+                    DOER_INSTRUCTION,
+                    str(packet.get("packet_text") or "").strip(),
+                    f"Deliver the work product for: {target}",
+                )
+                if part
+            )
+            researched = learned["source_ref"]
+            gap = ""
+    if gap:
+        # Nothing learned — report the gap rather than let anything be invented.
+        error = gap
+    if not error and max_prompt_chars and len(prompt) > max_prompt_chars:
         # Honest wall, not a silent empty answer.
         error = (
             f"prompt_exceeds_model_context:{len(prompt)}>{max_prompt_chars}"
@@ -177,6 +243,8 @@ def spawn_doer(
         "fact_count": len(packet.get("facts") or ()),
         "result_chars": len(result or ""),
         "error": error or "",
+        "gap": gap,
+        "researched": researched,
         # A doer is a producer of work product. Effects stay operator-gated.
         "effect_authority": "none",
     }
