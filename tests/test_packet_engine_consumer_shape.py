@@ -87,3 +87,35 @@ def test_spawned_without_a_target_still_builds() -> None:
 
     assert packet["agent_id"] == "niles"
     assert packet["facts"]
+
+
+def test_doer_facts_are_concentrated_not_raw_dumps() -> None:
+    """Premium potency: max signal per token. A doer packet is cured, not raw --
+    a wall of JSON blows the model's context and returns nothing."""
+
+    def fat_builder(**_kwargs: Any) -> Mapping[str, Any]:
+        return {
+            "status": "READY",
+            "facts": [
+                {
+                    "fact_id": "invoice:1",
+                    "topic": "invoice",
+                    "label": "LAMD invoice",
+                    "value": "x" * 4000,
+                    "provenance": "generated_read_model",
+                    "source_ref": "generated/read_models/lamd.json",
+                }
+            ],
+            "source_refs": ["generated/read_models/lamd.json"],
+            "packet_text": "- LAMD invoice: " + "x" * 4000,
+        }
+
+    packet = build_agent_packet(
+        agent="cassandra",
+        question="prepare the invoice",
+        consumer_kind="spawned",
+        target="prepare the LAMD invoice",
+        legacy_builder=fat_builder,
+    )
+
+    assert len(packet["packet_text"]) < 2000

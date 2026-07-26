@@ -78,6 +78,8 @@ def build_agent_packet(
         failures.append(_failure_dict(exc))
 
     build_ms = _elapsed_ms(started)
+    if packet is not None and normalized_consumer == "spawned":
+        packet = _concentrate_for_doer(packet)
     if packet is None:
         return _failure_packet(
             agent=normalized_agent,
@@ -299,6 +301,9 @@ def _score_packet_dankness(packet: dict[str, Any], question: str) -> dict[str, A
 # A doer packet is deliberately narrow: the target, what bears on it, and
 # nothing else. Extra breadth is where a spawned agent drifts off-assignment.
 SPAWNED_FACT_LIMIT = 8
+# Potency bounds for a doer packet: enough signal to act, small enough to fit.
+DOER_FACT_VALUE_CHARS = 220
+DOER_PACKET_TEXT_CHARS = 1_800
 
 
 def _shape_for_doer(
@@ -354,6 +359,27 @@ def _shape_for_doer(
     packet["packet_text"] = "\n".join(
         part for part in (f"ASSIGNMENT: {target}" if target else "", existing_text) if part
     )
+    return packet
+
+
+def _concentrate_for_doer(packet: dict[str, Any]) -> dict[str, Any]:
+    """Cure the legacy packet down to signal before decoration.
+
+    Premium potency: max signal per token. Runs BEFORE persona and doctrine are
+    merged in, so concentrating can never cost a doer its identity or its rules
+    — only the raw data dump it does not need in full.
+    """
+    facts = []
+    for row in packet.get("facts", ()):
+        if not isinstance(row, Mapping):
+            continue
+        row = dict(row)
+        row["value"] = str(row.get("value") or "")[:DOER_FACT_VALUE_CHARS]
+        facts.append(row)
+    packet["facts"] = facts
+    packet["packet_text"] = "\n".join(
+        f"- {row.get('label')}: {row.get('value')}" for row in facts
+    )[:DOER_PACKET_TEXT_CHARS]
     return packet
 
 
