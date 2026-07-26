@@ -452,3 +452,52 @@ def test_a_rehearsal_never_counts_as_a_client_complaint(tmp_path: Path) -> None:
     assert model["trust_damage_count"] == 0, "a drill must not inflate trust damage"
     assert model["rehearsal_count"] == 1, "and must not be silently dropped either"
     assert len(escalation.load_queue(queue)) == 2, "the queue keeps both for audit"
+
+
+def test_the_harness_picks_the_quote_not_the_agent(tmp_path: Path) -> None:
+    """Asked to summarise, a model reaches for the politest line. So it is not asked."""
+
+    message = (
+        "Hi, hope you're well. Thanks for sending that over. "
+        "This is the third time the invoice has been late and it's unacceptable. "
+        "Let me know when you can."
+    )
+
+    verdict = escalation.detect_dissatisfaction(message)
+
+    assert verdict["escalate"]
+    assert verdict["severity"] == "trust_damage"
+    assert "unacceptable" in verdict["verbatim"]
+    assert "hope you're well" not in verdict["verbatim"]
+
+
+def test_a_happy_client_does_not_get_escalated(tmp_path: Path) -> None:
+    """The gate is precision. A thank-you must not open a repair ticket."""
+
+    queue = tmp_path / "queue.jsonl"
+    result = escalation.escalate_from_message(
+        client_ref="c",
+        client_message="Got it, thanks so much — looks great.",
+        what_broke="n/a",
+        queue_path=queue,
+    )
+
+    assert result["status"] == "NO_ESCALATION_NEEDED"
+    assert not queue.exists()
+
+
+def test_filing_from_a_raw_message_quotes_it_verbatim(tmp_path: Path) -> None:
+    queue = tmp_path / "queue.jsonl"
+    message = "I'm still waiting on this. Every time I have to chase you."
+
+    result = escalation.escalate_from_message(
+        client_ref="live_arts_md",
+        client_message=message,
+        what_broke="LAMD auto-send did not fire on the 16th.",
+        queue_path=queue,
+    )
+
+    assert result["status"] == escalation.STATUS_FILED
+    assert escalation.is_verbatim(result["item"]["client_verbatim"], message)
+    assert result["item"]["severity"] == "trust_damage"
+

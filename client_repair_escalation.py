@@ -100,6 +100,76 @@ def assess_severity(client_message: str) -> str:
     return "routine"
 
 
+def detect_dissatisfaction(client_message: str) -> dict[str, Any]:
+    """Decide whether a client message warrants a repair item, and quote it.
+
+    Choosing *which* sentence to hand Chief is the judgement most likely to go
+    soft — a model asked to summarise will reach for the politest line in the
+    message. So the harness picks instead: the sentence carrying the strongest
+    signal wins, verbatim, and it is by construction a real substring of what
+    the client wrote.
+    """
+
+    sentences = [
+        part.strip()
+        for part in re.split(r"(?<=[.!?\n])\s+", str(client_message or ""))
+        if part.strip()
+    ]
+    best: tuple[int, str] = (0, "")
+    for sentence in sentences:
+        lowered = _normalize(sentence)
+        score = 3 * sum(1 for phrase in _TRUST_DAMAGE if phrase in lowered)
+        score += sum(1 for phrase in _ELEVATED if phrase in lowered)
+        if score > best[0]:
+            best = (score, sentence.rstrip())
+    severity = assess_severity(client_message)
+    return {
+        "escalate": bool(best[1]) and severity != "routine",
+        "severity": severity,
+        "verbatim": best[1],
+        "signal_strength": best[0],
+    }
+
+
+def escalate_from_message(
+    *,
+    client_ref: str,
+    client_message: str,
+    what_broke: str,
+    reporter: str = REPORTER,
+    surface: str = "inbound_client_message",
+    queue_path: str | Path | None = None,
+    test_mode: bool = False,
+) -> dict[str, Any]:
+    """File a repair item from a raw client message, quoting it for the caller.
+
+    The caller supplies what broke. It does not get to choose how gently the
+    client is quoted.
+    """
+
+    verdict = detect_dissatisfaction(client_message)
+    if not verdict["escalate"]:
+        return {
+            "status": "NO_ESCALATION_NEEDED",
+            "filed": False,
+            "detection": verdict,
+            "detail": "Nothing in the message reads as dissatisfaction.",
+            "remedy": "",
+        }
+    result = escalate_client_dissatisfaction(
+        client_ref=client_ref,
+        client_message=client_message,
+        client_verbatim=verdict["verbatim"],
+        what_broke=what_broke,
+        reporter=reporter,
+        surface=surface,
+        queue_path=queue_path,
+        test_mode=test_mode,
+    )
+    result["detection"] = verdict
+    return result
+
+
 def _item_id(payload: Mapping[str, Any]) -> str:
     blob = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
     return f"repair:{hashlib.sha256(blob).hexdigest()[:16]}"
