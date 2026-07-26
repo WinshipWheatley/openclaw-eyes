@@ -3199,7 +3199,18 @@ def build_hermes_truthful_advisory_answer(text: str) -> dict[str, Any]:
     # READ-ONLY, additive; adds no send/execute capability. Failures silently skipped.
     try:
         from hermes_context_packet import build_hermes_context_packet
-        _hpt = str(build_hermes_context_packet(question=text).get("packet_text") or "").strip()
+        from packet_engine import build_agent_packet
+
+        # Shared engine: persona, build receipt and dankness scoring; Hermes'
+        # own builder still does the data assembly.
+        _hpt = str(
+            build_agent_packet(
+                agent="hermes",
+                question=text,
+                legacy_builder=build_hermes_context_packet,
+            ).get("packet_text")
+            or ""
+        ).strip()
     except Exception:
         _hpt = ""
     if _hpt:

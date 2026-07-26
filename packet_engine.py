@@ -96,6 +96,7 @@ def build_agent_packet(
     decorated = _decorate_packet(
         packet,
         agent=normalized_agent,
+        question=question,
         question_class=question_class_value,
         authority=authority,
         persona_core=persona_core,
@@ -270,10 +271,34 @@ def _persona_delivery(
     return delivery
 
 
+def _score_packet_dankness(packet: dict[str, Any], question: str) -> dict[str, Any]:
+    """Score every engine-built packet.
+
+    The critic existed and was registered, but nothing in a reply path called
+    it, so no real packet was ever scored. Scoring here means all agents get
+    the feedback loop. Scoring must never break a packet: a critic failure is
+    reported on the packet, not raised.
+    """
+    try:
+        import dataclasses
+
+        import packet_dankness_critic
+
+        score = packet_dankness_critic.score_packet_dankness(packet, question)
+        return {
+            key: value
+            for key, value in dataclasses.asdict(score).items()
+            if not key.startswith("_")
+        }
+    except Exception as exc:  # scoring is advisory; never fail a packet on it
+        return {"error": type(exc).__name__}
+
+
 def _decorate_packet(
     packet: dict[str, Any],
     *,
     agent: str,
+    question: str,
     question_class: str,
     authority: Mapping[str, Any] | None,
     persona_core: Mapping[str, Any],
@@ -286,7 +311,7 @@ def _decorate_packet(
     failures: list[dict[str, str]],
 ) -> dict[str, Any]:
     facts = [row for row in packet.get("facts", ()) if isinstance(row, Mapping)]
-    source_refs = _source_refs(packet.get("source_refs", ()))
+    source_refs = list(_source_refs(packet.get("source_refs", ())))
     persona = dict(persona_core)
     include_persona = consumer_kind == "spawned" and not persona_already_delivered
     delivery_mode = (
@@ -297,7 +322,30 @@ def _decorate_packet(
         else "standing_daemon_profile"
     )
     sections = ["persona_core" if include_persona else "standing_persona_ref", "legacy_packet"]
+    from gig_business_doctrine import build_doctrine_delivery
+
+    doctrine_delivery = build_doctrine_delivery(
+        agent_id=agent,
+        question_class=question_class,
+        question=question,
+    )
+    if doctrine_delivery["status"] != "NOT_RELEVANT":
+        packet["gig_business_doctrine_delivery"] = doctrine_delivery
+        packet["packet_text"] = "\n".join(
+            part
+            for part in (
+                str(packet.get("packet_text") or "").strip(),
+                str(doctrine_delivery.get("packet_text") or "").strip(),
+            )
+            if part
+        )
+        sections.append("gig_business_doctrine")
+        if doctrine_delivery["status"] == "READY":
+            source_refs.append(str(doctrine_delivery["source_ref"]))
+        else:
+            packet["status"] = "GIG_BUSINESS_DOCTRINE_UNAVAILABLE"
     packet["agent_id"] = agent
+    packet["packet_dankness"] = _score_packet_dankness(packet, question)
     packet["persona_delivery"] = _persona_delivery(
         persona,
         mode=delivery_mode,
@@ -355,6 +403,30 @@ def _decorate_packet(
         }
     )
     packet["machine_proof"] = proof
+    if doctrine_delivery["status"] != "NOT_RELEVANT":
+        proof.update(
+            {
+                "gig_business_doctrine_ref": doctrine_delivery["doctrine_ref"],
+                "gig_business_doctrine_source_sha256": doctrine_delivery[
+                    "source_sha256"
+                ],
+                "gig_business_doctrine_freshness_class": doctrine_delivery[
+                    "freshness"
+                ]["freshness_class"],
+                "gig_business_pricing_logistics_source_policy": doctrine_delivery[
+                    "pricing_logistics_source_policy"
+                ],
+                "gig_business_doctrine_section_ids": tuple(
+                    section["section_id"]
+                    for section in doctrine_delivery["sections"]
+                ),
+                "gig_business_doctrine_current": doctrine_delivery["status"]
+                == "READY",
+                "gig_business_doctrine_delivery_status": doctrine_delivery[
+                    "status"
+                ],
+            }
+        )
     return packet
 
 
