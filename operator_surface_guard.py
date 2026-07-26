@@ -62,6 +62,7 @@ COMEDY_BASE_CHANCE = 0.12  # 12% — mid-range of the 10–15% doctrine window
 
 _STATUS_SURFACE_PHRASES = {
     "open_not_paid": "check expected, not yet paid",
+    "entered_for_payment_not_paid": "entered for payment, not yet paid",
     "open_amount_unknown": "check expected, amount not yet confirmed",
     "needs_reconcile": "needs your reconcile",
     "needs_operator_review": "needs operator review",
@@ -97,7 +98,7 @@ _MONTH_NAMES = (
 _BARE_MONTH_CODE_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 _BARE_MONTH_CODE_IN_TEXT_RE = re.compile(r"\b\d{4}-(?:0[1-9]|1[0-2])(?!-\d)\b")
 _SURFACE_STATUS_TOKEN_RE = re.compile(
-    r"\b(open_not_paid|needs_reconcile|needs_operator_review|pending_approval|approval_required)\b"
+    r"\b(entered_for_payment_not_paid|open_not_paid|needs_reconcile|needs_operator_review|pending_approval|approval_required)\b"
 )
 _MONEY_DASH_RE = re.compile(
     r"\b(still owes\s+\$[0-9][0-9,]*(?:\.\d{2})?)\s+-\s+"

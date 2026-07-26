@@ -11,7 +11,7 @@
     "sms"
   ],
   "drift_count": 8,
-  "generated_at": "2026-06-18T04:20:56.686703+00:00",
+  "generated_at": "2026-07-26T04:57:59.743062+00:00",
   "live_root": "/home/openclaw",
   "live_status_counts": {
     "broken": 1,
@@ -31,7 +31,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -74,7 +74,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -105,7 +105,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -136,7 +136,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -172,7 +172,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -203,7 +203,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -230,7 +230,7 @@
       "checks": [
         {
           "evidence": "CASSANDRA_BOT_TOKEN present",
-          "name": "env_any:CASSANDRA_BOT_TOKEN,TELEGRAM_BOT_TOKEN",
+          "name": "env_any:CASSANDRA_BOT_TOKEN",
           "status": "pass"
         },
         {
@@ -263,7 +263,7 @@
       "checks": [
         {
           "evidence": "CASSANDRA_BOT_TOKEN present",
-          "name": "env_any:CASSANDRA_BOT_TOKEN,TELEGRAM_BOT_TOKEN",
+          "name": "env_any:CASSANDRA_BOT_TOKEN",
           "status": "pass"
         },
         {
@@ -296,7 +296,7 @@
       "checks": [
         {
           "evidence": "CASSANDRA_BOT_TOKEN present",
-          "name": "env_any:CASSANDRA_BOT_TOKEN,TELEGRAM_BOT_TOKEN",
+          "name": "env_any:CASSANDRA_BOT_TOKEN",
           "status": "pass"
         },
         {
@@ -329,7 +329,7 @@
       "checks": [
         {
           "evidence": "CASSANDRA_BOT_TOKEN present",
-          "name": "env_any:CASSANDRA_BOT_TOKEN,TELEGRAM_BOT_TOKEN",
+          "name": "env_any:CASSANDRA_BOT_TOKEN",
           "status": "pass"
         },
         {
@@ -703,7 +703,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -729,7 +729,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -757,7 +757,7 @@
           "status": "pass"
         },
         {
-          "evidence": "present and non-empty (898 bytes)",
+          "evidence": "present and non-empty (908 bytes)",
           "name": "file:/home/openclaw/.google-secrets/token.json",
           "status": "pass"
         },
@@ -1118,7 +1118,7 @@
       "capability_id": "pii_vault_encrypted_store",
       "checks": [
         {
-          "evidence": "present in 1 env file(s)",
+          "evidence": "present in 2 env file(s)",
           "name": "env:PII_VAULT_KEY",
           "status": "pass"
         },

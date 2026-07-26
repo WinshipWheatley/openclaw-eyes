@@ -247,7 +247,7 @@ def _structured_amount(obj: Mapping[str, Any]) -> float | None:
 
 def _is_open_money_status(obj: Mapping[str, Any]) -> bool:
     status = str(obj.get("status") or obj.get("payment_status") or "").strip().lower()
-    if status in {"open", "open_not_paid", "unpaid", "outstanding", "unverified", "check_unverified", "needs_reconcile", "needs_operator_review"}:
+    if status in {"open", "open_not_paid", "entered_for_payment_not_paid", "unpaid", "outstanding", "unverified", "check_unverified", "needs_reconcile", "needs_operator_review"}:
         return True
     if status in _UNKNOWN_AMOUNT_STATUS_TOKENS:
         return True

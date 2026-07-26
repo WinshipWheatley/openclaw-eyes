@@ -1,8 +1,1018 @@
 {
-  "escalation_count": 0,
-  "escalations": [],
-  "generated_at": "2026-07-07T00:00:00+00:00",
-  "latest": null,
+  "escalation_count": 100,
+  "escalations": [
+    {
+      "at": "2026-07-07T21:10:10.355013+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "packet_engine:persona_core_registry"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for packet_engine:persona_core_registry"
+    },
+    {
+      "at": "2026-07-07T21:10:10.376737+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/operator_attention_delivery_contract.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for operator_attention_delivery_contract.json"
+    },
+    {
+      "at": "2026-07-07T22:10:12.773990+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "packet_engine:persona_core_registry"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for packet_engine:persona_core_registry"
+    },
+    {
+      "at": "2026-07-07T22:10:12.819091+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/helm_operator_attention_package.json, generated/read_models/finance_invoice_reconciliation.json, generated/read_models/reynolds_gig_setup_status.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for reynolds_gig_setup_status.json"
+    },
+    {
+      "at": "2026-07-07T22:10:12.847515+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "canonical_facts:/mnt/e/openclaw/orchestration/artifacts/business/client_facts_20260707.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for client_facts_20260707.json"
+    },
+    {
+      "at": "2026-07-07T22:10:12.855705+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/operator_attention_delivery_contract.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for operator_attention_delivery_contract.json"
+    },
+    {
+      "at": "2026-07-08T01:40:07.761495+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/helm_operator_attention_package.json, generated/read_models/finance_invoice_reconciliation.json, generated/read_models/reynolds_gig_setup_status.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for reynolds_gig_setup_status.json"
+    },
+    {
+      "at": "2026-07-08T01:40:07.778880+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "canonical_facts:/mnt/e/openclaw/orchestration/artifacts/business/client_facts_20260707.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for client_facts_20260707.json"
+    },
+    {
+      "at": "2026-07-08T01:40:07.786530+00:00",
+      "gap": {
+        "about": "who",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-08T16:10:10.259952+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "contacts_registry:/home/openclaw/state/contacts/contacts.sqlite3"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for contacts.sqlite3"
+    },
+    {
+      "at": "2026-07-09T14:50:10.201166+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/finance_invoice_reconciliation.json, generated/read_models/cassandra_email_calendar_delta_detangle.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for cassandra_email_calendar_delta_detangle.json"
+    },
+    {
+      "at": "2026-07-10T19:10:10.118776+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/helm_operator_attention_package.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for helm_operator_attention_package.json"
+    },
+    {
+      "at": "2026-07-11T21:50:04.578662+00:00",
+      "gap": {
+        "about": "got",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-12T00:00:07.311604+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "/mnt/e/openclaw/orchestration/OPERATOR-TRUTH-20260619-evening.md"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for OPERATOR-TRUTH-20260619-evening.md"
+    },
+    {
+      "at": "2026-07-17T23:09:25.581548+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "question_relevance_contract:general_guidance"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for question_relevance_contract:general_guidance"
+    },
+    {
+      "at": "2026-07-17T23:09:25.590887+00:00",
+      "gap": {
+        "about": "all right let see",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:25.600402+00:00",
+      "gap": {
+        "about": "able fix formatting",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:25.609579+00:00",
+      "gap": {
+        "about": "let see exported pdf",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:25.618656+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/finance_invoice_reconciliation.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for finance_invoice_reconciliation.json"
+    },
+    {
+      "at": "2026-07-17T23:09:25.628352+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/reynolds_gig_setup_status.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for reynolds_gig_setup_status.json"
+    },
+    {
+      "at": "2026-07-17T23:09:25.637656+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/finance_invoice_reconciliation.json, generated/read_models/reynolds_gig_setup_status.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for reynolds_gig_setup_status.json"
+    },
+    {
+      "at": "2026-07-17T23:09:25.652580+00:00",
+      "gap": {
+        "about": "three practical ways make",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:25.661253+00:00",
+      "gap": {
+        "about": "looks perfect",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:26.479048+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "hitl_pending_store:5FF438AC"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for hitl_pending_store:5FF438AC"
+    },
+    {
+      "at": "2026-07-17T23:09:26.494375+00:00",
+      "gap": {
+        "about": "maestro think next correct",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:26.502867+00:00",
+      "gap": {
+        "about": "who operator",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:26.511270+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "ledger:/home/openclaw/.pytest_openclaw/business_ops/ledger.sqlite#ledger_status:no_eligible_context"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for ledger.sqlite#ledger_status:no_eligible_context"
+    },
+    {
+      "at": "2026-07-17T23:09:26.519593+00:00",
+      "gap": {
+        "about": "what's plate tonight actually",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:26.533690+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "telegram:test:stale"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for telegram:test:stale"
+    },
+    {
+      "at": "2026-07-17T23:09:26.541959+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "gig_to_cash:test"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for gig_to_cash:test"
+    },
+    {
+      "at": "2026-07-17T23:09:26.550273+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/personal_agenda.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for personal_agenda.json"
+    },
+    {
+      "at": "2026-07-17T23:09:26.558688+00:00",
+      "gap": {
+        "about": "what's plate tonight",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:26.567644+00:00",
+      "gap": {
+        "about": "hey hows going",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:26.610398+00:00",
+      "gap": {
+        "about": "",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:53.908773+00:00",
+      "gap": {
+        "about": "also still look maestro's",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:53.918660+00:00",
+      "gap": {
+        "about": "cool i'm also noticing",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:53.927343+00:00",
+      "gap": {
+        "about": "maestro think next correct",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:09:53.936262+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "hitl_pending_store:5FF438AC"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for hitl_pending_store:5FF438AC"
+    },
+    {
+      "at": "2026-07-17T23:30:09.134518+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "question_relevance_contract:general_guidance"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for question_relevance_contract:general_guidance"
+    },
+    {
+      "at": "2026-07-17T23:30:09.142141+00:00",
+      "gap": {
+        "about": "say something grounded",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:30:09.149666+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "ledger:/home/openclaw/.pytest_openclaw/business_ops/ledger.sqlite#ledger_status:no_eligible_context"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for ledger.sqlite#ledger_status:no_eligible_context"
+    },
+    {
+      "at": "2026-07-17T23:30:09.157531+00:00",
+      "gap": {
+        "about": "rephrase canned truth your",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:30:09.165023+00:00",
+      "gap": {
+        "about": "who operator",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:30:09.172564+00:00",
+      "gap": {
+        "about": "what's plate tonight actually",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-17T23:30:09.180104+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "telegram:test:stale"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for telegram:test:stale"
+    },
+    {
+      "at": "2026-07-17T23:30:09.187877+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "gig_to_cash:test"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for gig_to_cash:test"
+    },
+    {
+      "at": "2026-07-17T23:30:09.197458+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/personal_agenda.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for personal_agenda.json"
+    },
+    {
+      "at": "2026-07-18T00:00:08.243255+00:00",
+      "gap": {
+        "about": "what's plate tonight",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:00:08.258390+00:00",
+      "gap": {
+        "about": "hey hows going",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:00:08.267624+00:00",
+      "gap": {
+        "about": "",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:00:08.276230+00:00",
+      "gap": {
+        "about": "also still look maestro's",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:00:08.284810+00:00",
+      "gap": {
+        "about": "cool i'm also noticing",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:00:08.292963+00:00",
+      "gap": {
+        "about": "say something grounded",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:00:08.758750+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/operator_attention_delivery_contract.json, generated/read_models/helm_operator_attention_package.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for helm_operator_attention_package.json"
+    },
+    {
+      "at": "2026-07-18T00:00:08.766904+00:00",
+      "gap": {
+        "about": "cool can wait don",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:00:08.774948+00:00",
+      "gap": {
+        "about": "maestro think next correct",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:08:36.795590+00:00",
+      "gap": {
+        "about": "maestro think next correct",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T00:08:37.360672+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "question_relevance_contract:advisory_current_state"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for question_relevance_contract:advisory_current_state"
+    },
+    {
+      "at": "2026-07-18T04:30:02.142922+00:00",
+      "gap": {
+        "about": "what's plate",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T05:00:08.585642+00:00",
+      "gap": {
+        "about": "restate synthetic packet cassandra's",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T06:00:02.289584+00:00",
+      "gap": {
+        "about": "restate synthetic packet cassandra's",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:00:06.249116+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for operator_attention_delivery_contract.json"
+    },
+    {
+      "at": "2026-07-18T15:00:06.257814+00:00",
+      "gap": {
+        "about": "needs most attention reynolds",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:00:06.266641+00:00",
+      "gap": {
+        "about": "real talk board today",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:00:06.274796+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/helm_operator_attention_package.json, generated/read_models/reynolds_gig_setup_status.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for reynolds_gig_setup_status.json"
+    },
+    {
+      "at": "2026-07-18T15:30:10.658590+00:00",
+      "gap": {
+        "about": "needs most attention reynolds",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:30:10.674643+00:00",
+      "gap": {
+        "about": "real talk board today",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:30:10.682739+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/helm_operator_attention_package.json, generated/read_models/reynolds_gig_setup_status.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for reynolds_gig_setup_status.json"
+    },
+    {
+      "at": "2026-07-18T15:30:09.863524+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/receivables_month_bounded.json, generated/read_models/operator_attention_delivery_contract.json, generated/read_models/reynolds_gig_setup_status.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for reynolds_gig_setup_status.json"
+    },
+    {
+      "at": "2026-07-18T15:30:09.882835+00:00",
+      "gap": {
+        "about": "could unpack broader situation",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:30:09.896347+00:00",
+      "gap": {
+        "about": "tell something useful",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:30:09.912877+00:00",
+      "gap": {
+        "about": "like daily digest",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:30:09.922566+00:00",
+      "gap": {
+        "about": "like rundown",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T15:30:09.932563+00:00",
+      "gap": {
+        "about": "like quick overview",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T17:00:02.199585+00:00",
+      "gap": {
+        "about": "also really want open",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-18T19:30:10.450628+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/operator_attention_delivery_contract.json, generated/read_models/helm_operator_attention_package.json, generated/read_models/autonomous_followup_watch_attention.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for autonomous_followup_watch_attention.json"
+    },
+    {
+      "at": "2026-07-18T19:30:10.468191+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "telegram:test:st_annes_paid_note"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for telegram:test:st_annes_paid_note"
+    },
+    {
+      "at": "2026-07-19T02:00:09.638402+00:00",
+      "gap": {
+        "about": "what's plate",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T02:00:09.661224+00:00",
+      "gap": {
+        "about": "could unpack broader situation",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T02:00:09.670998+00:00",
+      "gap": {
+        "about": "tell something useful",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T02:00:09.691861+00:00",
+      "gap": {
+        "about": "like daily digest",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T02:00:09.703384+00:00",
+      "gap": {
+        "about": "like rundown",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T02:00:09.723495+00:00",
+      "gap": {
+        "about": "like quick overview",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T02:00:10.623764+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "machine_proof:turn_self_facts_v1"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for machine_proof:turn_self_facts_v1"
+    },
+    {
+      "at": "2026-07-19T02:00:10.634134+00:00",
+      "gap": {
+        "about": "can",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T02:00:10.646113+00:00",
+      "gap": {
+        "about": "language model running right",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T02:30:09.549004+00:00",
+      "gap": {
+        "about": "language model running right",
+        "detail": "packet had zero facts",
+        "kind": "empty_packet"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'empty_packet' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T13:30:08.203449+00:00",
+      "gap": {
+        "about": "language model running right",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-19T14:00:09.110394+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "machine_proof:turn_self_facts_v1"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for machine_proof:turn_self_facts_v1"
+    },
+    {
+      "at": "2026-07-19T15:00:07.731651+00:00",
+      "gap": {
+        "about": "language model running right",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-25T03:30:07.887019+00:00",
+      "gap": {
+        "about": "still waiting",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-25T21:30:07.661080+00:00",
+      "gap": {
+        "about": "should focus next across",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-25T21:30:07.677908+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "/tmp/pytest-of-openclaw/pytest-1311/test_business_status_question_0/OPERATOR-TRUTH-20260619-evening.md"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for OPERATOR-TRUTH-20260619-evening.md"
+    },
+    {
+      "at": "2026-07-25T21:30:07.686185+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "generated/read_models/operator_attention_delivery_contract.json, generated/read_models/helm_operator_attention_package.json, generated/read_models/autonomous_followup_watch_attention.json"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for autonomous_followup_watch_attention.json"
+    },
+    {
+      "at": "2026-07-25T21:30:07.694388+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "telegram:test:st_annes_paid_note"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for telegram:test:st_annes_paid_note"
+    },
+    {
+      "at": "2026-07-25T21:30:07.708226+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "/tmp/pytest-of-openclaw/pytest-1314/test_business_status_question_0/OPERATOR-TRUTH-20260619-evening.md"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for OPERATOR-TRUTH-20260619-evening.md"
+    },
+    {
+      "at": "2026-07-25T21:30:07.717730+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "/tmp/pytest-of-openclaw/pytest-1320/test_business_status_question_0/OPERATOR-TRUTH-20260619-evening.md"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for OPERATOR-TRUTH-20260619-evening.md"
+    },
+    {
+      "at": "2026-07-26T03:00:07.424436+00:00",
+      "gap": {
+        "about": "should focus next across",
+        "detail": "packet carried no fact matching the operator's question",
+        "kind": "missing_fact"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "gap 'missing_fact' needs a new source/pipeline or operator input"
+    },
+    {
+      "at": "2026-07-26T03:00:07.440804+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "/tmp/pytest-of-openclaw/pytest-17/test_business_status_question_0/OPERATOR-TRUTH-20260619-evening.md"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for OPERATOR-TRUTH-20260619-evening.md"
+    },
+    {
+      "at": "2026-07-26T03:00:07.449195+00:00",
+      "gap": {
+        "detail": "source is older than 21d; refresh its generator",
+        "kind": "stale_source",
+        "source_ref": "/tmp/pytest-of-openclaw/pytest-18/test_business_status_question_0/OPERATOR-TRUTH-20260619-evening.md"
+      },
+      "needs": "operator_or_new_source",
+      "reason": "no known safe generator for OPERATOR-TRUTH-20260619-evening.md"
+    }
+  ],
+  "generated_at": "2026-07-26T03:00:07.449484+00:00",
+  "latest": {
+    "at": "2026-07-26T03:00:07.449195+00:00",
+    "gap": {
+      "detail": "source is older than 21d; refresh its generator",
+      "kind": "stale_source",
+      "source_ref": "/tmp/pytest-of-openclaw/pytest-18/test_business_status_question_0/OPERATOR-TRUTH-20260619-evening.md"
+    },
+    "needs": "operator_or_new_source",
+    "reason": "no known safe generator for OPERATOR-TRUTH-20260619-evening.md"
+  },
   "machine_proof": {
     "external_side_effects_allowed": false,
     "fabrication_allowed": false,

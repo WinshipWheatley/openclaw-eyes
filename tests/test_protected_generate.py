@@ -400,6 +400,30 @@ def test_active_external_brain_router_is_wired_into_protected_generate(monkeypat
     assert observed["raw_operator_prompt"] == "My exact live prompt?!"
 
 
+def test_original_operator_message_controls_privacy_without_hiding_model_prompt(tmp_path):
+    full_classifier_prompt = (
+        "Static classifier instructions mention medical, invoice, and payment.\n"
+        "OPERATOR MESSAGE:\nPublic canary phrase F1-PUBLIC-42"
+    )
+    outcome = protected_generate_with_receipt(
+        full_classifier_prompt,
+        original_operator_message="Public canary phrase F1-PUBLIC-42",
+        context_packet={
+            "package_minimized": True,
+            "privacy": {"tiers_present": ["PUBLIC"], "package_minimized": True},
+            "facts": [],
+        },
+        generator_fn=lambda prompt, **_kwargs: "Synthetic result.",
+        audit_log_path=tmp_path / "privacy-source.jsonl",
+        allow_live_model=False,
+    )
+
+    assert outcome.receipt["pii_tier"] == "PUBLIC"
+    assert outcome.receipt["original_message_present_in_submitted_prompt"] is True
+    assert outcome.receipt["original_message_sha256"]
+    assert outcome.receipt["prompt_composition_sha256"]
+
+
 def test_active_external_refusal_immediately_continues_existing_local_path(monkeypatch, tmp_path):
     monkeypatch.setenv("OPENCLAW_EXTERNAL_BRAIN_ROUTER", "1")
     monkeypatch.setattr(

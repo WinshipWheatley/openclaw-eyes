@@ -230,7 +230,11 @@ def test_maestro_model_self_query_rejects_legacy_reuse_and_injects_actual_turn(
 
     assert result.status == "ANSWER_READY"
     assert result.intent_class == "agent_introspection"
-    assert result.plain_summary.startswith("I’m Maestro. This turn is gpt-5.6-sol")
+    assert result.plain_summary.startswith("I’m Maestro. This turn is running")
+    assert "`gpt-5.6-sol`" in result.plain_summary
+    assert "`hard_lane`" in result.plain_summary
+    assert "`external_brain`" in result.plain_summary
+    assert "`provider_managed_external`" in result.plain_summary
     assert "Legacy answer" not in result.plain_summary
     assert captured["text"].startswith("What language model")
     facts = captured["packet"]["turn_self_facts"]
@@ -239,6 +243,7 @@ def test_maestro_model_self_query_rejects_legacy_reuse_and_injects_actual_turn(
     proof = dict(result.machine_proof or {})
     assert proof["turn_self_facts"]["model_id"] == "gpt-5.6-sol"
     assert proof["answer_grounded_in_turn_self_facts"] is True
+    assert proof["deterministic_introspection_surface_used"] is True
     assert proof["workflow_package_staged"] is False
 
 

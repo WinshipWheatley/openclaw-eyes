@@ -83,12 +83,12 @@
     "proposal_only": 1,
     "purpose": "Turn an operator finance request into a reviewable invoice/receivables evidence packet, checklist, and draft work packet without sending email, scraping banks, or claiming truth.",
     "receipt_evidence_handling": "Every fact should point to an approved evidence reference or operator-provided note; raw private bodies remain out of this lane.",
-    "run_id": "finrecrun_9d103704717b6bc3eae2",
+    "run_id": "finrecrun_f38ec32775c5b0f73059",
     "title": "Finance Invoice Helper v0 - Invoice/Receivables Evidence Packet Builder",
     "work_board_integration": "Create metadata-only Finance World cards for review/planning; board cards never execute, approve, send, or edit ledgers.",
     "workflow_proposal_id": "finance_invoice_helper_v0_proposal"
   },
-  "generated_at": "2026-05-15T19:27:11+00:00",
+  "generated_at": "2026-07-21T00:18:56+00:00",
   "how_this_reduces_operator_burden": [
     "Makes legacy finance helper logic queryable instead of relying on memory.",
     "Separates useful invoice/receivable patterns from unsafe direct sends, writes, and model calls.",
@@ -252,7 +252,7 @@
       "source_path": "NEXT_ACTIONS.md"
     }
   ],
-  "run_id": "finrecrun_9d103704717b6bc3eae2",
+  "run_id": "finrecrun_f38ec32775c5b0f73059",
   "schema_version": "finance_invoice_reconciliation_read_model_v0",
   "source": {
     "canonical_status": "non_canonical_legacy",

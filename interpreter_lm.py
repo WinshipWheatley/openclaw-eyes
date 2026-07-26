@@ -374,9 +374,16 @@ def _default_protected_generate_fn(prompt: str, **kwargs: Any) -> Any:
     Imported lazily so the module can be imported in test environments where
     protected_generate may not be wired to a live model.
     """
-    from protected_generate import protected_generate  # type: ignore[import]
+    from protected_generate import protected_generate_with_receipt  # type: ignore[import]
 
-    return protected_generate(prompt, **kwargs)
+    return protected_generate_with_receipt(
+        prompt,
+        context_packet=kwargs.get("context_packet"),
+        agent=str(kwargs.get("agent") or "maestro"),
+        original_operator_message=kwargs.get("original_operator_message"),
+        chain_lane="LM1_INTENT_PROPOSAL",
+        task_type="operator intent classification",
+    )
 
 
 # ── Fast-lane: direct bounded local 8b for classification ─────────────────────
@@ -398,6 +405,13 @@ def _interpreter_fast_lane_enabled(env: Mapping[str, Any] | None = None) -> bool
     e = os.environ if env is None else env
     return str(e.get("OPENCLAW_INTERPRETER_FAST_LANE", "1")).strip().lower() not in (
         "0", "false", "no", "off", "")
+
+
+def _lm1_shared_seam_enabled(env: Mapping[str, Any] | None = None) -> bool:
+    e = os.environ if env is None else env
+    return str(e.get("OPENCLAW_LM1_SHARED_SEAM", "0")).strip().lower() in (
+        "1", "true", "yes", "on"
+    )
 
 
 def _interpreter_timeout(env: Mapping[str, Any] | None = None) -> float:
@@ -466,7 +480,10 @@ def _fast_interpreter_generate_fn(
 
 
 def _select_interpreter_generate_fn(env: Mapping[str, Any] | None = None):
-    """Fast-lane (default) when enabled, else the slow protected_generate gate."""
+    """Use the shared protected seam whenever LM1 consolidation is active."""
+
+    if _lm1_shared_seam_enabled(env):
+        return _default_protected_generate_fn
     return _fast_interpreter_generate_fn if _interpreter_fast_lane_enabled(env) else _default_protected_generate_fn
 
 
@@ -490,8 +507,15 @@ _KNOWN_READ_MODELS = (
 
 def _build_interpreter_prompt(text: str) -> str:
     read_models_list = "\n".join(f"  - {m}" for m in _KNOWN_READ_MODELS)
-    invoice_clients_list = _invoice_client_prompt_lines()
-    invoice_client_contract = _invoice_client_slug_contract()
+    invoice_context_needed = bool(re.search(r"\b(invoice|bill|billing)\b", text, re.IGNORECASE))
+    invoice_clients_list = (
+        _invoice_client_prompt_lines()
+        if invoice_context_needed
+        else "     Registry omitted because this message has no invoice intent."
+    )
+    invoice_client_contract = (
+        _invoice_client_slug_contract() if invoice_context_needed else "<registry-client-slug|>"
+    )
     temporal_anchor = temporal_anchor_text()
     return f"""You are the Maestro Interpreter LM.  Your ONLY job is to classify the operator's message and select relevant read-models.
 
@@ -519,7 +543,10 @@ TASK:
 
 3. Rate your confidence 0.00 to 1.00.
 
-4. If the operator is asking to prepare, generate, draft, email, or send a client invoice, set:
+4. For BRAIN only, answer the exact operator message in "answer_draft" using the selected
+   bounded facts. Keep it concise and grounded. For every other route, set "answer_draft" to "".
+
+5. If the operator is asking to prepare, generate, draft, email, or send a client invoice, set:
    - "intent": "invoice_send"
    - "client": one canonical slug from the invoice client registry below.
    Resolve natural names and aliases to the matching registry slug. If the wording says
@@ -530,14 +557,14 @@ TASK:
 INVOICE CLIENT REGISTRY:
 {invoice_clients_list}
 
-5. If the operator says a client is all paid up / all square / caught up / paid off, set:
+6. If the operator says a client is all paid up / all square / caught up / paid off, set:
    - "intent": "mark_paid_up"
    - "client": one canonical slug when stated, empty for all/ambiguous.
    - "scope": "client", "all", or "ambiguous".
    - "as_of": ISO date when stated; otherwise today's temporal-anchor date.
    Partial wording like "paid half" is NOT mark_paid_up; set "intent": "partial_payment".
 
-6. If the operator is asking to capture, add, remember, schedule, or invoice a gig/event, set:
+7. If the operator is asking to capture, add, remember, schedule, or invoice a gig/event, set:
    - "intent": "capture_gig"
    - "contact": the person or organization hint from the operator text.
    - "description": the gig/service description, without the date phrase.
@@ -545,7 +572,7 @@ INVOICE CLIENT REGISTRY:
    Resolve fuzzy date words using the temporal anchor above when the date is implicit, but do not
    invent missing contact, description, or date values.
 
-6. If the operator is asking an agent to build, make, implement, or wire up tooling, set:
+8. If the operator is asking an agent to build, make, implement, or wire up tooling, set:
    - "route": "ACTION"
    - "intent": "build_request"
    - "requesting_agent": the addressed agent name, for example "niles".
@@ -558,6 +585,7 @@ Respond ONLY with valid JSON, no prose, no markdown fences:
   "fact_selection": ["<filename>", ...],
   "confidence": <float 0.0-1.0>,
   "reason": "<one sentence>",
+  "answer_draft": "<grounded BRAIN answer|>",
   "intent": "<invoice_send|capture_gig|mark_paid_up|partial_payment|>",
   "client": "{invoice_client_contract}",
   "contact": "<contact hint|>",
@@ -566,7 +594,7 @@ Respond ONLY with valid JSON, no prose, no markdown fences:
   "as_of": "<YYYY-MM-DD|>",
   "scope": "<client|all|ambiguous|>",
   "partial": <true|false>,
-  "needs_clarification": <true|false>
+  "needs_clarification": <true|false>,
   "what": "<build request payload|>",
   "requesting_agent": "<agent name|>"
 }}"""
@@ -689,7 +717,7 @@ def _fast_paid_up_interpret(text: str) -> InterpretResult | None:
         )
     route = ROUTE_BLOCKED if needs_clarification else ROUTE_ACTION
     reason = "paid_up_scope_ambiguous" if needs_clarification else "deterministic_paid_up_fast_path"
-    return InterpretResult(
+    result = InterpretResult(
         route=route,
         confidence=0.97,
         reason=reason,
@@ -795,7 +823,7 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
     if requesting_agent not in _KNOWN_REQUESTING_AGENTS:
         requesting_agent = ""
 
-    return InterpretResult(
+    result = InterpretResult(
         route=raw_route,
         fact_selection=fact_selection,
         confidence=confidence,
@@ -812,6 +840,13 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
         what=what,
         requesting_agent=requesting_agent,
     )
+    answer_draft = _clean_lm_field(payload.get("answer_draft"), max_len=4000)
+    object.__setattr__(
+        result,
+        "_answer_draft",
+        answer_draft if raw_route == ROUTE_BRAIN else "",
+    )
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -822,6 +857,7 @@ def interpret_operator_message(
     text: str,
     *,
     session: Mapping[str, Any] | None = None,
+    context_packet: Mapping[str, Any] | str | None = None,
     protected_generate_fn: Callable[..., Any] | None = None,
 ) -> InterpretResult:
     """Classify an operator message and select relevant read-models.
@@ -866,12 +902,43 @@ def interpret_operator_message(
         if _fn is _fast_interpreter_generate_fn:
             raw_result = _fn(prompt, session=session)
         else:
-            raw_result = _fn(prompt)
+            packet = context_packet or {
+                "schema_version": "interpreter_context_packet_v0",
+                "package_minimized": True,
+                "facts": [],
+                "packet_text": (
+                    "The business-ledger-derived packet was unavailable. "
+                    "Classify from the exact original operator message only."
+                ),
+                "machine_proof": {"packet_available": False},
+            }
+            agent = "maestro"
+            if isinstance(session, Mapping):
+                for key in (
+                    "addressed_agent",
+                    "agent_target",
+                    "response_author",
+                    "agent",
+                ):
+                    candidate = str(session.get(key) or "").strip().lower()
+                    if candidate in {"maestro", "chief", "cassandra", "niles", "guardian", "hermes"}:
+                        agent = candidate
+                        break
+            raw_result = _fn(
+                prompt,
+                context_packet=packet,
+                agent=agent,
+                original_operator_message=text,
+            )
         # protected_generate returns a ProtectedGenerateOutcome or str-like
         if hasattr(raw_result, "text"):
             raw_text = str(raw_result.text or "")
         else:
             raw_text = str(raw_result or "")
-        return _parse_interpreter_output(raw_text)
+        parsed = _parse_interpreter_output(raw_text)
+        receipt = getattr(raw_result, "receipt", None)
+        if isinstance(receipt, Mapping):
+            object.__setattr__(parsed, "_model_receipt", dict(receipt))
+        return parsed
     except Exception:  # noqa: BLE001 — never worse than deterministic baseline
         return InterpretResult(route=ROUTE_UNCERTAIN, reason="interpreter_exception")

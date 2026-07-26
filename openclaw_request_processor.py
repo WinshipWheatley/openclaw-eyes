@@ -5875,6 +5875,57 @@ def _maestro_frontdoor_workflow_intent(raw_request: Mapping[str, Any]) -> dict[s
     return {}
 
 
+def _model_birth_summary(
+    lm1_receipt: Mapping[str, Any],
+    machine_proof: Mapping[str, Any],
+) -> dict[str, Any]:
+    lm1_external = (
+        lm1_receipt.get("external_brain")
+        if isinstance(lm1_receipt.get("external_brain"), Mapping)
+        else {}
+    )
+    lm2_external = (
+        machine_proof.get("external_brain_route_receipt")
+        if isinstance(machine_proof.get("external_brain_route_receipt"), Mapping)
+        else {}
+    )
+    lm1_called = bool(lm1_receipt.get("model_call_performed"))
+    lm2_called = bool(machine_proof.get("model_call_performed"))
+    lm1_lane = str(
+        lm1_external.get("effective_lane_id")
+        or ("local_safe_lane" if lm1_receipt.get("local_model_invoked") else "")
+    )
+    lm2_lane = str(
+        lm2_external.get("effective_lane_id")
+        or ("local_safe_lane" if machine_proof.get("local_model_invoked") else "")
+    )
+    if machine_proof.get("lm1_reused_for_lm2") is True and lm1_called:
+        lane = lm1_lane or lm2_lane
+        return {
+            "model_births": 1,
+            "model_birth_lanes": [lane] if lane else [],
+            "model_birth_reason": "lm1_answer_reused_same_session",
+            "identical_lane_double_birth_defect": False,
+        }
+    model_births = int(lm1_called) + int(lm2_called)
+    return {
+        "model_births": model_births,
+        "model_birth_lanes": [lane for lane in (lm1_lane, lm2_lane) if lane],
+        "model_birth_reason": (
+            "lm1_lm2_different_lanes"
+            if model_births == 2 and lm1_lane != lm2_lane
+            else ("single_model_pass" if model_births == 1 else "no_model_pass")
+        ),
+        "identical_lane_double_birth_defect": bool(
+            lm1_called
+            and lm2_called
+            and lm1_lane
+            and lm1_lane == lm2_lane
+            and model_births > 1
+        ),
+    }
+
+
 def _process_maestro_frontdoor_operator_instruction(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -5884,6 +5935,7 @@ def _process_maestro_frontdoor_operator_instruction(
     _capsule: Any | None = None,
     _typed_contract_trace: dict[str, Any] | None = None,
     first_touch_receipt: Mapping[str, Any] | None = None,
+    lm1_shared_seam: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac | None:
     if not _is_maestro_frontdoor_operator_instruction(raw_request):
         return None
@@ -5892,6 +5944,40 @@ def _process_maestro_frontdoor_operator_instruction(
 
     operator_text = maestro_cassandra_responder.operator_text_from_request(raw_request)
     session = maestro_cassandra_responder.session_from_request(raw_request)
+    lm1_receipt = (
+        dict(lm1_shared_seam.get("interpreter_model_receipt") or {})
+        if isinstance(lm1_shared_seam, Mapping)
+        and isinstance(lm1_shared_seam.get("interpreter_model_receipt"), Mapping)
+        else {}
+    )
+    if isinstance(lm1_shared_seam, Mapping):
+        if isinstance(lm1_shared_seam.get("local_model_binding"), Mapping):
+            session["local_model_binding"] = dict(lm1_shared_seam["local_model_binding"])
+        interpretation = lm1_shared_seam.get("interpretation")
+        if isinstance(interpretation, Mapping) and interpretation.get("fact_selection"):
+            session["interpreter_fact_selection"] = list(
+                interpretation.get("fact_selection") or []
+            )
+        if isinstance(lm1_shared_seam.get("rich_context_packet"), Mapping):
+            session["lm1_shared_rich_context_packet"] = dict(
+                lm1_shared_seam["rich_context_packet"]
+            )
+        interp_result = _lm1_result_from_seam(lm1_shared_seam)
+        answer_draft = str(getattr(interp_result, "_answer_draft", "") or "").strip()
+        expected_message_hash = "sha256:" + hashlib.sha256(
+            operator_text.encode("utf-8")
+        ).hexdigest()
+        if (
+            interp_result is not None
+            and interp_result.is_high_confidence_brain()
+            and answer_draft
+            and lm1_receipt.get("model_call_performed") is True
+            and lm1_receipt.get("original_message_present_in_submitted_prompt") is True
+            and str(lm1_receipt.get("original_message_sha256") or "")
+            == expected_message_hash
+        ):
+            session["lm1_reused_answer"] = answer_draft
+            session["lm1_reused_model_receipt"] = dict(lm1_receipt)
     source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
     agent = _resolved_frontdoor_agent(raw_request, session=session, _capsule=_capsule)
     try:
@@ -5927,6 +6013,41 @@ def _process_maestro_frontdoor_operator_instruction(
     external_llm_invoked = maestro_cassandra_responder.external_llm_invoked_for_result(result)
     result_payload = maestro_cassandra_responder.result_dict_for_receipt(result)
     machine_proof = maestro_cassandra_responder.machine_proof_for_result(result)
+    lm1_external = (
+        dict(lm1_receipt.get("external_brain") or {})
+        if isinstance(lm1_receipt.get("external_brain"), Mapping)
+        else {}
+    )
+    lm2_external = (
+        dict(machine_proof.get("external_brain_route_receipt") or {})
+        if isinstance(machine_proof.get("external_brain_route_receipt"), Mapping)
+        else {}
+    )
+    birth_summary = _model_birth_summary(lm1_receipt, machine_proof)
+    machine_proof.update(
+        {
+            "lm1_shared_seam_used": isinstance(lm1_shared_seam, Mapping)
+            and bool(lm1_shared_seam.get("rich_context_packet")),
+            "lm1_shared_packet_id": str(
+                ((lm1_shared_seam or {}).get("rich_context_packet") or {}).get("packet_id")
+                if isinstance(lm1_shared_seam, Mapping)
+                else ""
+            ),
+            "lm1_model_receipt_id": str(lm1_receipt.get("receipt_id") or ""),
+            "lm1_original_message_sha256": str(
+                lm1_receipt.get("original_message_sha256") or ""
+            ),
+            "lm1_original_message_present_in_submitted_prompt": bool(
+                lm1_receipt.get("original_message_present_in_submitted_prompt")
+            ),
+            "lm1_prompt_composition_sha256": str(
+                lm1_receipt.get("prompt_composition_sha256") or ""
+            ),
+            "lm1_external_brain_route_receipt": lm1_external,
+            **birth_summary,
+        }
+    )
+    result_payload["machine_proof"] = machine_proof
     typed_contract_receipt = (
         machine_proof.get("typed_contract_decision")
         if isinstance(machine_proof.get("typed_contract_decision"), Mapping)
@@ -6054,6 +6175,7 @@ def _process_maestro_frontdoor_operator_instruction(
             "default_deny_preserved": True,
             "route_to_staging_when_not_answer_ready": True,
         },
+        "lm1_shared_request_seam": _lm1_shared_request_seam_summary(lm1_shared_seam),
         "maestro_cassandra_responder": result_payload,
         "dynamic_card_response": card,
         "external_actions_locked": True,
@@ -6240,6 +6362,90 @@ def _lm1_deterministic_workflow_interpretation(source_text: str) -> dict[str, An
     )
 
 
+def _lm1_interpreter_context_packet(rich_packet: Mapping[str, Any]) -> dict[str, Any]:
+    """Project a rich ledger packet into the external-safe LM1 aid."""
+
+    bounded_facts: list[dict[str, Any]] = []
+    bounded_source_refs: list[str] = []
+    for fact in rich_packet.get("facts", ()) if isinstance(rich_packet.get("facts"), list) else ():
+        if not isinstance(fact, Mapping):
+            continue
+        pii_tier = str(fact.get("pii_tier") or "PUBLIC").upper()
+        if pii_tier != "PUBLIC":
+            continue
+        try:
+            from protected_generate import detect_pii_tier
+
+            fact_tier = detect_pii_tier(
+                json.dumps(dict(fact), sort_keys=True, default=str),
+                None,
+            )
+        except Exception:
+            fact_tier = "HIGH"
+        if fact_tier != "PUBLIC":
+            continue
+        source_ref = str(fact.get("source_ref") or "")
+        bounded_facts.append(
+            {
+                "fact_id": str(fact.get("fact_id") or ""),
+                "topic": str(fact.get("topic") or ""),
+                "label": str(fact.get("label") or "")[:160],
+                "value": str(fact.get("value") or "")[:360],
+                "source_ref": source_ref,
+                "provenance": str(fact.get("provenance") or ""),
+                "pii_tier": pii_tier,
+            }
+        )
+        if source_ref and source_ref not in bounded_source_refs:
+            bounded_source_refs.append(source_ref)
+        if len(bounded_facts) >= 8:
+            break
+    packet_text = "\n".join(
+        f"{fact['label']}: {fact['value']}" for fact in bounded_facts
+    )
+    if not packet_text:
+        packet_text = (
+            "The context packet was built, but it contained no public facts suitable "
+            "for this model lane. Use the exact original message."
+        )
+    source_packet_id = str(rich_packet.get("packet_id") or "")
+    source_machine_proof = (
+        rich_packet.get("machine_proof")
+        if isinstance(rich_packet.get("machine_proof"), Mapping)
+        else {}
+    )
+    return {
+        "schema_version": "lm1_interpreter_context_packet_v1",
+        "packet_id": f"lm1_interpreter_{_short_hash(source_packet_id, bounded_facts)}",
+        "source_packet_id": source_packet_id,
+        "source_surface": str(rich_packet.get("source_surface") or ""),
+        "package_minimized": True,
+        "facts": bounded_facts,
+        "source_refs": bounded_source_refs[:12],
+        "packet_text": packet_text,
+        "privacy": {
+            "tiers_present": ["PUBLIC"],
+            "package_minimized": True,
+            "unresolved_sensitive_values": False,
+        },
+        "authority_boundary": {
+            "advisory_only": True,
+            "action_authority": False,
+            "external_side_effects": False,
+        },
+        "machine_proof": {
+            "business_ledger_packet_built": bool(source_packet_id),
+            "public_fact_count": len(bounded_facts),
+            "private_high_facts_excluded": True,
+            "rich_packet_text_excluded": True,
+            "packet_aid_non_gating": True,
+            "source_question_relevance_scope": str(
+                source_machine_proof.get("question_relevance_scope") or ""
+            ),
+        },
+    }
+
+
 def _lm1_workflow_authority_boundary() -> dict[str, bool]:
     try:
         import cross_machine_worker_dispatch_package as dispatch_contract
@@ -6384,15 +6590,61 @@ def _build_lm1_shared_request_seam(
             or operator_text
         ),
     )
+    addressed_agent = _resolved_frontdoor_agent(
+        raw_request,
+        session=session,
+        _capsule=_capsule,
+    )
+    session = {**session, "addressed_agent": addressed_agent}
+    source_surface = (
+        _maestro_frontdoor_surface(raw_request)
+        or str(raw_request.get("source_surface") or "mission_control")
+    )
 
     deterministic = _lm1_deterministic_workflow_interpretation(operator_text)
     interp_result = None
     interpreter_called = False
+    interpreter_packet: dict[str, Any] = {}
+    interpreter_packet_error = ""
     if deterministic is not None:
         interpretation = deterministic
     elif _interpreter_enabled():
         try:
-            interp_result = _interpret_for_request(operator_text, session=session)
+            from maestro_context_packet import build_maestro_context_packet
+
+            preliminary_session = {**session, "interpreter_route": "BRAIN"}
+            rich_interpreter_packet = dict(
+                build_maestro_context_packet(
+                    question=operator_text,
+                    session=preliminary_session,
+                    source_surface=source_surface,
+                    require_real_truth=True,
+                    capsule=_capsule if _continuity_enabled() else None,
+                    fact_selection=[],
+                )
+            )
+            interpreter_packet = _lm1_interpreter_context_packet(rich_interpreter_packet)
+        except Exception as exc:
+            interpreter_packet_error = type(exc).__name__
+            interpreter_packet = {
+                "schema_version": "lm1_degraded_context_packet_v0",
+                "package_minimized": True,
+                "facts": [],
+                "packet_text": (
+                    "The business-ledger-derived packet was unavailable. "
+                    "Use the exact original operator message and report packet degradation."
+                ),
+                "machine_proof": {
+                    "packet_available": False,
+                    "packet_error": interpreter_packet_error,
+                },
+            }
+        try:
+            interp_result = _interpret_for_request(
+                operator_text,
+                session=session,
+                context_packet=interpreter_packet,
+            )
             interpreter_called = True
             interpretation = _lm1_interpretation_dict(interp_result, source="lm1_shared_interpreter")
         except Exception:
@@ -6439,7 +6691,7 @@ def _build_lm1_shared_request_seam(
             build_maestro_context_packet(
                 question=operator_text,
                 session=session,
-                source_surface=_maestro_frontdoor_surface(raw_request) or str(raw_request.get("source_surface") or "mission_control"),
+                source_surface=source_surface,
                 require_real_truth=True,
                 capsule=_capsule if _continuity_enabled() else None,
                 fact_selection=list(interpretation.get("fact_selection") or []),
@@ -6458,16 +6710,29 @@ def _build_lm1_shared_request_seam(
         "status": "READY" if rich_packet and workflow_packet else "INTERPRETATION_READY_PACKET_UNAVAILABLE",
         "generated_at": generated_at or utc_now(),
         "interpret_result": interp_result,
+        "interpreter_model_receipt": (
+            dict(getattr(interp_result, "_model_receipt", {}))
+            if interp_result is not None
+            and isinstance(getattr(interp_result, "_model_receipt", None), Mapping)
+            else {}
+        ),
         "interpretation": interpretation,
         "rich_context_packet": rich_packet,
         "workflow_context_packet": workflow_packet,
         "local_model_binding": dict(session.get("local_model_binding") or {}),
+        "interpreter_context_packet_id": str(interpreter_packet.get("packet_id") or ""),
+        "interpreter_packet_error": interpreter_packet_error,
         "packet_error": packet_error,
         "machine_proof": {
             "lm1_shared_seam_enabled": True,
             "operator_text_present": True,
+            "addressed_agent": addressed_agent,
             "deterministic_workflow_resolved": deterministic is not None,
             "interpreter_lm_called": interpreter_called,
+            "raw_operator_message_forwarded_verbatim": interpreter_called,
+            "packet_aid_non_gating": True,
+            "interpreter_context_packet_built": bool(interpreter_packet),
+            "interpreter_context_packet_degraded": bool(interpreter_packet_error),
             "rich_context_packet_built": bool(rich_packet),
             "workflow_context_packet_built": bool(workflow_packet),
             "workflow_packet_authority_bounded": bool(workflow_packet)
@@ -6490,6 +6755,7 @@ def _interpret_for_request(
     operator_text: str,
     *,
     session: Mapping[str, Any] | None = None,
+    context_packet: Mapping[str, Any] | str | None = None,
 ) -> Any:
     """Compute the interpreter result once per bound-model/message pair.
     message. Both diverts call this so exactly one LM call happens per request.
@@ -6498,12 +6764,22 @@ def _interpret_for_request(
 
     from local_model_governance import interactive_model_from_session
 
-    key = f"{interactive_model_from_session(session)}\0{operator_text}"
+    try:
+        packet_key = hashlib.sha256(
+            json.dumps(context_packet, sort_keys=True, default=str).encode("utf-8")
+        ).hexdigest()[:16]
+    except Exception:
+        packet_key = "packet-unavailable"
+    key = f"{interactive_model_from_session(session)}\0{packet_key}\0{operator_text}"
     cached = _INTERPRETER_RESULT_CACHE.get(key)
     if cached is not None:
         return cached
     try:
-        result = interpret_operator_message(operator_text, session=session)
+        result = interpret_operator_message(
+            operator_text,
+            session=session,
+            context_packet=context_packet,
+        )
     except Exception:  # noqa: BLE001 — interpreter error → deterministic path
         result = InterpretResult(route=ROUTE_UNCERTAIN, reason="interpreter_exception")
     # Bound the cache so a long-running process does not grow unboundedly.
@@ -9344,6 +9620,15 @@ def _process_request_path_core(
             ),
         )
     typed_contract_trace: dict[str, Any] = {}
+    lm1_shared_seam = (
+        _build_lm1_shared_request_seam(
+            raw_request,
+            generated_at=generated_at,
+            _capsule=_capsule,
+        )
+        if _lm1_shared_seam_enabled()
+        else None
+    )
     maestro_frontdoor_response = _process_maestro_frontdoor_operator_instruction(
         request_path,
         raw_request,
@@ -9354,14 +9639,16 @@ def _process_request_path_core(
         first_touch_receipt=(
             first_touch_outcome.receipt if first_touch_outcome is not None else None
         ),
+        lm1_shared_seam=lm1_shared_seam,
     )
     if maestro_frontdoor_response is not None:
         return maestro_frontdoor_response
-    lm1_shared_seam = _build_lm1_shared_request_seam(
-        raw_request,
-        generated_at=generated_at,
-        _capsule=_capsule,
-    )
+    if lm1_shared_seam is None:
+        lm1_shared_seam = _build_lm1_shared_request_seam(
+            raw_request,
+            generated_at=generated_at,
+            _capsule=_capsule,
+        )
     # ── Interpreter LM routing augmentation (flag-gated, ADVISORY, DEFAULT-OFF) ──
     # When OPENCLAW_INTERPRETER_LM="1" AND the deterministic gate would send this
     # message to the workflow consumer, consult the interpreter LM.  If it returns

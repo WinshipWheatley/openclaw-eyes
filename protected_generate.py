@@ -499,6 +499,8 @@ def _external_brain_live_attempt(
     role: str,
     risk_tier: str,
     context_size: str,
+    original_operator_message: str | None = None,
+    chain_lane: str = "LM2_ROLE_RESPONSE",
 ) -> _ExternalBrainAttempt:
     """Run one guarded subscription turn or return an immediate local fallback."""
 
@@ -506,8 +508,10 @@ def _external_brain_live_attempt(
         CodexAppServerClient,
         REQUIRED_APP_SERVER_VERSION,
         open_dedicated_app_server_peer,
+        verified_pinned_codex_cli_version,
     )
     from external_brain_runtime import run_external_brain_request
+    from lm1_router_usage import record_router_usage
 
     try:
         try:
@@ -519,20 +523,26 @@ def _external_brain_live_attempt(
             if isinstance(decoded_packet, Mapping)
             else {"packet": decoded_packet}
         )
+        verified_cli_version = verified_pinned_codex_cli_version()
         with open_dedicated_app_server_peer(cwd="/tmp") as peer:
             result = run_external_brain_request(
                 raw_operator_prompt=raw_operator_prompt,
+                original_operator_message=original_operator_message,
                 context_aid=context_aid,
                 privacy_metadata=privacy_metadata,
                 task_type=task_type,
-                chain_lane="LM2_ROLE_RESPONSE",
+                chain_lane=chain_lane,
                 role=role,
                 risk_tier=risk_tier,
                 context_size=context_size,
-                client=CodexAppServerClient(peer),
+                client=CodexAppServerClient(
+                    peer,
+                    trusted_app_server_version=verified_cli_version,
+                ),
                 local_fallback=lambda: "",
                 cwd="/tmp",
                 activation_enabled=True,
+                usage_recorder=record_router_usage,
             )
             receipt = dict(result.receipt)
             receipt["mode"] = "live_guarded_subscription"
@@ -1757,6 +1767,9 @@ def protected_generate_with_receipt(
     prompt_chars: int | None = None,
     agent: str = "maestro",
     external_brain_shadow: bool | None = None,
+    original_operator_message: str | None = None,
+    chain_lane: str = "LM2_ROLE_RESPONSE",
+    task_type: str = "standard advisory response",
 ) -> ProtectedGenerateOutcome:
     """Generate text through graded PII tokenization and an audit receipt.
 
@@ -1779,6 +1792,9 @@ def protected_generate_with_receipt(
 
     operator_prompt = str(prompt or "")
     raw_prompt = operator_prompt.strip()
+    exact_operator_message = str(
+        original_operator_message if original_operator_message is not None else prompt or ""
+    ).strip()
     packet = _packet_mapping(context_packet)
     front_door_profile = _frontdoor_profile_active(front_door_profile, context_packet)
     fd_ledger_guard_failed = False
@@ -1806,13 +1822,20 @@ def protected_generate_with_receipt(
             }
             context_packet = repaired_packet
             packet = _packet_mapping(context_packet)
-    tier = detect_pii_tier(raw_prompt, context_packet)
+    tier = detect_pii_tier(exact_operator_message, context_packet)
     receipt = _base_receipt(prompt=raw_prompt, context_packet=context_packet, tier=tier, agent=agent)
+    receipt.update(
+        {
+            "original_message_sha256": _sha256(exact_operator_message),
+            "original_message_present_in_submitted_prompt": bool(exact_operator_message)
+            and exact_operator_message in operator_prompt,
+        }
+    )
     guard_info = packet.get("runtime_ledger_guard")
     if isinstance(guard_info, Mapping):
         receipt["ledger_runtime_guard"] = dict(guard_info)
 
-    if tier == MAX and not _legal_fully_tokenized(raw_prompt, packet):
+    if tier == MAX and not _legal_fully_tokenized(exact_operator_message, packet):
         receipt.update(
             {
                 "status": "BLOCKED",
@@ -1838,7 +1861,7 @@ def protected_generate_with_receipt(
     safe_packet = _tokenize_packet(context_packet, tier, ledger)
     token_count = ledger.token_count()
     privacy = packet.get("privacy") if isinstance(packet.get("privacy"), Mapping) else {}
-    legal_full_tokenization_proven = tier == MAX and _legal_fully_tokenized(raw_prompt, packet)
+    legal_full_tokenization_proven = tier == MAX and _legal_fully_tokenized(exact_operator_message, packet)
     tokenization_applied = token_count > 0 or legal_full_tokenization_proven
     raw_values_included = tier != PUBLIC and not tokenization_applied
     package_minimized = bool(
@@ -1939,6 +1962,21 @@ def protected_generate_with_receipt(
             "OPERATOR QUESTION:",
             safe_prompt,
         ]
+    )
+    model_prompt_hash = _sha256(system_prompt)
+    receipt.update(
+        {
+            "model_prompt_sha256": model_prompt_hash,
+            "prompt_composition_sha256": _sha256(
+                "|".join(
+                    (
+                        str(receipt.get("packet_id") or ""),
+                        str(receipt.get("original_message_sha256") or ""),
+                        model_prompt_hash,
+                    )
+                )
+            ),
+        }
     )
     fd_prompt_manifest: dict[str, Any] = {}
     if front_door_profile:
@@ -2112,10 +2150,12 @@ def protected_generate_with_receipt(
                 raw_operator_prompt=operator_prompt,
                 safe_packet=safe_packet,
                 privacy_metadata=metadata,
-                task_type="standard advisory response",
+                task_type=task_type,
                 role=agent,
                 risk_tier=external_risk_tier,
                 context_size=external_context_size,
+                original_operator_message=exact_operator_message,
+                chain_lane=chain_lane,
             )
             receipt["external_brain"] = attempt.receipt
             if attempt.source == "external_brain" and attempt.text:

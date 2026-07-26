@@ -1,11 +1,80 @@
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from types import SimpleNamespace
 
 import telegram_receipt_adapter as adapter
 import typed_contract_decision as typed
 import workflow_package_queue as workflow
+
+
+def test_operator_text_delivery_v2_hashes_token_and_preserves_speaker_carrier_split(
+    monkeypatch,
+    tmp_path,
+):
+    captured: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        adapter,
+        "register_delivered_text_receipt_v2",
+        lambda **kwargs: captured.append(kwargs) or "registered",
+    )
+    delivered = SimpleNamespace(message_id=9005)
+
+    result = adapter.register_operator_text_delivery_v2(
+        delivered_text="Luna answered through Maestro.",
+        source_request_id="maestro_telegram_1665_ce0ca2b9fad1",
+        chat_id="chat-42",
+        source_message_id="1665",
+        delivered_message=delivered,
+        effective_service="maestro-listener.service",
+        effective_surface="operator_maestro_chat",
+        effective_bot_identity="maestro",
+        token_owner_label="maestro_bot_token",
+        bot_token="secret-token-value",
+        response_author="luna",
+        carrier_identity="maestro",
+        db_path=tmp_path / "fleet.sqlite3",
+        mirror_path=tmp_path / "mirror.jsonl",
+    )
+
+    assert result == "registered"
+    assert len(captured) == 1
+    expected_fingerprint = "sha256:" + hashlib.sha256(
+        b"secret-token-value"
+    ).hexdigest()
+    assert captured[0]["token_fingerprint"] == expected_fingerprint
+    assert captured[0]["response_author"] == "luna"
+    assert captured[0]["carrier_identity"] == "maestro"
+    assert "bot_token" not in captured[0]
+    assert "secret-token-value" not in repr(captured[0])
+
+
+def test_operator_text_delivery_v2_requires_confirmed_message_id(monkeypatch) -> None:
+    calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        adapter,
+        "register_delivered_text_receipt_v2",
+        lambda **kwargs: calls.append(kwargs),
+    )
+
+    result = adapter.register_operator_text_delivery_v2(
+        delivered_text="Not confirmed.",
+        source_request_id="chief_telegram_1665_ce0ca2b9fad1",
+        chat_id="chat-42",
+        source_message_id="1665",
+        delivered_message=SimpleNamespace(message_id=None),
+        effective_service="chief-listener.service",
+        effective_surface="chief_listener",
+        effective_bot_identity="chief",
+        token_owner_label="chief_bot_token",
+        bot_token="secret-token-value",
+        response_author="chief",
+        carrier_identity="chief",
+    )
+
+    assert result is None
+    assert calls == []
 
 
 def _preserve_receipt(

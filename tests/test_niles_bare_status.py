@@ -34,10 +34,12 @@ class _FakeUser:
 class _FakeMessage:
     def __init__(self, text):
         self.text = text
+        self.message_id = 77
         self.replies = []
 
     async def reply_text(self, text, **kwargs):
         self.replies.append(text)
+        return types.SimpleNamespace(message_id=9005)
 
 
 class _FakeUpdate:
@@ -231,6 +233,12 @@ class TestHandleMessageBareStatus:
 
     def test_bare_status_answered_before_producer_intake(self, monkeypatch, tmp_path):
         module = _load_producer_listener(monkeypatch)
+        delivery_calls: list[dict] = []
+        monkeypatch.setattr(
+            module,
+            "register_operator_text_delivery_v2",
+            lambda **kwargs: delivery_calls.append(kwargs),
+        )
         _write_json(
             tmp_path / "generated" / "read_models" / "niles_track_registry.json",
             {"generated_at": "2026-07-01T00:00:00+00:00", "track_count": 3, "status_summary": {"idea": 3}},
@@ -247,6 +255,9 @@ class TestHandleMessageBareStatus:
 
         assert len(update.message.replies) == 1
         assert "Tracks: 3 in flight" in update.message.replies[0]
+        assert len(delivery_calls) == 1
+        assert delivery_calls[0]["response_author"] == "niles"
+        assert delivery_calls[0]["carrier_identity"] == "niles"
 
     def test_production_question_still_reaches_intake(self, monkeypatch):
         module = _load_producer_listener(monkeypatch)

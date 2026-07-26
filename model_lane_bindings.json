@@ -21,5 +21,13 @@
       "model": "qwen3:8b-q4_K_M",
       "default_effort": "medium"
     }
+  },
+  "agent_bindings": {
+    "maestro": {"allowed_lanes": ["easy_lane", "mid_lane", "hard_lane"]},
+    "chief": {"allowed_lanes": ["easy_lane", "mid_lane", "hard_lane"]},
+    "cassandra": {"allowed_lanes": ["easy_lane", "mid_lane", "hard_lane"]},
+    "niles": {"allowed_lanes": ["easy_lane", "mid_lane", "hard_lane"]},
+    "guardian": {"allowed_lanes": ["easy_lane", "mid_lane", "hard_lane"]},
+    "hermes": {"allowed_lanes": ["easy_lane", "mid_lane", "hard_lane"]}
   }
 }

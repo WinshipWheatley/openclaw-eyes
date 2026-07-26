@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-17T13:34:00+00:00",
+  "generated_at": "2026-07-21T00:18:51+00:00",
   "generated_by": "codex",
   "guard_removed": false,
   "identity_resolution": {
@@ -11,6 +11,22 @@
   "mode": "status_dry_run",
   "next_safe_move": "Cassandra send-capable dry-run receipt review",
   "niles_used_for_cassandra_path": false,
+  "operator_telegram_delivery": {
+    "authorized_telegram_user_id_configured": false,
+    "authorized_user_id_env_var": "TELEGRAM_AUTHORIZED_USER_ID",
+    "default_when_off": "dry_run_to_log",
+    "delivery_surface": "telegram_operator_internal",
+    "dry_run_log_path": "/mnt/c/OpenClaw/logs/cassandra_telegram_delivery_dryrun.jsonl",
+    "external_client_send_allowed": false,
+    "operator_only": true,
+    "schema_version": "cassandra_telegram_delivery_v0",
+    "send_hold_touched": false,
+    "telegram_delivery_state": "dry_run_to_log_toggle_off",
+    "toggle_default": "off",
+    "toggle_enabled": false,
+    "toggle_env_var": "CASSANDRA_TELEGRAM_DELIVERY_ENABLED",
+    "toggle_path": "/mnt/c/OpenClaw/logs/cassandra_telegram_delivery_enabled.flag"
+  },
   "real_briefing_delivery_triggered": false,
   "real_gmail_or_email_send_triggered": false,
   "real_telegram_send_triggered": false,
@@ -29,8 +45,10 @@
       ],
       "briefing_schedule": {
         "delivery_blocked": true,
-        "due_count": 0,
-        "due_slots": [],
+        "due_count": 1,
+        "due_slots": [
+          "evening"
+        ],
         "generation_blocked": true,
         "inspection": "schedule_metadata_only",
         "pending_count": 0,
@@ -39,7 +57,15 @@
         "telegram_delivery_blocked": true,
         "voice_delivery_blocked": true
       },
-      "generated_at": "2026-05-17T13:34:00+00:00",
+      "generated_at": "2026-07-21T00:18:51+00:00",
+      "internal_brief_carveout": {
+        "delivery_blocked": false,
+        "enabled": false,
+        "external_client_send_allowed": false,
+        "external_paths_still_blocked": true,
+        "send_hold_touched": false,
+        "target": "winship_operator_telegram_chat_id_only"
+      },
       "mode": "status_dry_run",
       "outbound_delivery_blocked": false,
       "real_briefing_delivery_triggered": false,
@@ -49,8 +75,8 @@
       "would_have_fired": {
         "briefing_generation": {
           "blocked_in_dry_run": true,
-          "proof_marker": "due_slots=none",
-          "would_run_if_real_mode": false
+          "proof_marker": "due_slots=evening",
+          "would_run_if_real_mode": true
         },
         "pending_briefing_delivery": {
           "blocked_in_dry_run": true,
@@ -60,12 +86,12 @@
         "telegram_briefing_delivery": {
           "blocked_in_dry_run": true,
           "proof_marker": "telegram_delivery=blocked",
-          "would_run_if_real_mode": false
+          "would_run_if_real_mode": true
         },
         "voice_briefing_delivery": {
           "blocked_in_dry_run": true,
           "proof_marker": "voice_delivery=blocked",
-          "would_run_if_real_mode": false
+          "would_run_if_real_mode": true
         }
       }
     },
@@ -103,7 +129,7 @@
           "invalid_chat": 12
         }
       },
-      "generated_at": "2026-05-17T13:34:00+00:00",
+      "generated_at": "2026-07-21T00:18:51+00:00",
       "mode": "status_dry_run",
       "outbound_delivery_blocked": false,
       "pending_followups": {

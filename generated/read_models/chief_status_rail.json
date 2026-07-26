@@ -61,7 +61,81 @@
     "telegram_notification_or_send": true,
     "tool_execution": true
   },
-  "generated_at": "2026-05-19T00:30:34+00:00",
+  "fleet_health_grounded_facts": [
+    {
+      "freshness": {
+        "as_of": "2026-06-23T00:56:59+00:00",
+        "source_ref": "/home/openclaw/generated/read_models/agent_presence.json"
+      },
+      "label": "Agent fleet health summary",
+      "pii_tier": "PUBLIC",
+      "source_ref": "generated/read_models/agent_presence.json",
+      "topic": "fleet_health",
+      "value": "Fleet: 4/6 agents online. Online: cassandra, chief, guardian, hermes. Offline: niles. Blockers: niles(offline)."
+    },
+    {
+      "freshness": {
+        "as_of": "2026-06-23T00:55:03+00:00",
+        "source_ref": "/home/openclaw/generated/read_models/sync_health.json"
+      },
+      "label": "Mac/PC sync health posture",
+      "pii_tier": "PUBLIC",
+      "source_ref": "generated/read_models/sync_health.json",
+      "topic": "sync_health",
+      "value": "Sync: mirror=needs_pc_import, display=waiting_for_pc_import. Last Mac sync: 2026-06-12T10:49:56+00:00 (synced). No blocking sync problems."
+    },
+    {
+      "freshness": {
+        "as_of": "2026-06-23T00:58:26+00:00",
+        "source_ref": "git log (shipped feat/fix/chore/perf/refactor commits)"
+      },
+      "label": "Recently shipped engineering milestones",
+      "pii_tier": "PUBLIC",
+      "source_ref": "git log (shipped feat/fix/chore/perf/refactor commits)",
+      "topic": "shipped_milestones",
+      "value": "10 recent milestones on codex/stress-fixes. Latest: 35ff950b: feat(dank-1): orchestration-progress grounding for the Maestro packet; 504fa1f2: fix(niles): run producer_listener under chief_env venv (has python-telegram-bot); 5f56bdd0: feat(cutover-1): default-OFF control-plane detector wire (supervised, reversible); c758265a: chore(prune-fin): remove dead 'fin' actor from shared-doctrine facts (SD-1/2/4/5/9); 37f52ddf: feat(redesign-2/5): register Maestro in agent_lane_registry (close authority leak)."
+    }
+  ],
+  "fleet_health_summary": {
+    "agent_health": {
+      "degraded_agents": [],
+      "offline_agents": [
+        "niles"
+      ],
+      "online_agents": [
+        "cassandra",
+        "chief",
+        "guardian",
+        "hermes"
+      ],
+      "online_count": 4,
+      "summary": "Fleet: 4/6 agents online. Online: cassandra, chief, guardian, hermes. Offline: niles. Blockers: niles(offline).",
+      "total_agents": 6,
+      "unexpected_offline_count": 1
+    },
+    "available": true,
+    "generated_at": "2026-06-23T00:58:26+00:00",
+    "git_milestones": {
+      "available": true,
+      "branch": "codex/stress-fixes",
+      "count": 10,
+      "latest_milestone": {
+        "at": "2026-06-22T20:38:17-04:00",
+        "commit": "35ff950b",
+        "summary": "feat(dank-1): orchestration-progress grounding for the Maestro packet"
+      }
+    },
+    "grounded_fact_count": 3,
+    "source_ref": "generated/read_models/chief_agent_fleet_health.json",
+    "sync_health": {
+      "display_status": "waiting_for_pc_import",
+      "last_mac_completion_time": "2026-06-12T10:49:56+00:00",
+      "mirror_status": "needs_pc_import",
+      "operator_action_required": false,
+      "summary": "Sync: mirror=needs_pc_import, display=waiting_for_pc_import. Last Mac sync: 2026-06-12T10:49:56+00:00 (synced). No blocking sync problems."
+    }
+  },
+  "generated_at": "2026-07-21T00:18:55+00:00",
   "generated_by": "codex",
   "gmail_calendar_coupa_credentials_accessed": false,
   "inferred_but_not_proven": [
@@ -239,6 +313,16 @@
       "repo_a_only": true,
       "role": "Deferred/unresolved Chief-adjacent intent signals",
       "schema_version": "dropped_intents_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "body_read": false,
+      "key": "fleet_health",
+      "path": "generated/read_models/chief_agent_fleet_health.json",
+      "present": true,
+      "repo_a_only": true,
+      "role": "Agent fleet health + sync posture + shipped milestones",
+      "schema_version": "chief_agent_fleet_health_v0",
       "truth_status": "repo_a_read_model_evidence_not_truth"
     }
   ],
@@ -597,14 +681,14 @@
     },
     "work_board": {
       "agent_activation_allowed": false,
-      "chief_card_count": 23,
+      "chief_card_count": 37,
       "counts_by_column": {
         "completed_with_receipt": 3,
         "deferred": 7,
-        "needs_review": 13,
+        "needs_review": 34,
         "pending_approval": 1,
-        "planned": 4,
-        "routed": 25
+        "planned": 8,
+        "routed": 42
       },
       "direct_execution_allowed": false,
       "model_call_allowed": false,
@@ -615,7 +699,7 @@
   },
   "work_packet_status_surfaces_available": {
     "agent_work_packets_available": true,
-    "chief_card_count": 23,
+    "chief_card_count": 37,
     "chief_dropped_intent_count": 7,
     "chief_packet_count": 1,
     "chief_route_count": 2,

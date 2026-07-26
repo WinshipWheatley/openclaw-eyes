@@ -2,13 +2,15 @@
   "agent_count": 6,
   "agents": [
     {
+      "active_auxiliary_count": 2,
       "actual_state": "online",
       "agent_id": "cassandra",
       "autorecovery_allowed": false,
       "blocker": null,
-      "created_at": "2026-06-17T02:26:23+00:00",
+      "created_at": "2026-07-26T04:57:57+00:00",
       "desired_state": "online",
       "display_name": "Cassandra",
+      "expected_auxiliary_count": 2,
       "expected_online": true,
       "lane_id": "operator_comms",
       "last_recovery_attempt": {
@@ -32,7 +34,7 @@
         "recovery_attempt_id": "agentrecoveryattempt_7ec75a6296a8af66ecc3",
         "succeeded": false
       },
-      "last_seen_at": "2026-06-17T02:26:29+00:00",
+      "last_seen_at": "2026-07-26T04:57:57+00:00",
       "next_safe_move": "No recovery needed.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
@@ -47,9 +49,15 @@
         "telegram_api_allowed": false
       },
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
+      "presence_detail_state": "healthy",
       "presence_source": "service_check",
-      "reason": "3 runtime surface(s) show active process/service evidence.",
-      "receipt_id": "agentpresencereceipt_8f7a22d2e3d7ff9485da",
+      "primary_unit": {
+        "observed_at": "2026-07-26T04:57:57+00:00",
+        "process_name": "cassandra_listener.py",
+        "service_name": "cassandra-listener.service"
+      },
+      "reason": "Authoritative primary unit cassandra-listener.service is active; 2/2 auxiliary surface(s) active.",
+      "receipt_id": "agentpresencereceipt_779bb9c57112d21f0904",
       "recovery_action_id": "cassandra_systemd_user_start",
       "recovery_actions": [
         {
@@ -87,23 +95,25 @@
         }
       ],
       "recovery_status": "not_needed",
-      "run_id": "agentpresence_4042a5c33f6cb040f9ba",
+      "run_id": "agentpresence_e58f3a284713d94c2fc6",
       "runtime_surface_found": true,
-      "runtime_surface_kind": "local_service,telegram_bot",
+      "runtime_surface_kind": "telegram_bot",
       "telegram_ready_metadata": true
     },
     {
+      "active_auxiliary_count": 4,
       "actual_state": "online",
       "agent_id": "chief",
       "autorecovery_allowed": false,
       "blocker": null,
-      "created_at": "2026-06-17T02:26:23+00:00",
+      "created_at": "2026-07-26T04:57:57+00:00",
       "desired_state": "online",
       "display_name": "Chief",
+      "expected_auxiliary_count": 4,
       "expected_online": true,
       "lane_id": "system_orchestration",
       "last_recovery_attempt": null,
-      "last_seen_at": "2026-06-17T02:26:29+00:00",
+      "last_seen_at": "2026-07-26T04:57:57+00:00",
       "next_safe_move": "No recovery needed.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
@@ -118,9 +128,15 @@
         "telegram_api_allowed": false
       },
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
+      "presence_detail_state": "healthy",
       "presence_source": "service_check",
-      "reason": "5 runtime surface(s) show active process/service evidence.",
-      "receipt_id": "agentpresencereceipt_257706b594c830ac9dc7",
+      "primary_unit": {
+        "observed_at": "2026-07-26T04:57:57+00:00",
+        "process_name": "chief_listener.py",
+        "service_name": "chief-listener.service"
+      },
+      "reason": "Authoritative primary unit chief-listener.service is active; 4/4 auxiliary surface(s) active.",
+      "receipt_id": "agentpresencereceipt_0b66ec52c3da716bb7c5",
       "recovery_action_id": "chief_systemd_user_start",
       "recovery_actions": [
         {
@@ -162,23 +178,25 @@
         }
       ],
       "recovery_status": "not_needed",
-      "run_id": "agentpresence_4042a5c33f6cb040f9ba",
+      "run_id": "agentpresence_e58f3a284713d94c2fc6",
       "runtime_surface_found": true,
       "runtime_surface_kind": "systemd_service",
       "telegram_ready_metadata": true
     },
     {
+      "active_auxiliary_count": 0,
       "actual_state": "online",
       "agent_id": "guardian",
       "autorecovery_allowed": false,
       "blocker": null,
-      "created_at": "2026-06-17T02:26:23+00:00",
+      "created_at": "2026-07-26T04:57:57+00:00",
       "desired_state": "online",
       "display_name": "Guardian",
+      "expected_auxiliary_count": 0,
       "expected_online": true,
       "lane_id": "safety_security",
       "last_recovery_attempt": null,
-      "last_seen_at": "2026-06-17T02:26:29+00:00",
+      "last_seen_at": "2026-07-26T04:57:57+00:00",
       "next_safe_move": "No recovery needed.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
@@ -193,9 +211,15 @@
         "telegram_api_allowed": false
       },
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
+      "presence_detail_state": "healthy",
       "presence_source": "service_check",
-      "reason": "1 runtime surface(s) show active process/service evidence.",
-      "receipt_id": "agentpresencereceipt_bceb42416621c9b7ceca",
+      "primary_unit": {
+        "observed_at": "2026-07-26T04:57:57+00:00",
+        "process_name": "chief_guardian_listener.py",
+        "service_name": "chief-guardian-listener.service"
+      },
+      "reason": "Authoritative primary unit chief-guardian-listener.service is active.",
+      "receipt_id": "agentpresencereceipt_f894a7267c3796986400",
       "recovery_action_id": "guardian_systemd_user_start",
       "recovery_actions": [
         {
@@ -229,23 +253,25 @@
         }
       ],
       "recovery_status": "not_needed",
-      "run_id": "agentpresence_4042a5c33f6cb040f9ba",
+      "run_id": "agentpresence_e58f3a284713d94c2fc6",
       "runtime_surface_found": true,
       "runtime_surface_kind": "telegram_bot",
       "telegram_ready_metadata": true
     },
     {
+      "active_auxiliary_count": 0,
       "actual_state": "online",
       "agent_id": "hermes",
       "autorecovery_allowed": false,
       "blocker": null,
-      "created_at": "2026-06-17T02:26:23+00:00",
+      "created_at": "2026-07-26T04:57:57+00:00",
       "desired_state": "online",
       "display_name": "Hermes",
+      "expected_auxiliary_count": 0,
       "expected_online": true,
       "lane_id": "advisory_synthesis",
       "last_recovery_attempt": null,
-      "last_seen_at": "2026-06-17T02:26:30+00:00",
+      "last_seen_at": "2026-07-26T04:57:57+00:00",
       "next_safe_move": "No recovery needed.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
@@ -260,9 +286,15 @@
         "telegram_api_allowed": false
       },
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
+      "presence_detail_state": "healthy",
       "presence_source": "service_check",
-      "reason": "1 runtime surface(s) show active process/service evidence.",
-      "receipt_id": "agentpresencereceipt_351cfad514e7d9c10352",
+      "primary_unit": {
+        "observed_at": "2026-07-26T04:57:57+00:00",
+        "process_name": "hermes_cli.main",
+        "service_name": "hermes-gateway.service"
+      },
+      "reason": "Authoritative primary unit hermes-gateway.service is active.",
+      "receipt_id": "agentpresencereceipt_282bca518cfd91d67ba2",
       "recovery_action_id": "hermes_systemd_user_start",
       "recovery_actions": [
         {
@@ -296,84 +328,26 @@
         }
       ],
       "recovery_status": "not_needed",
-      "run_id": "agentpresence_4042a5c33f6cb040f9ba",
+      "run_id": "agentpresence_e58f3a284713d94c2fc6",
       "runtime_surface_found": true,
       "runtime_surface_kind": "systemd_service",
       "telegram_ready_metadata": true
     },
     {
-      "actual_state": "offline",
-      "agent_id": "niles",
-      "autorecovery_allowed": false,
-      "blocker": "expected runtime evidence missing",
-      "created_at": "2026-06-17T02:26:23+00:00",
-      "desired_state": "online",
-      "display_name": "Niles",
-      "expected_online": true,
-      "lane_id": "music_art_production",
-      "last_recovery_attempt": null,
-      "last_seen_at": null,
-      "next_safe_move": "Inspect the documented service/process surface and choose a bounded recovery lane if needed.",
-      "no_authority_flags": {
-        "arbitrary_command_allowed": false,
-        "broad_agent_activation_allowed": false,
-        "client_deployment_allowed": false,
-        "hard_kill_bypass_allowed": false,
-        "message_send_allowed": false,
-        "model_call_allowed": false,
-        "network_authority": false,
-        "recovery_without_policy_allowed": false,
-        "secret_access_allowed": false,
-        "telegram_api_allowed": false
-      },
-      "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
-      "presence_source": "runtime_surface",
-      "reason": "Runtime surfaces exist, but no active local process/service evidence was found.",
-      "receipt_id": "agentpresencereceipt_c0f9f8756266c862ce05",
-      "recovery_action_id": "niles_producer_script_start",
-      "recovery_actions": [
-        {
-          "action_kind": "script_start",
-          "agent_id": "niles",
-          "classification": "needs_operator_review",
-          "command_argv": [
-            "bash",
-            "scripts/run_producer_listener.sh"
-          ],
-          "command_label": "Start Producer/Niles listener script",
-          "confidence": "low",
-          "cooldown_seconds": 900,
-          "discovered_from": "scripts/run_producer_listener.sh; producer_listener.py",
-          "max_attempts_per_hour": 1,
-          "notes": "Producer/Niles launcher requires secret-backed environment and may call Telegram; not safe for automatic recovery.",
-          "receipt_required": true,
-          "recovery_action_id": "niles_producer_script_start",
-          "requires_operator_approval": true,
-          "safe_to_attempt": false,
-          "status_check_argv": null,
-          "status_check_kind": "process_name",
-          "working_directory": "/home/openclaw"
-        }
-      ],
-      "recovery_status": "blocked",
-      "run_id": "agentpresence_4042a5c33f6cb040f9ba",
-      "runtime_surface_found": true,
-      "runtime_surface_kind": "script",
-      "telegram_ready_metadata": true
-    },
-    {
-      "actual_state": "metadata_available",
-      "agent_id": "report_bridge",
+      "active_auxiliary_count": 0,
+      "actual_state": "online",
+      "agent_id": "maestro",
       "autorecovery_allowed": false,
       "blocker": null,
-      "created_at": "2026-06-17T02:26:23+00:00",
-      "desired_state": "unknown_review",
-      "display_name": "Report Bridge",
-      "expected_online": false,
-      "lane_id": "node_report_intake",
+      "created_at": "2026-07-26T04:57:57+00:00",
+      "desired_state": "online",
+      "display_name": "Maestro",
+      "expected_auxiliary_count": 0,
+      "expected_online": true,
+      "lane_id": "operator_orchestration",
       "last_recovery_attempt": null,
-      "last_seen_at": "2026-06-17T02:26:30+00:00",
-      "next_safe_move": "Use metadata/read-model posture; do not pretend a daemon is online.",
+      "last_seen_at": "2026-07-26T04:57:57+00:00",
+      "next_safe_move": "No recovery needed.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
         "broad_agent_activation_allowed": false,
@@ -387,55 +361,142 @@
         "telegram_api_allowed": false
       },
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
-      "presence_source": "read_model",
-      "reason": "Metadata/read-model surface is available; no live runtime surface is configured.",
-      "receipt_id": "agentpresencereceipt_5e27a15c1246186ee80d",
-      "recovery_action_id": "report_bridge_status_only",
+      "presence_detail_state": "healthy",
+      "presence_source": "service_check",
+      "primary_unit": {
+        "observed_at": "2026-07-26T04:57:57+00:00",
+        "process_name": "maestro_listener.py",
+        "service_name": "maestro-listener.service"
+      },
+      "reason": "Authoritative primary unit maestro-listener.service is active.",
+      "receipt_id": "agentpresencereceipt_1f3538921bbcfaa94f79",
+      "recovery_action_id": "maestro_systemd_user_start",
       "recovery_actions": [
         {
-          "action_kind": "status_only",
-          "agent_id": "report_bridge",
-          "classification": "safe_status_check",
-          "command_argv": [],
-          "command_label": "Report Bridge metadata status",
-          "confidence": "high",
-          "cooldown_seconds": 0,
-          "discovered_from": "report_bridge.py; generated/read_models/report_bridge.json",
-          "max_attempts_per_hour": 0,
-          "notes": "Report Bridge is metadata/package intake in v0; no live daemon recovery is needed.",
+          "action_kind": "systemd_user_start",
+          "agent_id": "maestro",
+          "classification": "safe_start_candidate",
+          "command_argv": [
+            "systemctl",
+            "--user",
+            "start",
+            "maestro-listener.service"
+          ],
+          "command_label": "Start Maestro listener",
+          "confidence": "medium",
+          "cooldown_seconds": 900,
+          "discovered_from": "systemd/user/maestro-listener.service.in",
+          "max_attempts_per_hour": 1,
+          "notes": "Maestro is Telegram-facing; recovery remains blocked unless a future explicit lane allows it.",
           "receipt_required": true,
-          "recovery_action_id": "report_bridge_status_only",
-          "requires_operator_approval": false,
-          "safe_to_attempt": true,
-          "status_check_argv": null,
-          "status_check_kind": "metadata_only",
+          "recovery_action_id": "maestro_systemd_user_start",
+          "requires_operator_approval": true,
+          "safe_to_attempt": false,
+          "status_check_argv": [
+            "systemctl",
+            "--user",
+            "is-active",
+            "maestro-listener.service"
+          ],
+          "status_check_kind": "systemd_user_is_active",
           "working_directory": "/home/openclaw"
         }
       ],
       "recovery_status": "not_needed",
-      "run_id": "agentpresence_4042a5c33f6cb040f9ba",
-      "runtime_surface_found": false,
-      "runtime_surface_kind": "metadata_only",
+      "run_id": "agentpresence_e58f3a284713d94c2fc6",
+      "runtime_surface_found": true,
+      "runtime_surface_kind": "telegram_bot",
+      "telegram_ready_metadata": true
+    },
+    {
+      "active_auxiliary_count": 0,
+      "actual_state": "online",
+      "agent_id": "niles",
+      "autorecovery_allowed": false,
+      "blocker": null,
+      "created_at": "2026-07-26T04:57:57+00:00",
+      "desired_state": "online",
+      "display_name": "Niles",
+      "expected_auxiliary_count": 0,
+      "expected_online": true,
+      "lane_id": "music_art_production",
+      "last_recovery_attempt": null,
+      "last_seen_at": "2026-07-26T04:57:57+00:00",
+      "next_safe_move": "No recovery needed.",
+      "no_authority_flags": {
+        "arbitrary_command_allowed": false,
+        "broad_agent_activation_allowed": false,
+        "client_deployment_allowed": false,
+        "hard_kill_bypass_allowed": false,
+        "message_send_allowed": false,
+        "model_call_allowed": false,
+        "network_authority": false,
+        "recovery_without_policy_allowed": false,
+        "secret_access_allowed": false,
+        "telegram_api_allowed": false
+      },
+      "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
+      "presence_detail_state": "healthy",
+      "presence_source": "service_check",
+      "primary_unit": {
+        "observed_at": "2026-07-26T04:57:57+00:00",
+        "process_name": "producer_listener.py",
+        "service_name": "niles-listener.service"
+      },
+      "reason": "Authoritative primary unit niles-listener.service is active; 0/1 auxiliary surface(s) active.",
+      "receipt_id": "agentpresencereceipt_8fde17695b851f53220d",
+      "recovery_action_id": "niles_systemd_user_start",
+      "recovery_actions": [
+        {
+          "action_kind": "systemd_user_start",
+          "agent_id": "niles",
+          "classification": "safe_start_candidate",
+          "command_argv": [
+            "systemctl",
+            "--user",
+            "start",
+            "niles-listener.service"
+          ],
+          "command_label": "Start Niles listener",
+          "confidence": "medium",
+          "cooldown_seconds": 900,
+          "discovered_from": "installed niles-listener.service; producer_listener.py; scripts/run_producer_listener.sh",
+          "max_attempts_per_hour": 1,
+          "notes": "Niles is Telegram-facing; recovery remains blocked unless a future explicit lane allows it.",
+          "receipt_required": true,
+          "recovery_action_id": "niles_systemd_user_start",
+          "requires_operator_approval": true,
+          "safe_to_attempt": false,
+          "status_check_argv": [
+            "systemctl",
+            "--user",
+            "is-active",
+            "niles-listener.service"
+          ],
+          "status_check_kind": "systemd_user_is_active",
+          "working_directory": "/home/openclaw"
+        }
+      ],
+      "recovery_status": "not_needed",
+      "run_id": "agentpresence_e58f3a284713d94c2fc6",
+      "runtime_surface_found": true,
+      "runtime_surface_kind": "telegram_bot",
       "telegram_ready_metadata": true
     }
   ],
   "arbitrary_command_allowed": false,
-  "blockers": [
-    {
-      "agent_id": "niles",
-      "blocker": "expected runtime evidence missing",
-      "next_safe_move": "Inspect the documented service/process surface and choose a bounded recovery lane if needed."
-    }
-  ],
+  "blockers": [],
   "broad_agent_activation_allowed": false,
   "cassandra_presence": {
+    "active_auxiliary_count": 2,
     "actual_state": "online",
     "agent_id": "cassandra",
     "autorecovery_allowed": false,
     "blocker": null,
-    "created_at": "2026-06-17T02:26:23+00:00",
+    "created_at": "2026-07-26T04:57:57+00:00",
     "desired_state": "online",
     "display_name": "Cassandra",
+    "expected_auxiliary_count": 2,
     "expected_online": true,
     "lane_id": "operator_comms",
     "last_recovery_attempt": {
@@ -459,7 +520,7 @@
       "recovery_attempt_id": "agentrecoveryattempt_7ec75a6296a8af66ecc3",
       "succeeded": false
     },
-    "last_seen_at": "2026-06-17T02:26:29+00:00",
+    "last_seen_at": "2026-07-26T04:57:57+00:00",
     "next_safe_move": "No recovery needed.",
     "no_authority_flags": {
       "arbitrary_command_allowed": false,
@@ -474,9 +535,15 @@
       "telegram_api_allowed": false
     },
     "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
+    "presence_detail_state": "healthy",
     "presence_source": "service_check",
-    "reason": "3 runtime surface(s) show active process/service evidence.",
-    "receipt_id": "agentpresencereceipt_8f7a22d2e3d7ff9485da",
+    "primary_unit": {
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "process_name": "cassandra_listener.py",
+      "service_name": "cassandra-listener.service"
+    },
+    "reason": "Authoritative primary unit cassandra-listener.service is active; 2/2 auxiliary surface(s) active.",
+    "receipt_id": "agentpresencereceipt_779bb9c57112d21f0904",
     "recovery_action_id": "cassandra_systemd_user_start",
     "recovery_actions": [
       {
@@ -514,22 +581,22 @@
       }
     ],
     "recovery_status": "not_needed",
-    "run_id": "agentpresence_4042a5c33f6cb040f9ba",
+    "run_id": "agentpresence_e58f3a284713d94c2fc6",
     "runtime_surface_found": true,
-    "runtime_surface_kind": "local_service,telegram_bot",
+    "runtime_surface_kind": "telegram_bot",
     "telegram_ready_metadata": true
   },
   "client_deployment_allowed": false,
   "degraded_count": 0,
-  "expected_online_count": 5,
-  "generated_at": "2026-06-19T03:04:34+00:00",
+  "expected_online_count": 6,
+  "generated_at": "2026-07-26T04:57:57+00:00",
   "hard_kill_bypass_allowed": false,
   "intentional_offline_count": 0,
   "maintenance_hard_kill_count": 0,
   "message_send_allowed": false,
   "model_call_allowed": false,
   "network_authority": false,
-  "next_safe_move": "Inspect unexpected offline agents and choose a bounded recovery lane.",
+  "next_safe_move": "No unexpected offline agent is currently represented.",
   "no_authority_flags": {
     "arbitrary_command_allowed": false,
     "broad_agent_activation_allowed": false,
@@ -542,8 +609,10 @@
     "secret_access_allowed": false,
     "telegram_api_allowed": false
   },
-  "offline_unexpected_count": 1,
-  "online_count": 4,
+  "observation_completed_at": "2026-07-26T04:57:57+00:00",
+  "observation_started_at": "2026-07-26T04:57:57+00:00",
+  "offline_unexpected_count": 0,
+  "online_count": 6,
   "recent_recovery_attempts": [
     {
       "agent_id": "cassandra",
@@ -718,25 +787,61 @@
       "working_directory": "/home/openclaw"
     },
     {
-      "action_kind": "script_start",
-      "agent_id": "niles",
-      "classification": "needs_operator_review",
+      "action_kind": "systemd_user_start",
+      "agent_id": "maestro",
+      "classification": "safe_start_candidate",
       "command_argv": [
-        "bash",
-        "scripts/run_producer_listener.sh"
+        "systemctl",
+        "--user",
+        "start",
+        "maestro-listener.service"
       ],
-      "command_label": "Start Producer/Niles listener script",
-      "confidence": "low",
+      "command_label": "Start Maestro listener",
+      "confidence": "medium",
       "cooldown_seconds": 900,
-      "discovered_from": "scripts/run_producer_listener.sh; producer_listener.py",
+      "discovered_from": "systemd/user/maestro-listener.service.in",
       "max_attempts_per_hour": 1,
-      "notes": "Producer/Niles launcher requires secret-backed environment and may call Telegram; not safe for automatic recovery.",
+      "notes": "Maestro is Telegram-facing; recovery remains blocked unless a future explicit lane allows it.",
       "receipt_required": true,
-      "recovery_action_id": "niles_producer_script_start",
+      "recovery_action_id": "maestro_systemd_user_start",
       "requires_operator_approval": true,
       "safe_to_attempt": false,
-      "status_check_argv": null,
-      "status_check_kind": "process_name",
+      "status_check_argv": [
+        "systemctl",
+        "--user",
+        "is-active",
+        "maestro-listener.service"
+      ],
+      "status_check_kind": "systemd_user_is_active",
+      "working_directory": "/home/openclaw"
+    },
+    {
+      "action_kind": "systemd_user_start",
+      "agent_id": "niles",
+      "classification": "safe_start_candidate",
+      "command_argv": [
+        "systemctl",
+        "--user",
+        "start",
+        "niles-listener.service"
+      ],
+      "command_label": "Start Niles listener",
+      "confidence": "medium",
+      "cooldown_seconds": 900,
+      "discovered_from": "installed niles-listener.service; producer_listener.py; scripts/run_producer_listener.sh",
+      "max_attempts_per_hour": 1,
+      "notes": "Niles is Telegram-facing; recovery remains blocked unless a future explicit lane allows it.",
+      "receipt_required": true,
+      "recovery_action_id": "niles_systemd_user_start",
+      "requires_operator_approval": true,
+      "safe_to_attempt": false,
+      "status_check_argv": [
+        "systemctl",
+        "--user",
+        "is-active",
+        "niles-listener.service"
+      ],
+      "status_check_kind": "systemd_user_is_active",
       "working_directory": "/home/openclaw"
     },
     {
@@ -835,11 +940,14 @@
     }
   ],
   "recovery_without_policy_allowed": false,
+  "run_id": "agentpresence_e58f3a284713d94c2fc6",
   "runtime_surfaces": [
     {
       "agent_id": "cassandra",
       "classification": "current_active",
       "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "auxiliary",
       "process_count": 1,
       "process_name": "cassandra_watcher.py",
       "recovery_allowed": 0,
@@ -854,6 +962,8 @@
       "agent_id": "cassandra",
       "classification": "current_active",
       "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "auxiliary",
       "process_count": 1,
       "process_name": "cassandra_briefing_scheduler.py",
       "recovery_allowed": 0,
@@ -868,6 +978,8 @@
       "agent_id": "cassandra",
       "classification": "current_active",
       "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "primary",
       "process_count": 1,
       "process_name": "cassandra_listener.py",
       "recovery_allowed": 0,
@@ -882,35 +994,9 @@
       "agent_id": "chief",
       "classification": "current_active",
       "notes": "",
-      "process_count": 2,
-      "process_name": "chief_worker.py",
-      "recovery_allowed": 0,
-      "safe_recovery_kind": "systemd_restart",
-      "service_name": "chief-worker.service",
-      "service_state": "active",
-      "source_path": "systemd/user/chief-worker.service.in",
-      "surface_found": 1,
-      "surface_kind": "systemd_service"
-    },
-    {
-      "agent_id": "chief",
-      "classification": "current_active",
-      "notes": "",
-      "process_count": 2,
-      "process_name": "chief_state_worker.py",
-      "recovery_allowed": 0,
-      "safe_recovery_kind": "systemd_restart",
-      "service_name": "chief-state-worker.service",
-      "service_state": "active",
-      "source_path": "systemd/user/chief-state-worker.service.in",
-      "surface_found": 1,
-      "surface_kind": "systemd_service"
-    },
-    {
-      "agent_id": "chief",
-      "classification": "current_active",
-      "notes": "",
-      "process_count": 2,
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "auxiliary",
+      "process_count": 1,
       "process_name": "chief_memory_worker.py",
       "recovery_allowed": 0,
       "safe_recovery_kind": "systemd_restart",
@@ -924,13 +1010,15 @@
       "agent_id": "chief",
       "classification": "current_active",
       "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "auxiliary",
       "process_count": 1,
-      "process_name": "chief_listener.py",
+      "process_name": "chief_state_worker.py",
       "recovery_allowed": 0,
       "safe_recovery_kind": "systemd_restart",
-      "service_name": "chief-listener.service",
+      "service_name": "chief-state-worker.service",
       "service_state": "active",
-      "source_path": "systemd/user/chief-listener.service.in",
+      "source_path": "systemd/user/chief-state-worker.service.in",
       "surface_found": 1,
       "surface_kind": "systemd_service"
     },
@@ -938,6 +1026,24 @@
       "agent_id": "chief",
       "classification": "current_active",
       "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "auxiliary",
+      "process_count": 1,
+      "process_name": "chief_worker.py",
+      "recovery_allowed": 0,
+      "safe_recovery_kind": "systemd_restart",
+      "service_name": "chief-worker.service",
+      "service_state": "active",
+      "source_path": "systemd/user/chief-worker.service.in",
+      "surface_found": 1,
+      "surface_kind": "systemd_service"
+    },
+    {
+      "agent_id": "chief",
+      "classification": "current_active",
+      "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "auxiliary",
       "process_count": 1,
       "process_name": "chief_watcher_brain.py",
       "recovery_allowed": 0,
@@ -949,9 +1055,27 @@
       "surface_kind": "systemd_service"
     },
     {
+      "agent_id": "chief",
+      "classification": "current_active",
+      "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "primary",
+      "process_count": 1,
+      "process_name": "chief_listener.py",
+      "recovery_allowed": 0,
+      "safe_recovery_kind": "systemd_restart",
+      "service_name": "chief-listener.service",
+      "service_state": "active",
+      "source_path": "systemd/user/chief-listener.service.in",
+      "surface_found": 1,
+      "surface_kind": "systemd_service"
+    },
+    {
       "agent_id": "guardian",
       "classification": "current_active",
       "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "primary",
       "process_count": 1,
       "process_name": "chief_guardian_listener.py",
       "recovery_allowed": 0,
@@ -966,7 +1090,9 @@
       "agent_id": "hermes",
       "classification": "current_active",
       "notes": "",
-      "process_count": 1,
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "primary",
+      "process_count": 0,
       "process_name": "hermes_cli.main",
       "recovery_allowed": 0,
       "safe_recovery_kind": "systemd_restart",
@@ -977,23 +1103,43 @@
       "surface_kind": "systemd_service"
     },
     {
+      "agent_id": "maestro",
+      "classification": "current_active",
+      "notes": "",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "primary",
+      "process_count": 1,
+      "process_name": "maestro_listener.py",
+      "recovery_allowed": 0,
+      "safe_recovery_kind": "systemd_restart",
+      "service_name": "maestro-listener.service",
+      "service_state": "active",
+      "source_path": "systemd/user/maestro-listener.service.in",
+      "surface_found": 1,
+      "surface_kind": "telegram_bot"
+    },
+    {
       "agent_id": "niles",
-      "classification": "partial_overlap",
-      "notes": "Producer/Niles listener path exists, but secret-backed launcher is not safe for automatic recovery.",
-      "process_count": 0,
+      "classification": "current_active",
+      "notes": "The installed Niles unit executes producer_listener.py; this unit is the primary presence authority.",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "primary",
+      "process_count": 1,
       "process_name": "producer_listener.py",
       "recovery_allowed": 0,
-      "safe_recovery_kind": "script_start",
-      "service_name": null,
-      "service_state": "not_applicable",
+      "safe_recovery_kind": "systemd_restart",
+      "service_name": "niles-listener.service",
+      "service_state": "active",
       "source_path": "producer_listener.py",
       "surface_found": 1,
-      "surface_kind": "script"
+      "surface_kind": "telegram_bot"
     },
     {
       "agent_id": "niles",
       "classification": "candidate_to_extend",
       "notes": "Metadata/intake surface, not proof of online listener presence.",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_role": "auxiliary",
       "process_count": 0,
       "process_name": "producer_intake.py",
       "recovery_allowed": 0,
@@ -1008,6 +1154,22 @@
   "schema_version": "agent_presence_read_model_v0",
   "secret_access_allowed": false,
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
+  "supplemental_surfaces": [
+    {
+      "actual_state": "metadata_available",
+      "display_name": "Report Bridge",
+      "evidence_paths": [
+        "report_bridge.py",
+        "generated/read_models/report_bridge.json"
+      ],
+      "included_in_agent_denominator": false,
+      "lane_id": "node_report_intake",
+      "notes": "Report Bridge is sanitized metadata/package intake, not a live daemon in v0.",
+      "observed_at": "2026-07-26T04:57:57+00:00",
+      "presence_source": "read_model",
+      "supplemental_id": "report_bridge"
+    }
+  ],
   "telegram_api_allowed": false,
   "unknown_count": 0
 }

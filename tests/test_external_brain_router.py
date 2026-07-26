@@ -22,6 +22,49 @@ def test_high_risk_or_large_context_forces_hard_lane() -> None:
     assert router.select_difficulty_lane(task_type="summary", context_size="large") == "hard_lane"
 
 
+def test_live_bindings_cover_all_six_agents_and_receipt_names_bound_agent(monkeypatch) -> None:
+    bindings = router.load_model_lane_bindings()
+    assert set(bindings["agent_bindings"]) == {
+        "maestro",
+        "chief",
+        "cassandra",
+        "niles",
+        "guardian",
+        "hermes",
+    }
+    monkeypatch.setattr(
+        router.model_router_policy,
+        "select_model_class",
+        lambda _request: {
+            "selected_model_class": router.model_router_policy.FAST_EXTERNAL_INTENT_MODEL,
+            "selection_reason": "eligible",
+            "blocked_reasons": [],
+        },
+    )
+
+    decision = router.route_external_brain_request(
+        raw_operator_prompt="Give me a quick mix-status summary.",
+        task_type="quick summary",
+        role="niles",
+        privacy_metadata={
+            "classification": "public",
+            "original_pii_tier": "PUBLIC",
+            "cloud_allowed": True,
+            "local_required": False,
+            "tokenization_applied": False,
+            "package_minimized": True,
+            "raw_values_included": False,
+            "secrets_present": False,
+        },
+        activation_enabled=True,
+    )
+
+    receipt = router.build_safe_route_receipt(decision)
+    assert receipt["agent_id"] == "niles"
+    assert receipt["agent_binding_status"] == "bound"
+    assert receipt["agent_allowed_lanes"] == ["easy_lane", "mid_lane", "hard_lane"]
+
+
 def test_router_source_contains_no_concrete_model_ids() -> None:
     source = (ROOT / "external_brain_router.py").read_text(encoding="utf-8").lower()
     assert "gpt-5.6" not in source
@@ -54,6 +97,17 @@ def test_bindings_are_separate_and_complete() -> None:
                 "model": "qwen3:8b-q4_K_M",
                 "default_effort": "medium",
             },
+        },
+        "agent_bindings": {
+            agent_id: {"allowed_lanes": ["easy_lane", "mid_lane", "hard_lane"]}
+            for agent_id in (
+                "maestro",
+                "chief",
+                "cassandra",
+                "niles",
+                "guardian",
+                "hermes",
+            )
         },
     }
 
@@ -177,6 +231,74 @@ def test_external_route_activates_candidate_only_when_policy_and_gate_allow(monk
     assert decision.graduation_headroom_applied is True
     assert decision.effort_level == "medium"
     assert decision.fallback_reason == ""
+
+
+def test_operator_authorized_comparison_can_pin_lower_lane_without_changing_normal_route() -> None:
+    decision = router.route_external_brain_request(
+        raw_operator_prompt="Compose the bounded Clara comparison take.",
+        task_type="architecture policy synthesis",
+        chain_lane="MODEL_GRADUATION_COMPARISON",
+        role="cassandra",
+        privacy_metadata={
+            "classification": "public",
+            "original_pii_tier": "PUBLIC",
+            "cloud_allowed": True,
+            "local_required": False,
+            "tokenization_applied": False,
+            "package_minimized": True,
+            "raw_values_included": False,
+            "secrets_present": False,
+        },
+        activation_enabled=True,
+        comparison_lane_id="easy_lane",
+    )
+
+    receipt = router.build_safe_route_receipt(decision)
+    assert decision.nominal_lane_id == "hard_lane"
+    assert decision.candidate_lane_id == "easy_lane"
+    assert decision.effective_lane_id == "easy_lane"
+    assert decision.effort_level == "low"
+    assert decision.effort_reason == "comparison_lane_binding_default"
+    assert decision.policy_model_class == router.model_router_policy.STRONG_EXTERNAL_ROLE_MODEL
+    assert decision.comparison_trial is True
+    assert receipt["comparison_lane_requested"] == "easy_lane"
+    assert receipt["comparison_trial"] is True
+    assert receipt["graduation_headroom_applied"] is False
+
+
+def test_comparison_lane_pin_fails_local_outside_comparison_chain(monkeypatch) -> None:
+    monkeypatch.setattr(
+        router.model_router_policy,
+        "select_model_class",
+        lambda _request: {
+            "selected_model_class": router.model_router_policy.STRONG_EXTERNAL_ROLE_MODEL,
+            "selection_reason": "eligible",
+            "blocked_reasons": [],
+        },
+    )
+
+    decision = router.route_external_brain_request(
+        raw_operator_prompt="Do work.",
+        task_type="architecture policy synthesis",
+        chain_lane="LM2_ROLE_RESPONSE",
+        role="cassandra",
+        privacy_metadata={
+            "classification": "public",
+            "original_pii_tier": "PUBLIC",
+            "cloud_allowed": True,
+            "local_required": False,
+            "tokenization_applied": False,
+            "package_minimized": True,
+            "raw_values_included": False,
+            "secrets_present": False,
+        },
+        activation_enabled=True,
+        comparison_lane_id="easy_lane",
+    )
+
+    assert decision.effective_lane_id == "local_safe_lane"
+    assert decision.fallback_reason == "comparison_lane_not_authorized"
+    assert decision.comparison_trial is False
 
 
 def test_policy_local_or_unsafe_decision_fails_to_local_lane(monkeypatch) -> None:

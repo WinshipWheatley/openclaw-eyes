@@ -419,7 +419,7 @@ def test_shared_brain_packet_failure_does_not_call_model() -> None:
     assert "won't guess" in answer.text
 
 
-def test_model_answer_that_disagrees_with_receipt_is_rejected() -> None:
+def test_model_answer_that_disagrees_with_receipt_is_replaced_by_verified_facts() -> None:
     def mismatched_generate(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
         return {
             "text": "I’m running qwen3:8b on the local GPU.",
@@ -447,14 +447,47 @@ def test_model_answer_that_disagrees_with_receipt_is_rejected() -> None:
         packet_builder=_ready_packet,
     )
 
-    assert answer.machine_proof["answer_grounded_in_turn_self_facts"] is False
-    assert answer.machine_proof["answer_grounding_missing_fields"] == (
-        "model_id",
-        "lane_id",
-        "backend_class",
-    )
+    assert answer.machine_proof["answer_grounded_in_turn_self_facts"] is True
+    assert answer.machine_proof["answer_grounding_missing_fields"] == ()
+    assert answer.machine_proof["deterministic_introspection_surface_used"] is True
+    assert "gpt-5.6-sol" in answer.text
+    assert "hard_lane" in answer.text
+    assert "external_brain" in answer.text
+    assert "provider_managed_external" in answer.text
     assert "qwen3:8b" not in answer.text
-    assert "did not match this turn's machine proof" in answer.text
+    assert "did not match this turn's machine proof" not in answer.text
+
+
+def test_model_brain_surface_synthesizes_verified_facts_when_model_omits_them() -> None:
+    def vague_generate(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        return {
+            "text": "I need to check this turn's receipt before I name my model.",
+            "receipt": {
+                "receipt_id": "protected:live-t1",
+                "model_call_performed": True,
+                "local_model_invoked": True,
+                "external_llm_invoked": False,
+                "original_message_present_in_submitted_prompt": True,
+                "model_selected": "qwen3:8b-q4_K_M",
+                "lane_id": "local_safe_lane",
+            },
+        }
+
+    answer = answer_agent_introspection(
+        "What language model are you running right now, and on what hardware?",
+        agent="maestro",
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=vague_generate,
+        packet_builder=_ready_packet,
+    )
+
+    assert answer.machine_proof["answer_grounded_in_turn_self_facts"] is True
+    assert answer.machine_proof["answer_grounding_missing_fields"] == ()
+    assert "qwen3:8b-q4_K_M" in answer.text
+    assert "local_safe_lane" in answer.text
+    assert "local_ollama" in answer.text
+    assert "not verified" in answer.text
+    assert "did not match this turn's machine proof" not in answer.text
 
 
 def test_genuinely_unknown_self_facts_preserve_honest_unknown() -> None:
@@ -483,4 +516,4 @@ def test_genuinely_unknown_self_facts_preserve_honest_unknown() -> None:
 
     assert answer.machine_proof["answer_grounded_in_turn_self_facts"] is True
     assert answer.machine_proof["answer_grounding_missing_fields"] == ()
-    assert "won’t guess" in answer.text
+    assert "won't guess" in answer.text

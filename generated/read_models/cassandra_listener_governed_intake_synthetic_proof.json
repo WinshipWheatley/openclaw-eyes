@@ -9,7 +9,7 @@
     "PYTHONDONTWRITEBYTECODE=1 python3 scripts/query_telegram_agent_intake.py --report cassandra-live --format operator",
     "PYTHONDONTWRITEBYTECODE=1 python3 scripts/query_telegram_agent_intake.py --report cassandra-live --format json"
   ],
-  "generated_at": "2026-05-17T03:45:17+00:00",
+  "generated_at": "2026-07-21T00:18:46+00:00",
   "generated_by": "codex",
   "gmail_api_called": false,
   "governed_path_observed": [
@@ -61,14 +61,20 @@
   ],
   "live_listener_imported_or_executed": false,
   "live_listener_wiring": {
+    "authorization_rejection_before_claim": true,
+    "authorization_rejection_line": 1399,
+    "authorization_rejection_present": true,
     "caller_switched": false,
+    "claim_before_any_reply": true,
+    "claim_before_any_runtime": true,
+    "claim_before_governed_intake": true,
+    "claim_call_present": true,
+    "claim_imported": true,
+    "claim_line": 1401,
     "hook_after_text_strip": true,
-    "hook_before_reply_text": true,
-    "hook_before_runtime_brain": true,
-    "hook_before_unverified_sender_return": true,
     "hook_call_present": true,
     "hook_imported": true,
-    "hook_line": 381,
+    "hook_line": 1492,
     "listener_imported_or_executed": false,
     "listener_path": "cassandra_listener.py",
     "live_receive_wired": true,
@@ -79,7 +85,8 @@
     "service_restarted": false,
     "source_channel": "cassandra_listener",
     "source_channel_declared_in_helper": true,
-    "unverified_sender_metadata_only": true
+    "unverified_sender_dropped_before_metadata": true,
+    "unverified_sender_metadata_only": false
   },
   "live_receive_proven": false,
   "live_receive_wired": true,

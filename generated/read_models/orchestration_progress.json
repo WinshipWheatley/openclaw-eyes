@@ -1,6 +1,6 @@
 {
   "branch": "codex/stress-fixes",
-  "generated_at": "2026-06-23T00:36:25.872363+00:00",
+  "generated_at": "2026-07-21T00:18:57.901191+00:00",
   "generated_by": "scripts/export_orchestration_progress_read_model.py",
   "note": "Recently shipped engineering milestones on the active branch (git-sourced, truthful).",
   "read_model_version": "orchestration_progress_read_model_v0",
@@ -8,79 +8,79 @@
   "shipped_count": 15,
   "shipped_milestones": [
     {
-      "at": "2026-06-22T20:01:02-04:00",
-      "commit": "504fa1f2",
-      "summary": "fix(niles): run producer_listener under chief_env venv (has python-telegram-bot)"
+      "at": "2026-07-19T10:40:18-04:00",
+      "commit": "3c4b330b",
+      "summary": "feat: expose Maestro response provenance receipts"
     },
     {
-      "at": "2026-06-22T19:55:12-04:00",
-      "commit": "5f56bdd0",
-      "summary": "feat(cutover-1): default-OFF control-plane detector wire (supervised, reversible)"
+      "at": "2026-07-19T10:39:25-04:00",
+      "commit": "3fe591df",
+      "summary": "feat: arm LAMD autosend with future-month gate"
     },
     {
-      "at": "2026-06-22T19:36:56-04:00",
-      "commit": "c758265a",
-      "summary": "chore(prune-fin): remove dead 'fin' actor from shared-doctrine facts (SD-1/2/4/5/9)"
+      "at": "2026-07-19T09:35:23-04:00",
+      "commit": "9cd0491a",
+      "summary": "fix: bind fresh LM2 self facts to answering model"
     },
     {
-      "at": "2026-06-22T15:17:21-04:00",
-      "commit": "37f52ddf",
-      "summary": "feat(redesign-2/5): register Maestro in agent_lane_registry (close authority leak)"
+      "at": "2026-07-19T09:26:47-04:00",
+      "commit": "4bbbd2e9",
+      "summary": "chore: activate PC Sol idle doorbell coverage"
     },
     {
-      "at": "2026-06-22T15:11:30-04:00",
-      "commit": "b3901d85",
-      "summary": "fix(redesign-1/5): master_voice.sh refuses machine-contract (close voice-layer leak)"
+      "at": "2026-07-19T09:24:01-04:00",
+      "commit": "01f30c06",
+      "summary": "feat: gate wake midturn independently from doorbell"
     },
     {
-      "at": "2026-06-22T12:55:07-04:00",
-      "commit": "d73506ae",
-      "summary": "fix(security): validate song_title before path build in niles_album_access (path traversal)"
+      "at": "2026-07-19T09:20:36-04:00",
+      "commit": "e9bd9a39",
+      "summary": "fix: wire Guardian emergency brake trip signal"
     },
     {
-      "at": "2026-06-22T12:50:01-04:00",
-      "commit": "f563713d",
-      "summary": "feat(niles-track-a-4): rich-text song-doc template + opt-in scaffold helper"
+      "at": "2026-07-19T00:10:31-04:00",
+      "commit": "ee2f9077",
+      "summary": "fix: pin LAMD operator runtime dependencies"
     },
     {
-      "at": "2026-06-22T12:38:31-04:00",
-      "commit": "36e9d27a",
-      "summary": "feat(niles-track-a-3): read-only Niles album accessor (reuses chief_album_io)"
+      "at": "2026-07-19T00:07:00-04:00",
+      "commit": "f52581e5",
+      "summary": "chore: pin LAMD operator acceptance to no-clobber build"
     },
     {
-      "at": "2026-06-22T11:33:14-04:00",
-      "commit": "bbb83b64",
-      "summary": "feat(niles-track-a-2): Niles creative-lane doctrine NL-1..3 ingested (104), grounded"
+      "at": "2026-07-19T00:06:31-04:00",
+      "commit": "2b5314a5",
+      "summary": "fix: make LAMD package publication no-clobber"
     },
     {
-      "at": "2026-06-22T10:49:26-04:00",
-      "commit": "12eedc4d",
-      "summary": "feat(niles-track-a-1): persistent memory worker + queue-feed (Cassandra-parity, tier-1 safe)"
+      "at": "2026-07-19T00:00:01-04:00",
+      "commit": "9eb8563a",
+      "summary": "feat: add operator-safe LAMD install acceptance"
     },
     {
-      "at": "2026-06-22T10:37:54-04:00",
-      "commit": "fed5896e",
-      "summary": "feat(populate-2): model-selection doctrine facts (MS-1..4) + retrieval fix so doctrine actually surfaces"
+      "at": "2026-07-18T23:53:06-04:00",
+      "commit": "a6e54ad2",
+      "summary": "feat: publish validated LAMD monthly packages"
     },
     {
-      "at": "2026-06-21T23:19:08-04:00",
-      "commit": "aae436ad",
-      "summary": "fix(flip-1): restore \"Successfully ingested\" CLI wording (green-gate regression)"
+      "at": "2026-07-18T23:42:50-04:00",
+      "commit": "f43b4d38",
+      "summary": "feat: add governed LAMD autosend live adapter"
     },
     {
-      "at": "2026-06-21T22:43:47-04:00",
-      "commit": "fb95261f",
-      "summary": "fix(flip-1): close AGY-G audit holes \u2014 PII fail-closed + cap-survival ordering"
+      "at": "2026-07-18T23:20:01-04:00",
+      "commit": "ea7745cd",
+      "summary": "feat: wire price truth into live frontdoor"
     },
     {
-      "at": "2026-06-21T22:31:19-04:00",
-      "commit": "dc493310",
-      "summary": "feat(flip-1): SQLite canonical-facts source for the Maestro packet (DEFAULT-OFF flag)"
+      "at": "2026-07-18T23:16:34-04:00",
+      "commit": "a65b16e0",
+      "summary": "fix: recognize fuzzy price truth questions"
     },
     {
-      "at": "2026-06-21T22:03:18-04:00",
-      "commit": "9643dff9",
-      "summary": "feat(populate-1c): sanctioned, reversible real-ledger populator + gated production override"
+      "at": "2026-07-18T23:14:02-04:00",
+      "commit": "6ff1e2d3",
+      "summary": "feat: audit temporal price claims before rendering"
     }
   ]
 }

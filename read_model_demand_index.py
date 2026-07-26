@@ -43,6 +43,10 @@ RELATIVE_SELECTION_FRACTION = 0.25
 # dominates; this stops months-old data quietly winning on a tie.
 FRESHNESS_HALF_LIFE_DAYS = 90.0
 
+# Naming the entity a read-model is ABOUT is stronger evidence than sharing a
+# generic word with its filename. "live arts md" should beat "invoice".
+ENTITY_MATCH_WEIGHT = 3.0
+
 _STOPWORDS = frozenset(
     """a an and are as at be by do does for from get give has have how i in is it
     its me my of on or our that the their there this to was we what when where
@@ -59,6 +63,7 @@ class ReadModelIndexRow:
     key_fields: tuple[str, ...]
     size_bytes: int
     age_days: float = 0.0
+    entity_tokens: tuple[str, ...] = ()
 
     @property
     def topic_tags(self) -> tuple[str, ...]:
@@ -70,7 +75,7 @@ class ReadModelIndexRow:
         """Tokens this read-model can be selected by."""
 
         tokens: set[str] = set()
-        for source in (self.id, *self.key_fields):
+        for source in (self.id, *self.key_fields, *self.entity_tokens):
             tokens.update(_tokenize(source))
         return frozenset(tokens)
 
@@ -119,9 +124,14 @@ def select_read_models(
     def _score(row: ReadModelIndexRow) -> float:
         # Smoothed inverse document frequency: a token most of the library
         # contains is weak evidence, a distinctive one is strong.
+        matched = query_tokens & row.match_tokens()
+        entity_hits = query_tokens & {
+            token for value in row.entity_tokens for token in _tokenize(value)
+        }
         relevance = sum(
             math.log((total + 1) / (frequency.get(token, 1) + 0.5))
-            for token in query_tokens & row.match_tokens()
+            * (ENTITY_MATCH_WEIGHT if token in entity_hits else 1.0)
+            for token in matched
         )
         # Most of this library is months old. Relevance still dominates, but
         # a stale read-model must not outrank an equally relevant fresh one
@@ -241,6 +251,48 @@ def _key_fields(payload: Any) -> tuple[str, ...]:
     return ()
 
 
+MAX_ENTITY_TOKENS = 60
+_ENTITY_KEY_HINTS = (
+    "ref", "name", "id", "number", "client", "counterparty", "status", "state",
+    "vendor", "customer", "account", "project", "title", "label",
+)
+
+
+def _entity_tokens(payload: Any) -> tuple[str, ...]:
+    """Names and identifiers found INSIDE a read-model.
+
+    A read-model is often about an entity its filename never mentions --
+    ``receivables_month_bounded.json`` holds the Live Arts MD invoice. Matching
+    only on the filename makes that answer unfindable, so the index carries a
+    bounded set of the entities each file is actually about.
+    """
+    found: list[str] = []
+    seen: set[str] = set()
+
+    def walk(node: Any, key: str = "", depth: int = 0) -> None:
+        if len(found) >= MAX_ENTITY_TOKENS or depth > 6:
+            return
+        if isinstance(node, dict):
+            for child_key, value in node.items():
+                walk(value, str(child_key), depth + 1)
+        elif isinstance(node, list):
+            for value in node[:40]:
+                walk(value, key, depth + 1)
+        elif isinstance(node, str):
+            lowered = key.lower()
+            if not any(hint in lowered for hint in _ENTITY_KEY_HINTS):
+                return
+            value = node.strip()
+            if not value or len(value) > 80:
+                return
+            if value not in seen:
+                seen.add(value)
+                found.append(value)
+
+    walk(payload)
+    return tuple(found[:MAX_ENTITY_TOKENS])
+
+
 def _load_payload(path: Path) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -293,13 +345,15 @@ def build_demand_index(
         if path.name.startswith("_"):
             # Index artifacts (``_INDEX.json``) never index themselves.
             continue
+        payload = _load_payload(path)
         rows.append(
             ReadModelIndexRow(
                 id=path.stem,
                 relative_path=path.relative_to(root).as_posix(),
-                key_fields=_key_fields(_load_payload(path)),
+                key_fields=_key_fields(payload),
                 size_bytes=path.stat().st_size,
                 age_days=max(0.0, (time.time() - path.stat().st_mtime) / 86400.0),
+                entity_tokens=_entity_tokens(payload),
             )
         )
     index = tuple(rows)

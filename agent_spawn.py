@@ -104,6 +104,7 @@ def _coverage_gap(packet: Mapping[str, Any], *, target: str, question: str) -> s
     target, asking the model anyway is an invitation to confabulate. Dank af or
     an honest gap; never a confident fabrication.
     """
+    import packet_engine as _packet_engine
     import read_model_demand_index as _dmi
 
     tokens = _dmi._tokenize(f"{target} {question}")
@@ -112,9 +113,8 @@ def _coverage_gap(packet: Mapping[str, Any], *, target: str, question: str) -> s
     for row in packet.get("facts", ()):
         if not isinstance(row, Mapping):
             continue
-        marker = f"{row.get('topic','')} {row.get('fact_id','')}".lower()
-        if "persona" in marker or "doctrine" in marker:
-            continue  # identity is not coverage
+        if _packet_engine.is_identity_fact(row):
+            continue  # identity and standing orders are not coverage
         text = " ".join(
             str(row.get(key, "")) for key in ("topic", "label", "value", "source_ref")
         )

@@ -24,7 +24,7 @@ from hitl_action_service import ACTION_TYPE_EXACT_GMAIL_SEND, build_operator_act
 
 
 DEFAULT_FOLLOWUP_DB_PATH = "/home/openclaw/state/client_followups/client_followups.sqlite3"
-FOLLOWUP_WATCH_SCHEMA_VERSION = "client_followup_watch_v0"
+FOLLOWUP_WATCH_SCHEMA_VERSION = "client_followup_watch_v1"
 FOLLOWUP_PROPOSAL_SCHEMA_VERSION = "client_followup_proposal_v0"
 
 AUTHORITY_BOUNDARY_PROPOSAL = {
@@ -87,6 +87,8 @@ class ClientFollowupWatchStore:
                     recipient            TEXT NOT NULL,
                     subject              TEXT NOT NULL,
                     invoice_ref          TEXT NOT NULL,
+                    delivery_confirmation_status TEXT NULL,
+                    payment_received_status TEXT NULL,
                     sent_at_utc_iso      TEXT NOT NULL,
                     days_without_reply   INTEGER NOT NULL,
                     due_at_utc_iso       TEXT NOT NULL,
@@ -97,6 +99,22 @@ class ClientFollowupWatchStore:
                 )
                 """
             )
+            columns = {
+                str(row[1])
+                for row in conn.execute("PRAGMA table_info(client_followup_watches)")
+            }
+            if "delivery_confirmation_status" not in columns:
+                conn.execute(
+                    "ALTER TABLE client_followup_watches "
+                    "ADD COLUMN delivery_confirmation_status "
+                    "TEXT NULL"
+                )
+            if "payment_received_status" not in columns:
+                conn.execute(
+                    "ALTER TABLE client_followup_watches "
+                    "ADD COLUMN payment_received_status "
+                    "TEXT NULL"
+                )
             conn.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_client_followup_due
@@ -140,10 +158,11 @@ class ClientFollowupWatchStore:
                 """
                 INSERT OR IGNORE INTO client_followup_watches (
                     watch_id, client_ref, client_name, recipient, subject, invoice_ref,
+                    delivery_confirmation_status, payment_received_status,
                     sent_at_utc_iso, days_without_reply, due_at_utc_iso, status,
                     created_at_utc_iso, reply_seen_at_utc_iso, reply_ref
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, NULL, '')
+                VALUES (?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?, ?, 'active', ?, NULL, '')
                 """,
                 (
                     watch_id,
@@ -183,10 +202,17 @@ class ClientFollowupWatchStore:
         seen_at = _parse_aware_iso(reply_seen_at_utc_iso).isoformat(timespec="seconds") if reply_seen_at_utc_iso else _utc_now_iso()
         conn = self._connect()
         try:
+            current = conn.execute(
+                "SELECT watch_id FROM client_followup_watches WHERE watch_id = ?",
+                (watch_id,),
+            ).fetchone()
+            if current is None:
+                raise ValueError(f"Unknown follow-up watch: {watch_id}")
             conn.execute(
                 """
                 UPDATE client_followup_watches
                 SET status = 'closed_reply_seen',
+                    delivery_confirmation_status = 'closed',
                     reply_seen_at_utc_iso = ?,
                     reply_ref = ?
                 WHERE watch_id = ?
@@ -197,9 +223,155 @@ class ClientFollowupWatchStore:
                 "SELECT * FROM client_followup_watches WHERE watch_id = ?",
                 (watch_id,),
             ).fetchone()
-            if row is None:
-                raise ValueError(f"Unknown follow-up watch: {watch_id}")
             return self._public_watch(row)
+        finally:
+            conn.close()
+
+    def record_reply_seen_for_invoice(
+        self,
+        *,
+        client_ref: str,
+        invoice_ref: str,
+        reply_seen_at_utc_iso: str | None = None,
+        reply_ref: str = "",
+    ) -> list[dict[str, Any]]:
+        client = str(client_ref or "").strip()
+        invoice = str(invoice_ref or "").strip()
+        if not client or not invoice:
+            raise ValueError("client_ref and invoice_ref are required")
+        seen_at = (
+            _parse_aware_iso(reply_seen_at_utc_iso).isoformat(timespec="seconds")
+            if reply_seen_at_utc_iso
+            else _utc_now_iso()
+        )
+        conn = self._connect()
+        try:
+            conn.execute(
+                """
+                UPDATE client_followup_watches
+                SET status = 'closed_reply_seen',
+                    delivery_confirmation_status = 'closed',
+                    reply_seen_at_utc_iso = ?,
+                    reply_ref = ?
+                WHERE client_ref = ?
+                  AND invoice_ref = ?
+                """,
+                (seen_at, str(reply_ref or ""), client, invoice),
+            )
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM client_followup_watches
+                WHERE client_ref = ?
+                  AND invoice_ref = ?
+                ORDER BY sent_at_utc_iso ASC, watch_id ASC
+                """,
+                (client, invoice),
+            ).fetchall()
+            return [self._public_watch(row) for row in rows]
+        finally:
+            conn.close()
+
+    def record_delivery_confirmation_and_preserve_payment_watch(
+        self,
+        *,
+        watch_id: str,
+        client_ref: str,
+        invoice_ref: str,
+        reply_seen_at_utc_iso: str,
+        reply_ref: str,
+    ) -> dict[str, Any]:
+        """Close delivery confirmation while leaving payment receipt pending.
+
+        Both loop states live on the existing invoice watch. No second watch,
+        outbound proposal, or payment cadence is invented by this transition.
+        """
+        target_watch_id = str(watch_id or "").strip()
+        client = str(client_ref or "").strip()
+        invoice = str(invoice_ref or "").strip()
+        evidence_ref = str(reply_ref or "").strip()
+        if not target_watch_id or not client or not invoice or not evidence_ref:
+            raise ValueError("watch_id, client_ref, invoice_ref, and reply_ref are required")
+        seen_at = _parse_aware_iso(reply_seen_at_utc_iso).isoformat(timespec="seconds")
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                """
+                SELECT *
+                FROM client_followup_watches
+                WHERE watch_id = ?
+                  AND client_ref = ?
+                  AND invoice_ref = ?
+                """,
+                (target_watch_id, client, invoice),
+            ).fetchone()
+            if row is None:
+                raise ValueError("delivery_confirmation_watch_not_found")
+            if row["status"] == "closed_reply_seen":
+                if (
+                    row["delivery_confirmation_status"] == "closed"
+                    and row["payment_received_status"] == "pending"
+                    and row["reply_seen_at_utc_iso"] == seen_at
+                    and row["reply_ref"] == evidence_ref
+                ):
+                    conn.execute("COMMIT")
+                    public = self._public_watch(row)
+                    return {
+                        "evidence_ref": evidence_ref,
+                        "watch": self._loop_state_only(public),
+                        "followup_loops": public["followup_loops"],
+                    }
+                raise ValueError("delivery_confirmation_evidence_conflict")
+            if (
+                row["status"] != "active"
+                or row["reply_seen_at_utc_iso"] is not None
+                or str(row["reply_ref"] or "")
+                or row["delivery_confirmation_status"] not in {None, "pending"}
+                or row["payment_received_status"] not in {None, "pending"}
+            ):
+                raise ValueError("delivery_confirmation_watch_not_pristine")
+            cursor = conn.execute(
+                """
+                UPDATE client_followup_watches
+                SET status = 'closed_reply_seen',
+                    delivery_confirmation_status = 'closed',
+                    payment_received_status = 'pending',
+                    reply_seen_at_utc_iso = ?,
+                    reply_ref = ?
+                WHERE watch_id = ?
+                  AND client_ref = ?
+                  AND invoice_ref = ?
+                  AND status = 'active'
+                  AND reply_seen_at_utc_iso IS NULL
+                  AND reply_ref = ''
+                  AND (delivery_confirmation_status IS NULL
+                       OR delivery_confirmation_status = 'pending')
+                  AND (payment_received_status IS NULL
+                       OR payment_received_status = 'pending')
+                """,
+                (seen_at, evidence_ref, target_watch_id, client, invoice),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("delivery_confirmation_guarded_update_failed")
+            updated = conn.execute(
+                """
+                SELECT * FROM client_followup_watches
+                WHERE watch_id = ? AND client_ref = ? AND invoice_ref = ?
+                """,
+                (target_watch_id, client, invoice),
+            ).fetchone()
+            conn.execute("COMMIT")
+            public = self._public_watch(updated)
+            return {
+                "evidence_ref": evidence_ref,
+                "watch": self._loop_state_only(public),
+                "followup_loops": public["followup_loops"],
+            }
+        except Exception:
+            if conn.in_transaction:
+                conn.execute("ROLLBACK")
+            raise
         finally:
             conn.close()
 
@@ -231,6 +403,10 @@ class ClientFollowupWatchStore:
             "recipient": row["recipient"],
             "subject": row["subject"],
             "invoice_ref": row["invoice_ref"],
+            "followup_loops": {
+                "delivery_confirmation": row["delivery_confirmation_status"] or "unknown",
+                "payment_received": row["payment_received_status"] or "unknown",
+            },
             "sent_at_utc_iso": row["sent_at_utc_iso"],
             "days_without_reply": row["days_without_reply"],
             "due_at_utc_iso": row["due_at_utc_iso"],
@@ -238,6 +414,20 @@ class ClientFollowupWatchStore:
             "created_at_utc_iso": row["created_at_utc_iso"],
             "reply_seen_at_utc_iso": row["reply_seen_at_utc_iso"],
             "reply_ref": row["reply_ref"],
+        }
+
+    @staticmethod
+    def _loop_state_only(watch: Mapping[str, Any]) -> dict[str, Any]:
+        """Return the non-PII state needed by business-truth receipts."""
+        return {
+            "watch_id": watch["watch_id"],
+            "schema_version": watch["schema_version"],
+            "client_ref": watch["client_ref"],
+            "invoice_ref": watch["invoice_ref"],
+            "status": watch["status"],
+            "followup_loops": dict(watch["followup_loops"]),
+            "reply_seen_at_utc_iso": watch["reply_seen_at_utc_iso"],
+            "reply_ref": watch["reply_ref"],
         }
 
     def _proposal_for_watch(self, watch: Mapping[str, Any], *, requested_at_utc: str) -> dict[str, Any]:

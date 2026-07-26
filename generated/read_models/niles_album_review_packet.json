@@ -88,7 +88,7 @@
   "evidence_sufficient_for_album_status": false,
   "evidence_sufficient_for_review_packet": false,
   "finder_file_operation_allowed": false,
-  "generated_at": "2026-05-17T12:00:00+00:00",
+  "generated_at": "2026-07-26T03:24:54+00:00",
   "generated_by": "codex",
   "governed_evidence_only": true,
   "inferred_or_desired_album_workflow_evidence": [
@@ -187,7 +187,7 @@
     "packet_kind": "operator_review_packet",
     "review_packet_contract": "generic_review_packet_shape_v0"
   },
-  "packet_status": "partial_track_registry_only_operator_metadata_still_needed",
+  "packet_status": "blocked_needs_governed_album_evidence",
   "raw_audio_ingest_allowed": false,
   "receipt_proof_status": {
     "external_action_taken": false,

@@ -2,12 +2,12 @@
 
 Goal: Send the Live Arts MD invoice today before the 4:00 PM cutoff, or manually send it.
 Cutoff: 2026-05-28T16:00:00-04:00
-Time bucket: UNDER_75_MINUTES (58 minutes remaining)
+Time bucket: CUTOFF_PASSED (0 minutes remaining)
 
 Current blocker: invoice candidate/artifact/recipient/send readiness.
 
 Recommended human action:
-Prioritize selecting the invoice and confirming/linking the artifact before the manual fallback time.
+Manually send the invoice and capture proof now if OpenClaw has not produced a safe send-ready package.
 
 Manual send proof to capture:
 - recipient list

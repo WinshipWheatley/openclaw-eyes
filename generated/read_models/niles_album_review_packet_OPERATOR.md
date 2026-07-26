@@ -15,11 +15,27 @@ Status:
 ## Operator Metadata Review Items
 - None. Review packet remains blocked until governed operator metadata exists.
 
+## Track Roster (governed CSV metadata — not final audio truth)
+- Source: `generated/read_models/niles_track_registry.json` | 12 tracks | statuses: 12 idea
+  - T01 | Song 01 | status=idea | next=unknown | target_week=TBD
+  - T02 | Song 02 | status=idea | next=unknown | target_week=TBD
+  - T03 | Song 03 | status=idea | next=unknown | target_week=TBD
+  - T04 | Song 04 | status=idea | next=unknown | target_week=TBD
+  - T05 | Song 05 | status=idea | next=unknown | target_week=TBD
+  - T06 | Song 06 | status=idea | next=unknown | target_week=TBD
+  - T07 | Song 07 | status=idea | next=unknown | target_week=TBD
+  - T08 | Song 08 | status=idea | next=unknown | target_week=TBD
+  - T09 | Song 09 | status=idea | next=unknown | target_week=TBD
+  - T10 | Song 10 | status=idea | next=unknown | target_week=TBD
+  - T11 | Song 11 | status=idea | next=unknown | target_week=TBD
+  - T12 | Song 12 | status=idea | next=unknown | target_week=TBD
+
 ## Confirmed Governed Evidence
 - Niles Album Matrix is modeled as a planning-only module. Source: `approved_module_registry_niles_album_matrix`; authority=planning_only_not_runtime.
 - Workflow Atlas recommends this Niles album review packet as the next non-finance generic packet proof. Source: `operator_workflow_atlas_niles_album_lane`; authority=review_packet_recommendation_not_album_truth.
 - Cassandra/Chief memory surfaces defer album/song progress to Niles/music authority. Source: `cassandra_chief_memory_album_progress_deferred`; authority=deferred_evidence_not_imported_truth.
 - A metadata-only Niles album evidence intake boundary is defined. Source: `niles_album_evidence_intake_boundary`; authority=contract_only_no_real_album_metadata.
+- Governed track-registry CSV confirms 12 song(s) in the chief album roster: 12 idea. Titles are operator working titles; status is metadata-only, not final audio truth. Source: `niles_track_registry`; authority=governed_metadata_evidence_not_final_audio_truth.
 
 ## Inferred / Desired, Not Confirmed Album State
 - A future album matrix should track album/project metadata, mix readiness, production packets, and operator decisions. Basis: approved module and migration-map evidence; confirmation required: `true`.
@@ -64,6 +80,7 @@ Status:
 - `mission_control_app_changed` = `false`
 
 ## Source Evidence
+- `generated/read_models/niles_track_registry.json` present=`true` role=governed chief album track-registry CSV metadata (song roster + status) truth=governed_operator_metadata_evidence_not_final_audio_truth
 - `generated/read_models/niles_album_evidence_intake_boundary.json` present=`true` role=metadata-only evidence intake boundary contract truth=governed_read_model_evidence_not_truth
 - `generated/read_models/operator_workflow_atlas.json` present=`true` role=lane recommendation and generic review-packet bottleneck evidence truth=governed_read_model_evidence_not_truth
 - `generated/read_models/approved_module_registry.json` present=`true` role=Niles Album Matrix planning module evidence truth=governed_read_model_evidence_not_truth

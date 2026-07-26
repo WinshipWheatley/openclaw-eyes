@@ -691,7 +691,7 @@
     ],
     "response_service_healthy": true
   },
-  "generated_at": "2026-05-27T19:31:58+00:00",
+  "generated_at": "2026-07-21T00:18:56+00:00",
   "helm_mode": "CHAT_FIRST",
   "hidden_or_collapsed_surfaces": [
     {
@@ -792,7 +792,7 @@
     "awareness_matrix_summarized": true,
     "backend_decides_operator_attention": true,
     "chat_first_default": true,
-    "content_hash": "sha256:f5d46be25266656a4702415a0d67bee957fba139bbc622458629c5cc529298e1",
+    "content_hash": "sha256:2b6549b2fd4fb721877555cb1aaa27a71a984d18df1c31e7ae6c33b1ba003655",
     "external_action_performed": false,
     "live_lm_call_performed": false,
     "operator_copy_backend_sludge_free": true,

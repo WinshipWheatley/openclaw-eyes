@@ -46,6 +46,36 @@ def test_import_does_not_start_polling(monkeypatch):
     assert "app" not in vars(chief_listener)
 
 
+def test_send_reply_records_v2_delivery_after_confirmed_message(monkeypatch):
+    chief_listener = import_chief_listener(monkeypatch)
+    calls: list[dict] = []
+    monkeypatch.setattr(chief_listener, "_fire_agent_voice", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        chief_listener,
+        "register_operator_text_delivery_v2",
+        lambda **kwargs: calls.append(kwargs),
+    )
+
+    class Message:
+        text = "status?"
+        chat_id = 456
+        message_id = 162
+
+        async def reply_text(self, text):
+            return types.SimpleNamespace(message_id=9005)
+
+    update = types.SimpleNamespace(
+        effective_chat=types.SimpleNamespace(id=456),
+        message=Message(),
+    )
+
+    asyncio.run(chief_listener._send_reply(update, "Chief answer."))
+
+    assert len(calls) == 1
+    assert calls[0]["response_author"] == "chief"
+    assert calls[0]["carrier_identity"] == "chief"
+
+
 def test_run_listener_awaits_lifecycle_once_in_order(monkeypatch):
     chief_listener = import_chief_listener(monkeypatch)
     calls = []

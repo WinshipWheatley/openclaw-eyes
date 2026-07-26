@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import sqlite3
 import threading
@@ -122,6 +123,90 @@ def test_successful_text_delivery_records_exact_hash_without_raw_text(tmp_path: 
     assert row["delivered_text_hash"] == expected_hash
     assert row["delivered_text_length"] == len(delivered_text)
     assert delivered_text not in dict(row).values()
+
+
+def test_v2_text_delivery_records_full_actor_carrier_tuple_and_safe_mirror(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "fleet.sqlite3"
+    mirror_path = tmp_path / "mirror" / "fleet-delivered-v2.jsonl"
+    delivered_text = "Luna prepared the bounded answer."
+    token_fingerprint = "sha256:" + "a" * 64
+
+    result = receipts.register_delivered_text_receipt_v2(
+        effective_service="maestro-listener.service",
+        effective_surface="operator_maestro_chat",
+        effective_bot_identity="maestro",
+        token_owner_label="maestro_bot_token",
+        token_fingerprint=token_fingerprint,
+        chat_id="chat-42",
+        source_message_id="1665",
+        delivered_message_id="9005",
+        source_request_id="maestro_telegram_1665_ce0ca2b9fad1",
+        response_author="luna",
+        carrier_identity="maestro",
+        transport="telegram",
+        delivered_text=delivered_text,
+        delivery_succeeded=True,
+        delivered_at="2026-07-18T14:20:00+00:00",
+        mirror_path=mirror_path,
+        db_path=db_path,
+    )
+
+    expected_hash = "sha256:" + hashlib.sha256(delivered_text.encode("utf-8")).hexdigest()
+    assert result.registered is True
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute(
+            "SELECT * FROM fleet_delivered_text_receipts_v2"
+        ).fetchone()
+    assert row is not None
+    assert row["schema_version"] == "fleet_delivered_text_receipt_v2"
+    assert row["effective_service"] == "maestro-listener.service"
+    assert row["effective_surface"] == "operator_maestro_chat"
+    assert row["effective_bot_identity"] == "maestro"
+    assert row["token_owner_label"] == "maestro_bot_token"
+    assert row["token_fingerprint"] == token_fingerprint
+    assert row["response_author"] == "luna"
+    assert row["carrier_identity"] == "maestro"
+    assert row["delivered_text_hash"] == expected_hash
+
+    mirrored = json.loads(mirror_path.read_text(encoding="utf-8").strip())
+    assert mirrored["schema_version"] == "fleet_delivered_text_receipt_v2"
+    assert mirrored["delivered_message_id"] == "9005"
+    assert mirrored["delivered_text_hash"] == expected_hash
+    assert mirrored["chat_binding_hash"].startswith("sha256:")
+    assert "chat_id" not in mirrored
+    assert delivered_text not in mirror_path.read_text(encoding="utf-8")
+
+
+def test_failed_v2_text_delivery_leaves_no_sqlite_or_mirror(tmp_path: Path) -> None:
+    db_path = tmp_path / "not-created" / "fleet.sqlite3"
+    mirror_path = tmp_path / "not-created" / "mirror.jsonl"
+
+    result = receipts.register_delivered_text_receipt_v2(
+        effective_service="chief-listener.service",
+        effective_surface="chief_listener",
+        effective_bot_identity="chief",
+        token_owner_label="chief_bot_token",
+        token_fingerprint="sha256:" + "b" * 64,
+        chat_id="chat-42",
+        source_message_id="1665",
+        delivered_message_id="9005",
+        source_request_id="chief_telegram_1665_ce0ca2b9fad1",
+        response_author="chief",
+        carrier_identity="chief",
+        transport="telegram",
+        delivered_text="Not delivered.",
+        delivery_succeeded=False,
+        mirror_path=mirror_path,
+        db_path=db_path,
+    )
+
+    assert result.outcome == "delivery_not_succeeded"
+    assert result.registered is False
+    assert not db_path.exists()
+    assert not mirror_path.exists()
 
 
 def test_only_literal_true_counts_as_delivery_success(tmp_path: Path) -> None:

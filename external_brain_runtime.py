@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
@@ -47,6 +48,20 @@ def _hash_identifier(value: object) -> str:
     return f"sha256:{digest[:16]}"
 
 
+def _stable_agent_cache_prefix(role: str) -> str:
+    """Return the immutable persona/doctrine prefix shared by an agent's turns."""
+
+    from agent_voice_profiles import immutable_persona_core_for_speaker
+
+    core = immutable_persona_core_for_speaker(role)
+    return "OPENCLAW IMMUTABLE AGENT PREFIX:\n" + json.dumps(
+        core,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
+
+
 def _local_result(
     local_fallback: Callable[[], str],
     receipt: dict[str, Any],
@@ -71,6 +86,7 @@ def _local_result(
 def run_external_brain_request(
     *,
     raw_operator_prompt: str,
+    original_operator_message: str | None = None,
     context_aid: Mapping[str, Any],
     privacy_metadata: Mapping[str, Any],
     task_type: str,
@@ -87,7 +103,9 @@ def run_external_brain_request(
     guardian_approval_id: str = "",
     guardian_bridge: GuardianBridge | None = None,
     guardian_notify_operator: bool = False,
+    comparison_lane_id: str | None = None,
     packet_quality_db_path: str | Path | None = DEFAULT_LEDGER_PATH,
+    usage_recorder: Callable[..., Mapping[str, Any]] | None = None,
 ) -> ExternalBrainRuntimeResult:
     """Run one external advisory turn or reuse the caller's local path immediately.
 
@@ -104,6 +122,7 @@ def run_external_brain_request(
         context_size=context_size,
         effort_override=effort_override,
         activation_enabled=activation_enabled,
+        comparison_lane_id=comparison_lane_id,
     )
     receipt = build_safe_route_receipt(decision)
     receipt["response_source"] = "pending"
@@ -203,11 +222,14 @@ def run_external_brain_request(
     }
 
     try:
+        cache_prefix = _stable_agent_cache_prefix(role)
         turn = client.run_read_only_turn(
             admission=admission,
             raw_operator_prompt=raw_operator_prompt,
+            original_operator_message=original_operator_message,
             context_aid=context_with_provenance,
             cwd=cwd,
+            cache_prefix=cache_prefix,
         )
     except Exception as exc:
         if isinstance(exc, CodexAppServerRefusal):
@@ -251,6 +273,32 @@ def run_external_brain_request(
             "thread_id_hash": turn.thread_id_hash,
             "turn_id_hash": turn.turn_id_hash,
             "packet_quality": packet_quality_receipt,
+            "original_message_sha256": turn.original_message_sha256,
+            "original_message_present_in_prompt": turn.original_message_present_in_prompt,
+            "prompt_sha256": turn.prompt_sha256,
+            "prompt_composition_sha256": turn.prompt_composition_sha256,
+            "model_call_id_hash": turn.turn_id_hash,
+            "cache_prefix_sha256": turn.cache_prefix_sha256,
+            "cache_prefix_chars": turn.cache_prefix_chars,
+            "input_tokens": turn.input_tokens,
+            "cached_input_tokens": turn.cached_input_tokens,
+            "cache_read_hit": turn.cache_read_hit,
+            "cache_read_ratio": turn.cache_read_ratio,
         }
     )
+    if usage_recorder is not None:
+        try:
+            receipt["router_usage"] = dict(
+                usage_recorder(
+                    agent_id=str(role or "").strip().lower(),
+                    route_receipt=receipt,
+                    answer_text=turn.text,
+                )
+            )
+        except Exception as exc:
+            receipt["router_usage"] = {
+                "schema_version": "lm1_router_usage_receipt_v1",
+                "status": "write_failed",
+                "error_type": type(exc).__name__,
+            }
     return ExternalBrainRuntimeResult(text=turn.text, source="external_brain", receipt=receipt)

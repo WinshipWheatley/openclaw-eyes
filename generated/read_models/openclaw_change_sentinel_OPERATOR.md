@@ -2,7 +2,7 @@
 
 Summary:
 - Status: `NO_MATERIAL_CHANGE`.
-- Observed targets: 30.
+- Observed targets: 31.
 - Material changes: 0.
 - Chief queue candidates: 0 (not launched).
 - LM called: `False`.
@@ -22,6 +22,7 @@ Observed Targets:
 - `input_read_model:business_object_audit` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
 - `input_read_model:authority_semantics_registry` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
 - `input_read_model:lane_capability_harvest` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
+- `input_read_model:phase_c_conductor_state` `INPUT_READ_MODEL` -> `UNKNOWN` `missing`.
 - `git_branch:openclaw_eyes_registry_review_branch` `GIT_BRANCH` -> `NO_MATERIAL_CHANGE` `1a6b7b0b463968f3161e048bd7936dc06505a3bb`.
 - `repo_dirty:openclaw_eyes_registry_review_branch` `REPO_STATE` -> `REPO_DIRTY` `DIRTY`.
 - `mac_mirror:openclaw_eyes_registry_review_branch` `MAC_HEARTBEAT` -> `UNKNOWN` `LOCAL_PATH_UNREACHABLE`.
@@ -42,7 +43,7 @@ Observed Targets:
 - `authority_semantics_registry:fingerprint` `AUTHORITY_SEMANTICS_REGISTRY` -> `NO_MATERIAL_CHANGE` `authority_semantics_v0`.
 - `lane_capability_harvest:recommendation` `LANE_CAPABILITY_HARVEST` -> `NO_MATERIAL_CHANGE` `finish_invoice_steel_thread_sequence`.
 - `service_status:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `active`.
-- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `4`.
+- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `0`.
 
 Timer Proposal:
 - Proposed timer path: `~/.config/systemd/user/openclaw-change-sentinel.timer`.

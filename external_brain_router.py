@@ -17,6 +17,7 @@ MID_LANE = "mid_lane"
 HARD_LANE = "hard_lane"
 LOCAL_SAFE_LANE = "local_safe_lane"
 REQUIRED_LANES = frozenset({EASY_LANE, MID_LANE, HARD_LANE, LOCAL_SAFE_LANE})
+REQUIRED_AGENTS = frozenset({"maestro", "chief", "cassandra", "niles", "guardian", "hermes"})
 VALID_EFFORT_LEVELS = frozenset({"low", "medium", "high", "xhigh"})
 DEFAULT_BINDINGS_PATH = Path(__file__).with_name("model_lane_bindings.json")
 
@@ -50,6 +51,11 @@ class ExternalRouteDecision:
     fallback_reason: str
     activation_enabled: bool
     graduation_headroom_applied: bool
+    agent_id: str = ""
+    agent_binding_status: str = "unbound"
+    agent_allowed_lanes: tuple[str, ...] = ()
+    comparison_lane_requested: str = ""
+    comparison_trial: bool = False
 
 
 def _normalized(value: object) -> str:
@@ -118,6 +124,22 @@ def load_model_lane_bindings(path: str | Path = DEFAULT_BINDINGS_PATH) -> dict[s
             raise ModelLaneBindingError(f"incomplete binding for lane: {lane}")
         if str(binding.get("default_effort") or "") not in VALID_EFFORT_LEVELS:
             raise ModelLaneBindingError(f"invalid default effort for lane: {lane}")
+    agent_bindings = payload.get("agent_bindings")
+    if agent_bindings is not None:
+        if not isinstance(agent_bindings, Mapping):
+            raise ModelLaneBindingError("agent_bindings must be an object")
+        missing_agents = sorted(REQUIRED_AGENTS.difference(agent_bindings))
+        if missing_agents:
+            raise ModelLaneBindingError(
+                f"missing required agent bindings: {', '.join(missing_agents)}"
+            )
+        for agent_id in REQUIRED_AGENTS:
+            binding = agent_bindings.get(agent_id)
+            allowed = binding.get("allowed_lanes") if isinstance(binding, Mapping) else None
+            if not isinstance(allowed, list) or not allowed:
+                raise ModelLaneBindingError(f"invalid agent binding: {agent_id}")
+            if any(str(lane) not in REQUIRED_LANES - {LOCAL_SAFE_LANE} for lane in allowed):
+                raise ModelLaneBindingError(f"unsupported lane in agent binding: {agent_id}")
     return dict(payload)
 
 
@@ -171,6 +193,7 @@ def route_external_brain_request(
     context_size: str = "small",
     effort_override: str | None = None,
     activation_enabled: bool = False,
+    comparison_lane_id: str | None = None,
     bindings_path: str | Path = DEFAULT_BINDINGS_PATH,
 ) -> ExternalRouteDecision:
     """Apply the existing model-class policy, then select a lane and effort.
@@ -188,6 +211,26 @@ def route_external_brain_request(
         bindings_path=bindings_path,
     )
     nominal_lane_id = difficulty_route.lane_id
+    bindings_payload = load_model_lane_bindings(bindings_path)
+    agent_id = _normalized(role).replace(" ", "_")
+    raw_agent_binding = (bindings_payload.get("agent_bindings") or {}).get(agent_id)
+    agent_allowed_lanes = tuple(
+        str(lane)
+        for lane in (
+            raw_agent_binding.get("allowed_lanes", ())
+            if isinstance(raw_agent_binding, Mapping)
+            else ()
+        )
+        if str(lane)
+    )
+    agent_binding_status = "bound" if agent_allowed_lanes else "unbound"
+    comparison_lane_requested = str(comparison_lane_id or "").strip()
+    comparison_trial = bool(
+        comparison_lane_requested
+        and str(chain_lane or "").strip().upper() == "MODEL_GRADUATION_COMPARISON"
+        and comparison_lane_requested in REQUIRED_LANES - {LOCAL_SAFE_LANE}
+        and comparison_lane_requested in agent_allowed_lanes
+    )
     work_lane_id = {
         EASY_LANE: MID_LANE,
         MID_LANE: HARD_LANE,
@@ -199,10 +242,16 @@ def route_external_brain_request(
         bindings = load_model_lane_bindings(bindings_path)
         effort_level = str(bindings["lanes"][work_lane_id]["default_effort"])
         effort_reason = "graduated_binding_default"
+    if comparison_trial:
+        work_lane_id = comparison_lane_requested
+        if effort_override is None:
+            effort_level = str(bindings_payload["lanes"][work_lane_id]["default_effort"])
+            effort_reason = "comparison_lane_binding_default"
 
+    policy_chain_lane = "LM2_ROLE_RESPONSE" if comparison_trial else chain_lane
     policy_request = {
         "request_id": request_hash,
-        "chain_lane": chain_lane,
+        "chain_lane": policy_chain_lane,
         "task_type": _normalized(task_type),
         "role": _normalized(role),
         "risk_level": _normalized(risk_tier) or "low",
@@ -245,10 +294,25 @@ def route_external_brain_request(
         and privacy_metadata.get("cloud_allowed") is True
         and privacy_metadata.get("local_required") is not True
     )
+    if comparison_lane_requested and not comparison_trial:
+        policy_allows_external = False
+        policy_reason = "comparison_lane_not_authorized"
     candidate_lane_id = work_lane_id if policy_allows_external else LOCAL_SAFE_LANE
+    if (
+        policy_allows_external
+        and agent_binding_status == "bound"
+        and candidate_lane_id not in agent_allowed_lanes
+    ):
+        policy_allows_external = False
+        candidate_lane_id = LOCAL_SAFE_LANE
+        policy_reason = "agent_lane_not_allowed"
     if not policy_allows_external:
         effective_lane_id = LOCAL_SAFE_LANE
-        fallback_reason = "model_policy_selected_local"
+        fallback_reason = (
+            "comparison_lane_not_authorized"
+            if comparison_lane_requested and not comparison_trial
+            else "model_policy_selected_local"
+        )
     elif not activation_enabled:
         effective_lane_id = LOCAL_SAFE_LANE
         fallback_reason = "external_router_default_off"
@@ -274,7 +338,14 @@ def route_external_brain_request(
         ),
         fallback_reason=fallback_reason,
         activation_enabled=bool(activation_enabled),
-        graduation_headroom_applied=work_lane_id != nominal_lane_id,
+        graduation_headroom_applied=(
+            not comparison_trial and work_lane_id != nominal_lane_id
+        ),
+        agent_id=agent_id,
+        agent_binding_status=agent_binding_status,
+        agent_allowed_lanes=agent_allowed_lanes,
+        comparison_lane_requested=comparison_lane_requested,
+        comparison_trial=comparison_trial,
     )
 
 
@@ -296,4 +367,9 @@ def build_safe_route_receipt(decision: ExternalRouteDecision) -> dict[str, Any]:
         "fallback_reason": decision.fallback_reason,
         "activation_enabled": decision.activation_enabled,
         "graduation_headroom_applied": decision.graduation_headroom_applied,
+        "agent_id": decision.agent_id,
+        "agent_binding_status": decision.agent_binding_status,
+        "agent_allowed_lanes": list(decision.agent_allowed_lanes),
+        "comparison_lane_requested": decision.comparison_lane_requested,
+        "comparison_trial": decision.comparison_trial,
     }

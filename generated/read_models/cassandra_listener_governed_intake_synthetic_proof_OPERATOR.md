@@ -13,7 +13,8 @@ Status:
 ## What Is Proven
 - A Cassandra-targeted synthetic Telegram-style update can be stored as governed Repo A intake metadata.
 - The live `cassandra_listener.py` receive path calls the governed Cassandra intake helper.
-- The live hook is before unverified-sender return, reply handling, and Cassandra runtime brain calls.
+- The live handler drops unverified senders before claiming an update ID or recording governed metadata.
+- The durable update-ID claim is before governed intake, reply handling, and Cassandra runtime calls.
 - The message is routed through deterministic intent records and surfaced on the Work Board.
 - A planning-only Agent Work Packet can be built from the routed intent.
 - Only hash and bounded excerpt metadata are retained; no full raw body is stored.

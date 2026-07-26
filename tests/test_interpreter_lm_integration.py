@@ -354,6 +354,100 @@ def _valid_workflow_request_for_text(text: str) -> dict[str, Any]:
 
 
 class TestSharedLm1Seam:
+    def test_interpreter_packet_minimizer_excludes_private_facts_and_rich_packet_text(self):
+        packet = {
+            "schema_version": "maestro_context_packet_v1",
+            "packet_id": "packet:test",
+            "source_surface": "operator_maestro_chat",
+            "packet_text": "PRIVATE BODY MUST NOT CROSS THE ROUTER",
+            "facts": [
+                {
+                    "fact_id": "public:1",
+                    "topic": "system_status",
+                    "label": "Public status",
+                    "value": "The bounded service is online.",
+                    "source_ref": "generated/read_models/agent_presence.json",
+                    "provenance": "business_ledger_read_model",
+                    "pii_tier": "PUBLIC",
+                },
+                {
+                    "fact_id": "private:1",
+                    "topic": "private_contact",
+                    "label": "Private contact",
+                    "value": "PRIVATE VALUE MUST NOT CROSS THE ROUTER",
+                    "source_ref": "operator_truth/private.json",
+                    "provenance": "business_ledger",
+                    "pii_tier": "HIGH",
+                },
+            ],
+            "source_refs": [
+                "generated/read_models/agent_presence.json",
+                "operator_truth/private.json",
+            ],
+        }
+
+        minimized = processor._lm1_interpreter_context_packet(packet)
+
+        serialized = json.dumps(minimized)
+        assert minimized["source_packet_id"] == "packet:test"
+        assert minimized["package_minimized"] is True
+        assert minimized["facts"][0]["fact_id"] == "public:1"
+        assert "The bounded service is online." in serialized
+        assert "PRIVATE VALUE" not in serialized
+        assert "PRIVATE BODY" not in serialized
+        assert "operator_truth/private.json" not in serialized
+
+    def test_shared_lm1_interpreter_receives_raw_message_and_preliminary_packet(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "1")
+        monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
+        monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+        read_model_root = _seed_packet_read_models(tmp_path)
+        truth_path = _seed_operator_truth(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            maestro,
+            "session_from_request",
+            lambda _r: {
+                "read_model_root": read_model_root.as_posix(),
+                "operator_truth_store_path": truth_path.as_posix(),
+            },
+        )
+        observed: dict[str, Any] = {}
+
+        def _mock_interpret(text, *, session=None, context_packet=None, **_kwargs):
+            observed["text"] = text
+            observed["packet"] = context_packet
+            observed["session"] = dict(session or {})
+            return interpreter_lm.InterpretResult(
+                route=interpreter_lm.ROUTE_BRAIN,
+                fact_selection=["agent_presence.json"],
+                confidence=0.96,
+                reason="agent status question",
+            )
+
+        monkeypatch.setattr(interpreter_lm, "interpret_operator_message", _mock_interpret)
+        raw_message = "Niles: What are you doing with my exact mix note?!"
+
+        seam = processor._build_lm1_shared_request_seam(
+            _valid_workflow_request_for_text(raw_message),
+            generated_at="2026-07-18T14:30:00+00:00",
+        )
+
+        assert observed["text"] == raw_message
+        assert observed["packet"]["packet_id"]
+        assert observed["packet"]["packet_text"]
+        assert observed["packet"]["package_minimized"] is True
+        assert observed["session"]["addressed_agent"] == "niles"
+        assert "capital hilton" not in observed["packet"]["packet_text"].lower()
+        assert "invoice" not in observed["packet"]["packet_text"].lower()
+        assert observed["packet"]["machine_proof"]["source_question_relevance_scope"] in {
+            "operator_specific",
+            "relevance_unavailable",
+        }
+        assert seam["machine_proof"]["raw_operator_message_forwarded_verbatim"] is True
+        assert seam["machine_proof"]["packet_aid_non_gating"] is True
+
     def test_shared_lm1_brain_route_scopes_general_guidance_at_packet_forge(
         self, tmp_path, monkeypatch
     ):
@@ -416,7 +510,13 @@ class TestSharedLm1Seam:
 
         calls = {"interpret": 0, "read_models": 0}
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(
+            text,
+            *,
+            session=None,
+            context_packet=None,
+            protected_generate_fn=None,
+        ):
             calls["interpret"] += 1
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_WORKFLOW,
@@ -441,7 +541,7 @@ class TestSharedLm1Seam:
 
         assert seam["status"] == "READY"
         assert calls["interpret"] == 1
-        assert calls["read_models"] == 1
+        assert calls["read_models"] == 2
         assert seam["interpretation"]["route"] == "WORKFLOW"
         assert seam["interpretation"]["intent"] == "invoice_send"
         assert seam["interpretation"]["client"] == "st-annes"
@@ -484,7 +584,7 @@ class TestSharedLm1Seam:
         )
         assert brain.status == "ANSWER_READY"
         assert captured["packet_id"] == seam["rich_context_packet"]["packet_id"]
-        assert calls["read_models"] == 1, "brain must reuse the seam packet, not rebuild it"
+        assert calls["read_models"] == 2, "brain must reuse the seam packet, not rebuild it"
 
     def test_shared_lm1_seam_keeps_known_workflow_phrase_deterministic(self, tmp_path, monkeypatch):
         """Known phrases stay on the deterministic fast path. The shared seam may
@@ -578,7 +678,7 @@ class TestStarvationBugFixedSynthetically:
         monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
 
         # Mock the interpreter so NO real LM runs.
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_BRAIN,
                 fact_selection=["work_board.json"],
@@ -647,7 +747,7 @@ class TestStarvationBugFixedSynthetically:
         agent identity into the persona renderer."""
         monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_BRAIN,
                 fact_selection=[],
@@ -725,7 +825,7 @@ class TestStarvationBugFixedSynthetically:
 
         calls = {"n": 0}
 
-        def _counting_interpret(text, *, session=None, protected_generate_fn=None):
+        def _counting_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             calls["n"] += 1
             # WORKFLOW route → neither BRAIN nor ACTION/BLOCKED diverts fire,
             # so BOTH diverts are exercised end-to-end on the same request.
@@ -761,7 +861,7 @@ class TestWorkflowStillRoutesWorkflow:
         """Interpreter mocked WORKFLOW → divert returns None → deterministic path."""
         monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_WORKFLOW,
                 fact_selection=[],
@@ -795,7 +895,7 @@ class TestActionRouteAdvisoryOnly:
         — including telegram_send_triggered — to False. No executor is called."""
         monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_ACTION, fact_selection=[], confidence=0.95,
                 reason="action proposal",
@@ -843,7 +943,7 @@ class TestActionRouteAdvisoryOnly:
         execution flags (including telegram_send_triggered) to False."""
         monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_BLOCKED, fact_selection=[], confidence=0.95,
                 reason="needs approval",
@@ -876,7 +976,7 @@ class TestSafeFallbacks:
     def test_low_confidence_no_divert(self, tmp_path, monkeypatch):
         monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_BRAIN, fact_selection=[], confidence=0.50, reason="unsure",
             )
@@ -888,7 +988,7 @@ class TestSafeFallbacks:
     def test_uncertain_no_divert(self, tmp_path, monkeypatch):
         monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_UNCERTAIN, fact_selection=[], confidence=0.99, reason="ambiguous",
             )
@@ -900,7 +1000,7 @@ class TestSafeFallbacks:
     def test_interpreter_exception_no_divert(self, tmp_path, monkeypatch):
         monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             raise RuntimeError("simulated interpreter crash")
 
         monkeypatch.setattr(interpreter_lm, "interpret_operator_message", _mock_interpret)
@@ -916,7 +1016,7 @@ class TestSafeFallbacks:
         def _garbage_fn(prompt, **kw):
             return "this is not json"
 
-        def _real_interpret_with_garbage(text, *, session=None, protected_generate_fn=None):
+        def _real_interpret_with_garbage(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.interpret_operator_message(text, protected_generate_fn=_garbage_fn)
 
         monkeypatch.setattr(interpreter_lm, "interpret_operator_message", _real_interpret_with_garbage)
@@ -928,7 +1028,7 @@ class TestSafeFallbacks:
         → divert returns None (fall through to workflow)."""
         monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
 
-        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+        def _mock_interpret(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_BRAIN, fact_selection=[], confidence=0.95, reason="conversational",
             )
@@ -1111,7 +1211,7 @@ class TestMessyHumanCanary:
         assert processor._is_maestro_frontdoor_operator_instruction(req) is False
 
         # 2) Mock ONLY the interpreter LM: classify the messy message as BRAIN.
-        def _interpreter_stub(text, *, session=None, protected_generate_fn=None):
+        def _interpreter_stub(text, *, session=None, context_packet=None, protected_generate_fn=None):
             return interpreter_lm.InterpretResult(
                 route=interpreter_lm.ROUTE_BRAIN,
                 fact_selection=["work_board.json", "agent_presence.json"],

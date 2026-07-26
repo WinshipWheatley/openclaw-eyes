@@ -34,7 +34,10 @@ from fleet_receipt_index import (
 from listener_resilience import clean_stale_carryover, honest_short_fail
 from telegram_agent_intake import claim_listener_update
 from telegram_listener_integrity import install_identity_preflight, run_verified_polling
-from telegram_receipt_adapter import contract_delivery_descriptor
+from telegram_receipt_adapter import (
+    contract_delivery_descriptor,
+    register_operator_text_delivery_v2,
+)
 
 try:
     from telegram import Update
@@ -1181,6 +1184,7 @@ def _register_maestro_delivered_text_after_delivery(
     chat_id: int | str,
     source_message_id: str,
     delivered_message: Any,
+    response_author: str,
 ) -> None:
     """Fail-soft delivery-boundary proof for every final Maestro reply."""
 
@@ -1197,6 +1201,21 @@ def _register_maestro_delivered_text_after_delivery(
             source_request_id=source_request_id,
             delivered_text=delivered_text,
             delivery_succeeded=True,
+            db_path=_fleet_receipt_index_path(),
+        )
+        register_operator_text_delivery_v2(
+            delivered_text=delivered_text,
+            source_request_id=source_request_id,
+            chat_id=chat_id,
+            source_message_id=source_message_id,
+            delivered_message=delivered_message,
+            effective_service="maestro-listener.service",
+            effective_surface="operator_maestro_chat",
+            effective_bot_identity="maestro",
+            token_owner_label="MAESTRO_BOT_TOKEN",
+            bot_token=maestro_bot_token(),
+            response_author=response_author,
+            carrier_identity="maestro",
             db_path=_fleet_receipt_index_path(),
         )
     except Exception as exc:
@@ -1458,12 +1477,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
         else:
             delivered_message = await update.message.reply_text(_maestro_reply)
+        speaker = _response_speaker(response)
         _register_maestro_delivered_text_after_delivery(
             delivered_text=_maestro_reply,
             source_request_id=request_id_for_reply,
             chat_id=chat_id,
             source_message_id=delivery_source_message_id,
             delivered_message=delivered_message,
+            response_author=speaker,
         )
         _register_maestro_receipt_after_delivery(
             receipt_descriptor,
@@ -1471,7 +1492,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             source_message_id=delivery_source_message_id,
             delivered_message=delivered_message,
         )
-        speaker = _response_speaker(response)
         if speaker == "maestro":
             _fire_maestro_voice(
                 _maestro_reply,

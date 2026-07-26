@@ -245,6 +245,67 @@ def _st_annes_monitoring_event(
     }
 
 
+def _st_annes_payment_processing_event(
+    tracking_state: Mapping[str, Any],
+    *,
+    generated_at: str,
+) -> dict[str, Any] | None:
+    payment_processing = tracking_state.get("payment_processing")
+    if (
+        tracking_state.get("workflow_stage") != "payment_processing"
+        or not isinstance(payment_processing, Mapping)
+        or payment_processing.get("status") != "PROVEN"
+    ):
+        return None
+    invoice_ref = str(tracking_state.get("invoice_ref") or "st_annes_invoice")
+    proof_refs: list[str] = []
+    for proof_name in ("forward_proof", "payment_processing_proof"):
+        proof = tracking_state.get(proof_name)
+        proof_ref = str(proof.get("message_id") or "") if isinstance(proof, Mapping) else ""
+        if proof_ref and proof_ref not in proof_refs:
+            proof_refs.append(proof_ref)
+    processing_ref = str(payment_processing.get("proof_ref") or "")
+    return {
+        "event_id": (
+            f"autonomous_followup_watch:st_annes:payment_processing:"
+            f"{invoice_ref}:{processing_ref}"
+        ),
+        "event_kind": "st_annes_payment_processing_observed",
+        "generated_at": generated_at,
+        "target_surface": "operator_attention_lane",
+        "headline": "St. Anne's check expected",
+        "operator_message": (
+            "Draper's forward and Glenn's processing instruction are observed. "
+            "Nancy is processing the invoice, so check arrival is now expected. "
+            "No check receipt, payment, or ledger completion is claimed."
+        ),
+        "workflow_ref": str(
+            tracking_state.get("workflow_ref") or st_annes_tracking.WORKFLOW_REF
+        ),
+        "client_ref": "st_annes",
+        "invoice_ref": invoice_ref,
+        "operator_surface_flag": "CHECK_EXPECTED",
+        "proof_refs": proof_refs,
+        "monitoring": dict(tracking_state.get("monitoring") or {}),
+        "payment_check_cadence": dict(
+            tracking_state.get("payment_check_cadence") or {}
+        ),
+        "authority_boundary": _safe_authority_boundary({}),
+        "machine_proof": {
+            "gmail_owner_evidence_recorded": True,
+            "check_arrival_monitoring_only": True,
+            "email_send_performed": False,
+            "gmail_send_performed": False,
+            "telegram_send_performed": False,
+            "ledger_mutation_performed": False,
+            "ledger_posting_performed": False,
+            "paid_marking_performed": False,
+            "payment_movement_performed": False,
+            "business_action_performed": False,
+        },
+    }
+
+
 def _client_followup_event(proposal: Mapping[str, Any], *, generated_at: str) -> dict[str, Any]:
     proposal_id = str(proposal.get("proposal_id") or proposal.get("watch_id") or "")
     client_name = str(proposal.get("client_name") or proposal.get("client_ref") or "client")
@@ -285,10 +346,24 @@ def _upsert_attention_events(
 ) -> None:
     payload = _load_json(path)
     current = payload.get("events") if isinstance(payload.get("events"), list) else []
+    payment_processing_refs = {
+        (str(event.get("client_ref") or ""), str(event.get("invoice_ref") or ""))
+        for event in events
+        if event.get("event_kind") == "st_annes_payment_processing_observed"
+    }
+    retired_kinds = {
+        "st_annes_receivable_monitor_armed",
+        "st_annes_forward_tracking_followup",
+    }
     by_id = {
         str(row.get("event_id")): dict(row)
         for row in current
         if isinstance(row, Mapping) and row.get("event_id")
+        and not (
+            str(row.get("event_kind") or "") in retired_kinds
+            and (str(row.get("client_ref") or ""), str(row.get("invoice_ref") or ""))
+            in payment_processing_refs
+        )
     }
     for event in events:
         by_id[str(event["event_id"])] = dict(event)
@@ -386,6 +461,7 @@ def run_once(
 
     followup_store = ClientFollowupWatchStore(str(_rooted(followup_db_path)))
     armed_watch: dict[str, Any] = {}
+    closed_watches: list[dict[str, Any]] = []
     if tracking_state.get("sent") is True:
         armed_watch = followup_store.add_watch(
             client_ref="st_annes",
@@ -406,12 +482,23 @@ def run_once(
         )
         forward_proof = tracking_state.get("forward_proof")
         if isinstance(forward_proof, Mapping):
-            armed_watch = followup_store.record_reply_seen(
-                str(armed_watch["watch_id"]),
+            closed_watches = followup_store.record_reply_seen_for_invoice(
+                client_ref="st_annes",
+                invoice_ref=str(
+                    tracking_state.get("invoice_ref") or "st_annes_invoice"
+                ),
                 reply_seen_at_utc_iso=str(
                     forward_proof.get("received_at_utc_iso") or generated_at
                 ),
                 reply_ref=str(forward_proof.get("message_id") or ""),
+            )
+            armed_watch = next(
+                (
+                    watch
+                    for watch in closed_watches
+                    if watch.get("watch_id") == armed_watch.get("watch_id")
+                ),
+                armed_watch,
             )
         monitoring_event = _st_annes_monitoring_event(
             tracking_state,
@@ -420,6 +507,18 @@ def run_once(
         if monitoring_event is not None:
             _append_if_new(
                 event=monitoring_event,
+                state=state,
+                prepared=prepared,
+                skipped=skipped,
+                generated_at=generated_at,
+            )
+        payment_processing_event = _st_annes_payment_processing_event(
+            tracking_state,
+            generated_at=generated_at,
+        )
+        if payment_processing_event is not None:
+            _append_if_new(
+                event=payment_processing_event,
                 state=state,
                 prepared=prepared,
                 skipped=skipped,
@@ -455,6 +554,8 @@ def run_once(
             "module_used": True,
             "db_path": str(_rooted(followup_db_path)),
             "armed_watch": armed_watch,
+            "closed_watches": closed_watches,
+            "closed_watch_count": len(closed_watches),
             "due_proposals": due_proposals,
             "due_proposal_count": len(due_proposals),
         },

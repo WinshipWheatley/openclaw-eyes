@@ -3,14 +3,14 @@
 - Readiness: `READY_FOR_RECOMMENDATION_NOT_EXECUTION`
 - Posture: `ACTIVE_RECOMMENDATION_LAYER_NOT_EXECUTOR`
 - Active steel thread: `invoice_steel_thread_sequence`
-- Recommended next package: `chief_build_task:finish_invoice_steel_thread_sequence`
-- Recommended model class: `PC_CODEX_DETERMINISTIC_PACKAGE_BUILDER`
-- Confidence: `HIGH`
+- Recommended next package: `hermes_package:diagnose_material_change`
+- Recommended model class: `PC_CODEX_DETERMINISTIC_DIAGNOSTIC`
+- Confidence: `MEDIUM`
 - Guardian required: `true`
 
 ## Recommendation
 
-Live Arts, Capital Hilton, and St. Anne's are not all proven. Finish the invoice steel-thread sequence before opening a new adjacent lane.
+Change Sentinel reports material change, so Hermes prioritizes diagnosis over new feature work.
 
 ## Do Not Touch
 

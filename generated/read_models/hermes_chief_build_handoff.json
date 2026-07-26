@@ -30,7 +30,7 @@
     "coupa_browser_allowed": false,
     "email_send_allowed": false,
     "gmail_draft_creation_allowed": false,
-    "handoff_ref": "hermes_chief_build_handoff:2fe563699bfa8454",
+    "handoff_ref": "hermes_chief_build_handoff:dde1f9baece52a1f",
     "ledger_mutation_allowed": false,
     "mission_ref": "hermes_mission:live_arts_md_invoice_4pm_cutoff",
     "no_business_state_mutation": true,
@@ -102,8 +102,8 @@
     "operator_copy": "This module needs setup or support before that feature can run."
   },
   "deadline_local": "2026-05-28T16:00:00-04:00",
-  "generated_at": "2026-05-28T15:01:54-04:00",
-  "handoff_ref": "hermes_chief_build_handoff:2fe563699bfa8454",
+  "generated_at": "2026-07-21T00:18:44.058913+00:00",
+  "handoff_ref": "hermes_chief_build_handoff:dde1f9baece52a1f",
   "human_trial_gaps": [
     "Mac needs a trial for invoice candidate selection",
     "Mac needs a trial for artifact attach/open/reveal",
@@ -111,7 +111,7 @@
   ],
   "machine_proof": {
     "all_authority_flags_false": true,
-    "content_hash": "sha256:778697236ccafc7bfc7ac51001fd92814e7e29dbeb0d731b0e617a1122ed3973",
+    "content_hash": "sha256:6a014abea338063dd9c4570f42167fb1baf3c895676c59f0adb14e35fa60cb39",
     "customer_mode_hides_developer_tasks": true,
     "developer_mode_only": true,
     "no_coupa_browser": true,

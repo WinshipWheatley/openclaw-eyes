@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
@@ -9,6 +10,33 @@ import codex_app_server_client as app_server
 
 
 MODEL = "catalog-model-for-test"
+
+
+def test_work_turn_output_preserves_nested_structured_answer_as_json() -> None:
+    answer, critique = app_server._parse_work_turn_output(
+        json.dumps(
+            {
+                "answer": {
+                    "route": "BRAIN",
+                    "confidence": 0.98,
+                    "answer_draft": "Focused context helps. COPPERKITE",
+                },
+                "packet_critique": {
+                    "summary": "The packet was focused.",
+                    "quality_score": 94,
+                    "missing": [],
+                    "noise": [],
+                    "mis_scoped": [],
+                    "improvement_items": [],
+                    "grounded_in_turn": ["bounded context"],
+                },
+            }
+        )
+    )
+
+    assert json.loads(answer)["route"] == "BRAIN"
+    assert json.loads(answer)["answer_draft"].endswith("COPPERKITE")
+    assert critique["quality_score"] == 94
 
 
 @dataclass
@@ -263,6 +291,7 @@ def test_read_only_turn_preserves_raw_prompt_and_returns_final_agent_text_only()
     result = client.run_read_only_turn(
         admission=admission,
         raw_operator_prompt=raw_prompt,
+        original_operator_message="ORIGINAL words, punctuation & spacing",
         context_aid={"facts": ["bounded context"]},
         cwd="/home/openclaw",
     )
@@ -282,6 +311,95 @@ def test_read_only_turn_preserves_raw_prompt_and_returns_final_agent_text_only()
     assert result.packet_critique["summary"] == "The packet was focused and sufficient."
     assert result.thread_id_hash != "thread-raw-id"
     assert result.turn_id_hash != "turn-raw-id"
+    assert result.original_message_present_in_prompt is True
+    assert len(result.original_message_sha256) == 64
+    assert len(result.prompt_sha256) == 64
+    assert len(result.prompt_composition_sha256) == 64
+
+
+def test_read_only_turn_receipts_stable_cache_prefix_and_observed_cached_tokens() -> None:
+    peer = FakePeer(
+        _safe_responses(),
+        notifications=[
+            {
+                "method": "thread/tokenUsage/updated",
+                "params": {
+                    "threadId": "thread-raw-id",
+                    "turnId": "turn-raw-id",
+                    "tokenUsage": {
+                        "last": {
+                            "cachedInputTokens": 320,
+                            "inputTokens": 480,
+                            "outputTokens": 40,
+                            "reasoningOutputTokens": 12,
+                            "totalTokens": 532,
+                        },
+                        "total": {
+                            "cachedInputTokens": 320,
+                            "inputTokens": 480,
+                            "outputTokens": 40,
+                            "reasoningOutputTokens": 12,
+                            "totalTokens": 532,
+                        },
+                    },
+                },
+            },
+            {
+                "method": "turn/completed",
+                "params": {
+                    "threadId": "thread-raw-id",
+                    "turn": {
+                        "id": "turn-raw-id",
+                        "status": "completed",
+                        "items": [
+                            {
+                                "type": "agentMessage",
+                                "text": json.dumps(
+                                    {
+                                        "answer": "Cached answer.",
+                                        "packet_critique": {
+                                            "summary": "The packet was bounded.",
+                                            "quality_score": 90,
+                                            "missing": [],
+                                            "noise": [],
+                                            "mis_scoped": [],
+                                            "improvement_items": [],
+                                            "grounded_in_turn": ["bounded packet"],
+                                        },
+                                    }
+                                ),
+                            }
+                        ],
+                    },
+                },
+            },
+        ],
+    )
+    client = app_server.CodexAppServerClient(peer)
+    admission = client.preflight(model=MODEL)
+
+    result = client.run_read_only_turn(
+        admission=admission,
+        raw_operator_prompt="Dynamic operator suffix.",
+        context_aid={"packet_id": "packet-1"},
+        cwd="/home/openclaw",
+        cache_prefix="Maestro immutable persona core v1",
+    )
+
+    thread_params = next(
+        params
+        for kind, method, params in peer.calls
+        if kind == "request" and method == "thread/start"
+    )
+    assert "Maestro immutable persona core v1" in thread_params["baseInstructions"]
+    assert "The first user input is the complete task prompt." in thread_params["baseInstructions"]
+    assert "place that structured output verbatim in answer" in thread_params["baseInstructions"]
+    assert result.cache_prefix_sha256.startswith("sha256:")
+    assert result.cache_prefix_chars > 0
+    assert result.input_tokens == 480
+    assert result.cached_input_tokens == 320
+    assert result.cache_read_hit is True
+    assert result.cache_read_ratio == 0.6667
 
 
 def test_turn_cannot_start_without_successful_admission() -> None:
@@ -403,6 +521,8 @@ def test_safe_subscription_receipt_contains_binding_and_no_raw_prompt() -> None:
         used_percent=80,
         window_duration_mins=10080,
         guardian_approval_required=True,
+        app_server_version="0.144.5",
+        app_server_version_source="verified_pinned_cli",
     )
 
     receipt = app_server.build_safe_subscription_receipt(
@@ -416,6 +536,7 @@ def test_safe_subscription_receipt_contains_binding_and_no_raw_prompt() -> None:
     assert receipt["selected_effort"] == "high"
     assert receipt["chatgpt_auth_asserted"] is True
     assert receipt["guardian_approval_required"] is True
+    assert receipt["app_server_version_source"] == "verified_pinned_cli"
     assert "raw" not in json.dumps(receipt).lower()
 
 
@@ -543,6 +664,7 @@ def test_preflight_refuses_old_app_server_before_account_or_model_calls() -> Non
 
     assert admission.allowed is False
     assert admission.reason == "app_server_version_unsupported"
+    assert admission.app_server_version == "0.142.5"
     assert _methods(peer) == ["initialize"]
 
 
@@ -559,9 +681,67 @@ def test_preflight_accepts_real_01445_user_agent_version_format() -> None:
     admission = client.preflight(model=MODEL)
 
     assert admission.allowed is True
+    assert admission.app_server_version == "0.144.5"
+    assert admission.app_server_version_source == "initialize_response"
     assert _methods(peer) == [
         "initialize",
         "account/read",
         "account/rateLimits/read",
         "model/list",
     ]
+
+
+def test_preflight_accepts_missing_initialize_version_only_with_verified_pinned_cli() -> None:
+    responses = _safe_responses()
+    responses["initialize"] = {"codexHome": "/redacted", "platformFamily": "unix"}
+    peer = FakePeer(responses)
+    client = app_server.CodexAppServerClient(
+        peer,
+        trusted_app_server_version="0.144.5",
+    )
+
+    admission = client.preflight(model=MODEL)
+
+    assert admission.allowed is True
+    assert admission.app_server_version == "0.144.5"
+    assert admission.app_server_version_source == "verified_pinned_cli"
+
+
+def test_preflight_refuses_missing_initialize_version_without_verified_pinned_cli() -> None:
+    responses = _safe_responses()
+    responses["initialize"] = {"codexHome": "/redacted", "platformFamily": "unix"}
+    admission = app_server.CodexAppServerClient(FakePeer(responses)).preflight(model=MODEL)
+
+    assert admission.allowed is False
+    assert admission.reason == "app_server_version_unsupported"
+    assert admission.app_server_version == "unknown"
+
+
+def test_verified_pinned_codex_cli_version_requires_exact_output(monkeypatch: Any) -> None:
+    monkeypatch.setattr(
+        app_server.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args=args[0],
+            returncode=0,
+            stdout="codex-cli 0.144.5\n",
+            stderr="",
+        ),
+    )
+
+    assert app_server.verified_pinned_codex_cli_version() == "0.144.5"
+
+
+def test_verified_pinned_codex_cli_version_rejects_mismatched_output(monkeypatch: Any) -> None:
+    monkeypatch.setattr(
+        app_server.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args=args[0],
+            returncode=0,
+            stdout="codex-cli 0.144.6\n",
+            stderr="",
+        ),
+    )
+
+    assert app_server.verified_pinned_codex_cli_version() == ""

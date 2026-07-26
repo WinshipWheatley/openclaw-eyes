@@ -8,25 +8,25 @@ What this is not:
 
 Summary:
 - Boards: 1.
-- Cards: 53.
-- By column: completed_with_receipt=3, deferred=7, needs_review=13, pending_approval=1, planned=4, routed=25.
-- By agent: cassandra=6, chief=23, guardian=6, hermes=5, niles=7, report_bridge=6.
-- Needs review: 13.
+- Cards: 96.
+- By column: completed_with_receipt=3, deferred=7, needs_review=34, pending_approval=1, planned=8, routed=43.
+- By agent: cassandra=33, chief=37, guardian=6, hermes=6, niles=8, report_bridge=6.
+- Needs review: 34.
 - Pending approval: 1.
 - Blocked: 0.
 - Completed with receipt: 3.
 
 Latest cards:
-- `wbcard_fa9a45158142a80a29f3` routed intent_record:smoke_intent_b22a88b9b050ac5a2fdf - Intent: Chief, organize my Markdown files.
-- `wbcard_f9c01faf01dce9dc4b86` deferred dropped_intent:dropintent_a4b178ac6fb4e77ac7ec - Report Bridge Sample Package v0
-- `wbcard_f660382b106d8d458b75` needs_review intent_record:smoke_intent_0ce738e5f095b6bc4c26 - Intent: Hermes, synthesize current posture.
-- `wbcard_f505bb8374d8e82f7d12` deferred dropped_intent:dropintent_129e9fe879dad60c5396 - Legacy GitHub Repo Intake v0.1
-- `wbcard_e1cec09634845d7b6948` needs_review intent_record:smoke_intent_9f092a78fb1e6ea1cb7b - Intent: Niles, do something with that new Logic file.
-- `wbcard_e11a5991e1ab4f0d4347` planned steel_thread_signal:steel_signal_agent_work_board_orchestration - Steel Thread: Agent work board / orchestration board pattern
-- `wbcard_dbdd86caf0498e5dc45b` routed intent_record:smoke_intent_34a6da8e7782a10a062a - Intent: Cassandra, summarize what changed.
-- `wbcard_db6710857b8516367cd8` routed intent_record:smoke_intent_74aed714113f66fc0e71 - Intent: Guardian, is this safe?
-- `wbcard_d873c2e1bbe5c4a16d05` routed intent_record:smoke_intent_09cf36bc8867efef2796 - Intent: Guardian, is this safe?
-- `wbcard_d6314b07e757923e0036` deferred dropped_intent:dropintent_16f18d33bd951b7a776e - Automatic file watcher daemon
+- `wbcard_f2d37b1dce085eda7194` needs_review manual_seed:finance_invoice_reconciliation:review_repo_b_finance_helpers - Review Repo B finance helpers
+- `wbcard_b3403ca433adbd4f8b37` needs_review manual_seed:finance_invoice_reconciliation:receivables_evidence_requirements - Review receivables evidence requirements
+- `wbcard_0ad11f9f87705b71bed6` planned manual_seed:finance_invoice_reconciliation:finance_invoice_helper_v0_proposal - Build Finance Invoice Helper v0 proposal
+- `wbcard_e90dddf86d765f017c6a` needs_review manual_seed:cassandra_runtime_wiring_audit:reply_path - Cassandra reply path blocked/missing
+- `wbcard_8c35b7333c75580af726` needs_review manual_seed:cassandra_runtime_wiring_audit:capital_hilton_route - Capital Hilton facts via Cassandra route
+- `wbcard_7e6119ad90d3531c2c6b` needs_review manual_seed:cassandra_runtime_wiring_audit:receive_path - Cassandra receive path not proven
+- `wbcard_470defd2053f212ea3d3` needs_review manual_seed:cassandra_runtime_wiring_audit:repo_b_listener_review - Review/wrap Repo B Cassandra listener logic
+- `wbcard_37003d029460d66ea9e0` routed manual_seed:telegram_agent_intake:tgupdate_27a2f7d73046773c6df9 - Telegram intake proof for Cassandra
+- `wbcard_1cbbb43684927237ccea` routed manual_seed:telegram_agent_intake:tgupdate_4ea92b2deef77be2b048 - Telegram intake proof for Cassandra
+- `wbcard_49c6af5f5c3e694f37ba` routed manual_seed:telegram_agent_intake:tgupdate_666f4a675a355b3a7cf2 - Telegram intake proof for Cassandra
 
 Top next safe moves:
 - Do you want Mission Control to draft action request files into the E-drive inbox next? Suggested lane: Mission Control Action Request Writer v0.

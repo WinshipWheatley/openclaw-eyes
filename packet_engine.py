@@ -300,6 +300,21 @@ def _score_packet_dankness(packet: dict[str, Any], question: str) -> dict[str, A
 
 # A doer packet is deliberately narrow: the target, what bears on it, and
 # nothing else. Extra breadth is where a spawned agent drifts off-assignment.
+#: Facts that say who the agent is and what rules it works under — as opposed
+#: to facts about the subject at hand. Two different seams need to tell these
+#: apart (doer narrowing must keep them; the coverage gate must not count them
+#: as knowing anything about the target), and they must never disagree, so the
+#: judgement lives here once.
+IDENTITY_FACT_MARKERS = ("persona", "doctrine", "charter")
+
+
+def is_identity_fact(row: Mapping[str, Any]) -> bool:
+    """True when a fact is identity/orders rather than subject knowledge."""
+
+    marker = f"{row.get('topic','')} {row.get('fact_id','')}".lower()
+    return any(part in marker for part in IDENTITY_FACT_MARKERS)
+
+
 SPAWNED_FACT_LIMIT = 8
 # Potency bounds for a doer packet: enough signal to act, small enough to fit.
 DOER_FACT_VALUE_CHARS = 220
@@ -336,13 +351,9 @@ def _shape_for_doer(
             )
             for row in facts
         ]
-        # Persona and doctrine facts are identity, not breadth — narrowing the
-        # assignment must never strip who the doer is or the rules it works under.
-        def _is_identity(row: Mapping[str, Any]) -> bool:
-            marker = f"{row.get('topic','')} {row.get('fact_id','')}".lower()
-            return "persona" in marker or "doctrine" in marker
-
-        kept = [row for score, row in scored if score > 0 or _is_identity(row)]
+        # Identity facts are not breadth — narrowing the assignment must never
+        # strip who the doer is or the orders it works under.
+        kept = [row for score, row in scored if score > 0 or is_identity_fact(row)]
         if any(score > 0 for score, _ in scored):
             facts = kept[:SPAWNED_FACT_LIMIT]
     packet["facts"] = facts
@@ -475,6 +486,25 @@ def _decorate_packet(
             source_refs.append(str(doctrine_delivery["source_ref"]))
         else:
             packet["status"] = "GIG_BUSINESS_DOCTRINE_UNAVAILABLE"
+    # Every agent, every packet: which chair it is in and the orders it is
+    # under. A post is not question-class gated the way doctrine is — an agent
+    # that does not know it holds the client boundary will behave like one.
+    from crew_charter import build_charter_delivery, charter_fact
+
+    charter_delivery = build_charter_delivery(agent_id=agent)
+    packet["crew_charter_delivery"] = charter_delivery
+    facts = [charter_fact(charter_delivery), *facts]
+    packet["packet_text"] = "\n".join(
+        part
+        for part in (
+            str(packet.get("packet_text") or "").strip(),
+            str(charter_delivery.get("packet_text") or "").strip(),
+        )
+        if part
+    )
+    sections.append("crew_charter")
+    if charter_delivery["status"] == "READY":
+        source_refs.append(str(charter_delivery["source_ref"]))
     packet["agent_id"] = agent
     packet["persona_delivery"] = _persona_delivery(
         persona,
@@ -535,6 +565,9 @@ def _decorate_packet(
             ).get("new_authority_conferred"),
             "packet_engine_sections": tuple(sections),
             "turn_self_facts_delivered": bool(turn_self_facts),
+            "crew_charter_status": charter_delivery["status"],
+            "crew_charter_post": charter_delivery.get("post", ""),
+            "crew_charter_ref": charter_delivery.get("charter_ref", ""),
         }
     )
     packet["machine_proof"] = proof

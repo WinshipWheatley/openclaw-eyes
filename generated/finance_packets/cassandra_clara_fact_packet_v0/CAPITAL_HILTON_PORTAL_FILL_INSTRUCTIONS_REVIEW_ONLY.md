@@ -9,7 +9,7 @@ Known governed facts:
 - Invoice grouping: invoice_count_preference has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:62b213bacc10); operator confirmation required
 - PO reference: po_numbers has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:f7b0bbc2f9ec); operator confirmation required
 - Billing/remit: billing_remit_details has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:041800d2eafb); operator confirmation required
-- Recipient/CC posture: recipient_cc_decision has imported structured evidence in finance_invoice_packet_facts (sha256:4e606352be02); operator confirmation required
+- Recipient/CC posture: recipient_decision has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:4e606352be02); operator confirmation required
 - Supplier portal reference: supplier_portal_reference has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:ac571565822e); operator confirmation required
 - Invoice output/attachment posture: invoice_attachment_output_path has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:64c764c0bb9b); operator confirmation required
 

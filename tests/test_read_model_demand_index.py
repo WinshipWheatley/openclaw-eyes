@@ -264,3 +264,73 @@ def test_spine_is_the_small_always_loaded_layer(tmp_path: Path) -> None:
     assert spine[0]["id"] == "capital_hilton_invoice_status"
     assert "key_fields" not in spine[0]
     assert len(json.dumps(spine)) < len(json.dumps(demand_index.index_rows_json(rows)))
+
+
+def test_index_finds_a_read_model_by_the_entities_inside_it(tmp_path: Path) -> None:
+    """The answer to "did we send live arts md an invoice" lives in
+    receivables_month_bounded.json -- a filename that mentions neither the
+    client nor invoices. Matching only on the name makes it unfindable."""
+
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(
+        root,
+        "receivables_month_bounded.json",
+        {
+            "rows": [
+                {
+                    "client_display_name": "Live Arts MD",
+                    "client_ref": "live_arts_md",
+                    "payment_status": "entered_for_payment_not_paid",
+                    "receivable_ids": ["recv:live_arts_md:2026-1004"],
+                }
+            ]
+        },
+    )
+    _write_read_model(root, "hermes_mission_sentinel.json", {"missions": []})
+    rows = demand_index.build_demand_index(root, repo_root=tmp_path)
+
+    selected = demand_index.select_read_models(
+        rows, "did we send live arts md an invoice"
+    )
+
+    assert [row.id for row in selected] == ["receivables_month_bounded"]
+
+
+def test_entity_tokens_stay_bounded_so_the_index_stays_small(tmp_path: Path) -> None:
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(
+        root,
+        "huge.json",
+        {"rows": [{"name": f"entity_number_{i}"} for i in range(500)]},
+    )
+    rows = demand_index.build_demand_index(root, repo_root=tmp_path)
+
+    assert len(rows[0].entity_tokens) <= demand_index.MAX_ENTITY_TOKENS
+
+
+def test_entity_match_outweighs_a_generic_word_match(tmp_path: Path) -> None:
+    """"did we send live arts md an invoice" -- the entity is the discriminator.
+    A file that merely contains the generic word "invoice" must not outrank the
+    file that is actually about Live Arts MD."""
+
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(
+        root,
+        "receivables_month_bounded.json",
+        {"rows": [{"client_display_name": "Live Arts MD", "client_ref": "live_arts_md"}]},
+    )
+    _write_read_model(
+        root,
+        "capital_hilton_invoice_send_status.json",
+        {"invoice_number": "2026-1006", "send_status": "sent"},
+    )
+    rows = demand_index.build_demand_index(root, repo_root=tmp_path)
+
+    selected = demand_index.select_read_models(
+        rows, "did we send live arts md an invoice"
+    )
+
+    assert selected[0].id == "receivables_month_bounded"

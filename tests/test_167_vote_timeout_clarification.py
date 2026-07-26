@@ -580,3 +580,18 @@ def test_unknown_vote_status_stays_fail_closed_with_named_honest_floor() -> None
         clarification_policy.clarification_for_vote_failure(receipt)
         == EXPECTED_UNKNOWN_STATUS_CLARIFICATION
     )
+def test_shared_lm1_seam_disables_duplicate_semantic_vote_seat() -> None:
+    assert contract.semantic_vote_enabled_for_adapter(
+        "maestro",
+        default=True,
+        environ={"OPENCLAW_LM1_SHARED_SEAM": "1"},
+    ) is False
+    assert contract.semantic_vote_enabled_for_adapter(
+        "maestro",
+        default=True,
+        environ={
+            "OPENCLAW_LM1_SHARED_SEAM": "1",
+            "OPENCLAW_CONTRACT_VOTE_ADAPTERS": "all",
+        },
+    ) is False
+

@@ -41,6 +41,7 @@ from final_output_boundary import OutputBoundaryContext, render_final_output
 SCHEMA_VERSION = "typed_contract_decision_v1"
 SEMANTIC_VOTE_ENV = "OPENCLAW_CONTRACT_VOTE_ADAPTERS"
 SEMANTIC_VOTE_TIMEOUT_ENV = "OPENCLAW_CONTRACT_VOTE_TIMEOUT_SECONDS"
+LM1_SHARED_SEAM_ENV = "OPENCLAW_LM1_SHARED_SEAM"
 CONTRACT_RECEIPT_DB_ENV = "OPENCLAW_CONTRACT_RECEIPT_DB"
 DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 30.0
 MAX_SEMANTIC_TIMEOUT_SECONDS = 60.0
@@ -321,6 +322,15 @@ def semantic_vote_enabled_for_adapter(
     environ: Mapping[str, str] | None = None,
 ) -> bool:
     env = environ if environ is not None else os.environ
+    if str(env.get(LM1_SHARED_SEAM_ENV, "0") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
+        # One LM1 seat: deterministic typed contracts still run first, while
+        # unresolved text continues to the shared routed interpreter seam.
+        return False
     if SEMANTIC_VOTE_ENV not in env:
         # Hermetic default under pytest: ten thousand legacy tests must never
         # depend on a live local model (2026-07-10 gate: default-ON turned

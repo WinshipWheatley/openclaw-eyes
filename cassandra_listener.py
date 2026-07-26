@@ -83,7 +83,10 @@ from origin_bound_output import (
 )
 from telegram_agent_intake import claim_listener_update, record_cassandra_listener_text_update
 from telegram_listener_integrity import install_identity_preflight, run_verified_polling
-from telegram_receipt_adapter import contract_delivery_descriptor
+from telegram_receipt_adapter import (
+    contract_delivery_descriptor,
+    register_operator_text_delivery_v2,
+)
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
@@ -1513,6 +1516,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         default_bot_identity="cassandra",
     )
     delivered_text_replies: list[str] = []
+    source_binding = _hashlib.sha256(
+        f"cassandra|{sender_chat_id}|{actual_source_message_id}".encode("utf-8")
+    ).hexdigest()[:12]
+    delivery_source_request_id = (
+        f"cassandra_telegram_{actual_source_message_id}_{source_binding}"
+    )
 
     async def _send_bound_text(reply_text: str, reply_markup=None):
         safe_text = _final_operator_reply(reply_text, source_request=text)
@@ -1545,8 +1554,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         delivered_text_replies.append(safe_text)
         if reply_markup is None:
-            return await update.message.reply_text(safe_text)
-        return await update.message.reply_text(safe_text, reply_markup=reply_markup)
+            delivered = await update.message.reply_text(safe_text)
+        else:
+            delivered = await update.message.reply_text(
+                safe_text,
+                reply_markup=reply_markup,
+            )
+        try:
+            register_operator_text_delivery_v2(
+                delivered_text=safe_text,
+                source_request_id=delivery_source_request_id,
+                chat_id=sender_chat_id,
+                source_message_id=actual_source_message_id,
+                delivered_message=delivered,
+                effective_service="cassandra-listener.service",
+                effective_surface="cassandra_telegram",
+                effective_bot_identity="cassandra",
+                token_owner_label="CASSANDRA_BOT_TOKEN",
+                bot_token=BOT_TOKEN,
+                response_author="cassandra",
+                carrier_identity="cassandra",
+            )
+        except Exception as exc:
+            print(
+                f"[cassandra_listener] v2 delivery receipt skipped: {type(exc).__name__}",
+                flush=True,
+            )
+        return delivered
 
     async def _send_bound_document(document_path: str, caption: str):
         safe_caption = _final_operator_reply(caption, source_request=text)

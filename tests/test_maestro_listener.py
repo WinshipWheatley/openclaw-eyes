@@ -668,12 +668,19 @@ def test_exact_1665_workflow_answer_reaches_private_reply_once_with_delivery_rec
         }
 
     delivery_calls: list[dict] = []
+    v2_delivery_calls: list[dict] = []
     monkeypatch.setattr(maestro_listener, "poll_bridge_response", fake_poll)
     monkeypatch.setattr(
         maestro_listener,
         "register_delivered_text_receipt",
         lambda **kwargs: delivery_calls.append(kwargs),
     )
+    monkeypatch.setattr(
+        maestro_listener,
+        "register_operator_text_delivery_v2",
+        lambda **kwargs: v2_delivery_calls.append(kwargs),
+    )
+    monkeypatch.setattr(maestro_listener, "maestro_bot_token", lambda: "test-token")
 
     class DeliveryMessage(FakeMessage):
         def __init__(self, text: str):
@@ -694,6 +701,9 @@ def test_exact_1665_workflow_answer_reaches_private_reply_once_with_delivery_rec
     assert delivery_calls[0]["delivered_text"] == DRIFT_AWARE_ANSWER
     assert delivery_calls[0]["source_request_id"] == "maestro_telegram_1665_ce0ca2b9fad1"
     assert delivery_calls[0]["delivery_succeeded"] is True
+    assert len(v2_delivery_calls) == 1
+    assert v2_delivery_calls[0]["response_author"] == "maestro"
+    assert v2_delivery_calls[0]["carrier_identity"] == "maestro"
 
 
 def test_guardian_denial_keeps_guardian_truth_instead_of_lying_no_model_floor():

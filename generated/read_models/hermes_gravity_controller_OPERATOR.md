@@ -2,7 +2,7 @@
 
 ## Evidence:
 - Gravity status set: `PURPOSE_BOUND_OK, NEEDS_NARROWING, NEEDS_OPERATOR_OPT_IN, SURVEILLANCE_RISK, BLOCKED_NO_CLEAR_PURPOSE, CUSTOMER_SAFE, DEVELOPER_ONLY`
-- Time constraint status: `NO_URGENCY`
+- Time constraint status: `EXPIRED`
 - Samples: `6` example decisions.
 - Example count: `7`
 

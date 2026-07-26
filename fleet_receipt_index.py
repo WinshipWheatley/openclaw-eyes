@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sqlite3
 from contextlib import closing
@@ -28,6 +29,10 @@ DEFAULT_SQLITE_PATH = (
     / "generated"
     / "receipts"
     / "fleet_receipt_index.sqlite3"
+)
+DEFAULT_DELIVERED_TEXT_V2_MIRROR_PATH = Path(
+    "/mnt/e/openclaw/artifacts/fleet_delivery_receipts/"
+    "fleet_delivered_text_receipts_v2.jsonl"
 )
 
 
@@ -423,6 +428,35 @@ def _connect(path: Path) -> sqlite3.Connection:
           ON fleet_delivered_text_receipts (
             source_request_id, delivered_at, id
           );
+        CREATE TABLE IF NOT EXISTS fleet_delivered_text_receipts_v2 (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          delivery_key TEXT NOT NULL UNIQUE,
+          schema_version TEXT NOT NULL CHECK (
+            schema_version='fleet_delivered_text_receipt_v2'
+          ),
+          effective_service TEXT NOT NULL,
+          effective_surface TEXT NOT NULL,
+          effective_bot_identity TEXT NOT NULL,
+          token_owner_label TEXT NOT NULL,
+          token_fingerprint TEXT NOT NULL,
+          chat_id TEXT NOT NULL,
+          source_message_id TEXT NOT NULL,
+          delivered_message_id TEXT NOT NULL,
+          source_request_id TEXT NOT NULL,
+          response_author TEXT NOT NULL,
+          carrier_identity TEXT NOT NULL,
+          transport TEXT NOT NULL,
+          fallback_identity_label TEXT NOT NULL,
+          fallback_identity_fingerprint TEXT NOT NULL,
+          delivered_at TEXT NOT NULL,
+          delivered_text_hash TEXT NOT NULL,
+          delivered_text_length INTEGER NOT NULL CHECK (delivered_text_length >= 0),
+          delivery_succeeded INTEGER NOT NULL CHECK (delivery_succeeded=1)
+        );
+        CREATE INDEX IF NOT EXISTS idx_fleet_delivered_text_v2_request
+          ON fleet_delivered_text_receipts_v2 (
+            source_request_id, delivered_at, id
+          );
         """
     )
     connection.commit()
@@ -622,6 +656,164 @@ def register_delivered_text_receipt(
     )
 
 
+def _sha256_fingerprint(value: str, *, field_name: str) -> str:
+    fingerprint = _binding_value(value, field_name=field_name).lower()
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", fingerprint):
+        raise ValueError(f"{field_name} must be a sha256 fingerprint")
+    return fingerprint
+
+
+def _append_v2_mirror(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    encoded = (
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        + "\n"
+    ).encode("utf-8")
+    descriptor = os.open(path, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o600)
+    try:
+        os.write(descriptor, encoded)
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def register_delivered_text_receipt_v2(
+    *,
+    effective_service: str,
+    effective_surface: str,
+    effective_bot_identity: str,
+    token_owner_label: str,
+    token_fingerprint: str,
+    chat_id: str,
+    source_message_id: str,
+    delivered_message_id: str,
+    source_request_id: str,
+    response_author: str,
+    carrier_identity: str,
+    transport: str,
+    delivered_text: str,
+    delivery_succeeded: bool,
+    fallback_identity_label: str = "",
+    fallback_identity_fingerprint: str = "",
+    delivered_at: str | None = None,
+    db_path: str | Path = DEFAULT_SQLITE_PATH,
+    mirror_path: str | Path | None = None,
+) -> DeliveredTextRegistrationResult:
+    """Record the actor/carrier delivery tuple and mirror only safe hashes."""
+
+    if delivery_succeeded is not True:
+        return DeliveredTextRegistrationResult("delivery_not_succeeded", False, "")
+
+    service_value = _binding_value(effective_service, field_name="effective_service")
+    surface_value = _binding_value(effective_surface, field_name="effective_surface")
+    bot_value = _binding_value(
+        effective_bot_identity,
+        field_name="effective_bot_identity",
+    ).lower()
+    owner_value = _binding_value(token_owner_label, field_name="token_owner_label")
+    token_fingerprint_value = _sha256_fingerprint(
+        token_fingerprint,
+        field_name="token_fingerprint",
+    )
+    chat_value = _binding_value(chat_id, field_name="chat_id")
+    source_value = _binding_value(source_message_id, field_name="source_message_id")
+    delivered_value = _binding_value(
+        delivered_message_id,
+        field_name="delivered_message_id",
+    )
+    request_value = _binding_value(source_request_id, field_name="source_request_id")
+    author_value = _binding_value(response_author, field_name="response_author").lower()
+    carrier_value = _binding_value(carrier_identity, field_name="carrier_identity").lower()
+    transport_value = _binding_value(transport, field_name="transport").lower()
+    fallback_label_value = _clean(fallback_identity_label)
+    fallback_fingerprint_value = _clean(fallback_identity_fingerprint).lower()
+    if bool(fallback_label_value) != bool(fallback_fingerprint_value):
+        raise ValueError("fallback identity label and fingerprint must be supplied together")
+    if fallback_fingerprint_value:
+        fallback_fingerprint_value = _sha256_fingerprint(
+            fallback_fingerprint_value,
+            field_name="fallback_identity_fingerprint",
+        )
+
+    text = str(delivered_text or "")
+    if not text:
+        raise ValueError("delivered_text is required")
+    if len(text) > 65_536:
+        raise ValueError("delivered_text exceeds the bounded receipt length")
+    text_hash = "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    delivered_timestamp = _timestamp(
+        delivered_at or _utc_now(),
+        field_name="delivered_at",
+    )
+    row = {
+        "schema_version": "fleet_delivered_text_receipt_v2",
+        "effective_service": service_value,
+        "effective_surface": surface_value,
+        "effective_bot_identity": bot_value,
+        "token_owner_label": owner_value,
+        "token_fingerprint": token_fingerprint_value,
+        "chat_id": chat_value,
+        "source_message_id": source_value,
+        "delivered_message_id": delivered_value,
+        "source_request_id": request_value,
+        "response_author": author_value,
+        "carrier_identity": carrier_value,
+        "transport": transport_value,
+        "fallback_identity_label": fallback_label_value,
+        "fallback_identity_fingerprint": fallback_fingerprint_value,
+        "delivered_at": delivered_timestamp,
+        "delivered_text_hash": text_hash,
+        "delivered_text_length": len(text),
+        "delivery_succeeded": 1,
+    }
+    key_material = json.dumps(row, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    delivery_key = hashlib.sha256(key_material.encode("utf-8")).hexdigest()
+
+    with closing(_connect(Path(db_path))) as connection:
+        with connection:
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO fleet_delivered_text_receipts_v2 (
+                  delivery_key, schema_version, effective_service,
+                  effective_surface, effective_bot_identity, token_owner_label,
+                  token_fingerprint, chat_id, source_message_id,
+                  delivered_message_id, source_request_id, response_author,
+                  carrier_identity, transport, fallback_identity_label,
+                  fallback_identity_fingerprint, delivered_at,
+                  delivered_text_hash, delivered_text_length, delivery_succeeded
+                ) VALUES (
+                  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )
+                """,
+                (delivery_key, *row.values()),
+            )
+            registered = connection.total_changes > 0
+
+    if registered:
+        selected_mirror_path = (
+            Path(mirror_path)
+            if mirror_path is not None
+            else (
+                DEFAULT_DELIVERED_TEXT_V2_MIRROR_PATH
+                if Path(db_path) == DEFAULT_SQLITE_PATH
+                else None
+            )
+        )
+        if selected_mirror_path is not None:
+            mirror_row = dict(row)
+            mirror_row.pop("chat_id")
+            mirror_row["chat_binding_hash"] = (
+                "sha256:" + hashlib.sha256(chat_value.encode("utf-8")).hexdigest()
+            )
+            _append_v2_mirror(selected_mirror_path, mirror_row)
+
+    return DeliveredTextRegistrationResult(
+        "registered" if registered else "already_registered",
+        registered,
+        text_hash,
+    )
+
+
 def read_delivered_text_receipts(
     *,
     db_path: str | Path = DEFAULT_SQLITE_PATH,
@@ -640,6 +832,30 @@ def read_delivered_text_receipts(
         rows = _safe_rows(
             path,
             "SELECT * FROM fleet_delivered_text_receipts ORDER BY id",
+            (),
+        )
+    return tuple(dict(row) for row in rows)
+
+
+def read_delivered_text_receipts_v2(
+    *,
+    db_path: str | Path = DEFAULT_SQLITE_PATH,
+    source_request_id: str = "",
+) -> tuple[dict[str, Any], ...]:
+    """Read v2 delivery tuples without exposing raw reply text."""
+
+    path = Path(db_path)
+    if source_request_id:
+        rows = _safe_rows(
+            path,
+            "SELECT * FROM fleet_delivered_text_receipts_v2 "
+            "WHERE source_request_id=? ORDER BY id",
+            (_binding_value(source_request_id, field_name="source_request_id"),),
+        )
+    else:
+        rows = _safe_rows(
+            path,
+            "SELECT * FROM fleet_delivered_text_receipts_v2 ORDER BY id",
             (),
         )
     return tuple(dict(row) for row in rows)
@@ -845,6 +1061,7 @@ class FleetReceiptIndex:
 
 
 __all__ = [
+    "DEFAULT_DELIVERED_TEXT_V2_MIRROR_PATH",
     "DEFAULT_SQLITE_PATH",
     "HUMAN_RECEIPT_LOOKUP_HINT",
     "PROVIDER_BACKENDS",
@@ -864,7 +1081,9 @@ __all__ = [
     "parse_receipt_request",
     "register_delivered_receipt",
     "register_delivered_text_receipt",
+    "register_delivered_text_receipt_v2",
     "read_delivered_text_receipts",
+    "read_delivered_text_receipts_v2",
     "render_receipt_safe_visible_text",
     "resolve_receipt_lookup",
     "resolve_receipt_request",

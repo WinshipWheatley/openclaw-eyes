@@ -80,6 +80,76 @@ def test_synthetic_forward_and_glenn_ack_drive_true_state_read_model(tmp_path: P
     assert payload == state
 
 
+def test_glenn_processing_instruction_advances_to_check_expected(tmp_path: Path) -> None:
+    contacts_db = tmp_path / "contacts.sqlite3"
+    ContactsRegistry(str(contacts_db), seed=True)
+    messages = [
+        {
+            "message_id": "19f70bf03affd5a3",
+            "thread_id": "19f7053211a51f52",
+            "from": "Draper Carter <draper.carter@gmail.com>",
+            "to": ["Glenn Mortoro <glennmortoro@gmail.com>"],
+            "cc": ["Winship Live <winshiplive@gmail.com>"],
+            "received_at_utc_iso": "2026-07-17T11:43:07-04:00",
+            "subject": "FW: Corrected: St. Anne's Invoice - June 2026 Services",
+            "body": "Forwarded corrected St. Anne's invoice.",
+        },
+        {
+            "message_id": "19f70d8508cb29b2",
+            "thread_id": "19f7053211a51f52",
+            "from": "Glenn Mortoro <glennmortoro@gmail.com>",
+            "to": ["Nancy Pollack <npollack@stannes-annapolis.org>"],
+            "cc": [
+                "Draper Carter <draper.carter@gmail.com>",
+                "Winship Live <winshiplive@gmail.com>",
+            ],
+            "received_at_utc_iso": "2026-07-17T19:10:39+03:00",
+            "subject": "Fwd: FW: Corrected: St. Anne's Invoice - June 2026 Services",
+            "body": "Nancy,\n\nPlease process this payment for Winship.\n\nThanks\nGlenn",
+        },
+    ]
+
+    state = advance_st_annes_receivable_state(
+        sent_receipt={
+            **SENT_RECEIPT,
+            "gmail_message_id": "19f7054d2e151aa4",
+            "invoice_ref": "ST-ANNES-2026-06-INVOICE-3",
+        },
+        messages=messages,
+        contacts_db_path=str(contacts_db),
+        generated_at_utc_iso="2026-07-18T18:55:00+00:00",
+    )
+
+    assert state["forwarded_to_glenn"] is True
+    assert state["glenn_acknowledged"] is True
+    assert state["workflow_stage"] == "payment_processing"
+    assert state["operator_surface_flag"] == "CHECK_EXPECTED"
+    assert state["payment_status"] == "CHECK_EXPECTED"
+    assert state["payment_processing"] == {
+        "state": "check_expected",
+        "status": "PROVEN",
+        "proof_ref": "19f70d8508cb29b2",
+        "initiated_at_utc_iso": "2026-07-17T16:10:39+00:00",
+        "processor_recipients": ["npollack@stannes-annapolis.org"],
+    }
+    assert state["monitoring"]["status"] == "ARMED"
+    assert state["monitoring"]["step"] == "check_arrival"
+    assert state["payment_check_cadence"]["status"] == "ARMED_CHECK_EXPECTED"
+    assert state["milestones"]["draper_forwarded_to_glenn"] == {
+        "status": "PROVEN",
+        "state": "observed",
+        "proof_ref": "19f70bf03affd5a3",
+    }
+    assert state["milestones"]["glenn_acknowledged"] == {
+        "status": "PROVEN",
+        "state": "observed",
+        "proof_ref": "19f70d8508cb29b2",
+    }
+    assert state["check_received"] is False
+    assert state["paid"] is False
+    assert state["authority_boundary"]["ledger_mutation_performed"] is False
+
+
 def test_glenn_reply_itself_proves_forward_and_closes_ack_milestone(tmp_path: Path) -> None:
     contacts_db = tmp_path / "contacts.sqlite3"
     ContactsRegistry(str(contacts_db), seed=True)

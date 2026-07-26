@@ -97,17 +97,25 @@ def test_activated_safe_request_passes_raw_prompt_and_effort_to_client() -> None
     client = FakeClient(admission)
     raw_prompt = "My exact punctuation stays: yes?!"
 
+    usage_calls = []
     result = runtime.run_external_brain_request(
         raw_operator_prompt=raw_prompt,
+        original_operator_message="exact punctuation stays: yes?!",
         context_aid={"facts": ["bounded"]},
         privacy_metadata=_public_metadata(),
         task_type="quick summary",
         chain_lane="LM1_INTENT_PROPOSAL",
+        role="maestro",
         client=client,
         local_fallback=lambda: "Local answer.",
         cwd="/home/openclaw",
         activation_enabled=True,
         packet_quality_db_path=None,
+        usage_recorder=lambda **kwargs: usage_calls.append(kwargs) or {
+            "schema_version": "lm1_router_usage_receipt_v1",
+            "event_id": "usage:test",
+            "agent_used_count": 1,
+        },
     )
 
     assert result.text == "External answer."
@@ -120,7 +128,47 @@ def test_activated_safe_request_passes_raw_prompt_and_effort_to_client() -> None
         "external_brain_packet_aid_v2"
     )
     assert result.receipt["thread_id_hash"] == "sha256:thread"
+    assert result.receipt["router_usage"]["event_id"] == "usage:test"
+    assert client.turns[0]["original_operator_message"] == "exact punctuation stays: yes?!"
+    assert '"agent":"maestro"' in client.turns[0]["cache_prefix"]
+    assert "persona_core_v3_canonical_voice_profile" in client.turns[0]["cache_prefix"]
+    assert usage_calls[0]["agent_id"] == "maestro"
+    assert usage_calls[0]["answer_text"] == "External answer."
+    assert usage_calls[0]["route_receipt"]["external_turn_performed"] is True
     assert "My exact punctuation" not in str(result.receipt)
+
+
+def test_comparison_lane_is_forwarded_through_shared_runtime() -> None:
+    admission = SubscriptionAdmission(
+        True,
+        "subscription_headroom_ok",
+        "gpt-5.6-luna",
+        effort_level="low",
+        account_type="chatgpt",
+        used_percent=25,
+    )
+    client = FakeClient(admission)
+    result = runtime.run_external_brain_request(
+        raw_operator_prompt="Compose one bounded comparison take.",
+        original_operator_message="Compare Clara across the four lanes.",
+        context_aid={"facts": ["bounded"]},
+        privacy_metadata=_public_metadata(),
+        task_type="architecture policy synthesis",
+        chain_lane="MODEL_GRADUATION_COMPARISON",
+        role="cassandra",
+        client=client,
+        local_fallback=lambda: "Local answer.",
+        cwd="/home/openclaw",
+        activation_enabled=True,
+        comparison_lane_id="easy_lane",
+        packet_quality_db_path=None,
+    )
+
+    assert result.source == "external_brain"
+    assert client.preflights[0]["model"] == "gpt-5.6-luna"
+    assert client.preflights[0]["effort_level"] == "low"
+    assert result.receipt["comparison_trial"] is True
+    assert result.receipt["comparison_lane_requested"] == "easy_lane"
 
 
 def test_guardian_boundary_queues_scope_and_falls_local_without_turn() -> None:

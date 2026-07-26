@@ -427,13 +427,13 @@ def introspection_answer_grounding_gaps(
     gaps: list[str] = []
     if model_id and model_id.lower() not in answer_raw:
         gaps.append("model_id")
-    if lane_id and _normalized_answer_text(lane_id) not in answer:
+    if lane_id and lane_id.lower() not in answer_raw:
         gaps.append("lane_id")
-    if backend_class == "external_brain" and not any(
-        marker in answer for marker in ("external", "cloud", "provider managed")
+    if (
+        backend_class
+        and backend_class != "unknown"
+        and backend_class.lower() not in answer_raw
     ):
-        gaps.append("backend_class")
-    elif backend_class == "local_ollama" and "local" not in answer:
         gaps.append("backend_class")
     if hardware_class not in {"", "unknown", "provider_managed_external"}:
         if _normalized_answer_text(hardware_class) not in answer:
@@ -446,6 +446,61 @@ def introspection_answer_grounding_gaps(
     ) and not any(marker in answer_raw for marker in _HONEST_UNKNOWN_MARKERS):
         gaps.append("honest_unknown")
     return tuple(dict.fromkeys(gaps))
+
+
+def _agent_display_name(agent: str) -> str:
+    normalized = str(agent or "").strip()
+    if not normalized:
+        return "this agent"
+    return normalized[:1].upper() + normalized[1:]
+
+
+def deterministic_model_brain_surface(
+    *,
+    agent: str,
+    facts: Mapping[str, Any],
+) -> str:
+    """Surface current-turn model truth from proof, not model-authored prose."""
+
+    model_id = str(facts.get("model_id") or "").strip()
+    lane_id = str(facts.get("lane_id") or "").strip()
+    backend_class = str(facts.get("backend_class") or "unknown").strip()
+    hardware_class = str(facts.get("hardware_class") or "unknown").strip()
+    display_agent = _agent_display_name(agent)
+
+    if model_id and lane_id and backend_class and backend_class != "unknown":
+        if hardware_class and hardware_class != "unknown":
+            hardware_sentence = f"Hardware class is `{hardware_class}`."
+        elif backend_class == "local_ollama":
+            hardware_sentence = (
+                "That is the local Ollama path; exact hardware specifics are not "
+                "verified to me this turn."
+            )
+        else:
+            hardware_sentence = "Exact hardware specifics are not verified to me this turn."
+        return (
+            f"I’m {display_agent}. This turn is running `{model_id}` on lane "
+            f"`{lane_id}` via backend `{backend_class}`. {hardware_sentence}"
+        )
+
+    known: list[str] = []
+    if model_id:
+        known.append(f"model `{model_id}`")
+    if lane_id:
+        known.append(f"lane `{lane_id}`")
+    if backend_class and backend_class != "unknown":
+        known.append(f"backend `{backend_class}`")
+    if known:
+        known_clause = ", ".join(known)
+        return (
+            f"I’m {display_agent}. This turn has verified {known_clause}, but the "
+            "remaining model/lane/backend or hardware specifics are not verified "
+            "to me this turn, so I won't guess."
+        )
+    return (
+        f"I’m {display_agent}. This turn does not have verified model_id, lane_id, "
+        "or backend_class facts, so I won't guess."
+    )
 
 
 def _packet_build_failure_answer(
@@ -600,15 +655,33 @@ def answer_agent_introspection(
         receipt.get("original_message_present_in_submitted_prompt") is True
         or receipt.get("original_message_present_in_prompt") is True
     )
-    grounding_gaps = introspection_answer_grounding_gaps(
-        answer_text,
-        match=resolved_match,
-        facts=final_facts,
-    )
+    deterministic_surface_used = False
+    visible_text = answer_text.strip()
+    if resolved_match.kind == "model_brain" and original_included:
+        candidate_text = deterministic_model_brain_surface(
+            agent=agent,
+            facts=final_facts,
+        )
+        candidate_gaps = introspection_answer_grounding_gaps(
+            candidate_text,
+            match=resolved_match,
+            facts=final_facts,
+        )
+        if not candidate_gaps:
+            visible_text = candidate_text
+            grounding_gaps = ()
+            deterministic_surface_used = True
+        else:
+            grounding_gaps = candidate_gaps
+    else:
+        grounding_gaps = introspection_answer_grounding_gaps(
+            answer_text,
+            match=resolved_match,
+            facts=final_facts,
+        )
     if not original_included:
         grounding_gaps = tuple(dict.fromkeys((*grounding_gaps, "original_message")))
     grounded = not grounding_gaps
-    visible_text = answer_text.strip()
     if not grounded:
         visible_text = (
             "My generated self-report did not match this turn's machine proof, "
@@ -625,6 +698,7 @@ def answer_agent_introspection(
         "local_model_invoked": receipt.get("local_model_invoked") is True,
         "original_message_present_in_submitted_prompt": original_included,
         "protected_generate_receipt_id": str(receipt.get("receipt_id") or ""),
+        "deterministic_introspection_surface_used": deterministic_surface_used,
         "answer_grounded_in_turn_self_facts": grounded,
         "answer_grounding_missing_fields": grounding_gaps,
         "workflow_package_staged": False,
@@ -665,6 +739,7 @@ __all__ = [
     "TURN_SELF_FACTS_SOURCE_REF",
     "answer_agent_introspection",
     "classify_agent_introspection",
+    "deterministic_model_brain_surface",
     "inject_turn_self_facts",
     "introspection_answer_grounding_gaps",
     "maybe_answer_agent_introspection",

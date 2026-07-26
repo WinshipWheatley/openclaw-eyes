@@ -85,3 +85,38 @@ def test_followup_watch_reply_seen_closes_watch_and_suppresses_proposal(tmp_path
     assert closed["status"] == "closed_reply_seen"
     assert closed["reply_ref"] == "gmail:reply:123"
     assert store.due_followup_proposals("2026-07-05T10:00:00+00:00") == []
+
+
+def test_followup_reply_closes_every_watch_for_same_invoice(tmp_path: Path) -> None:
+    store = ClientFollowupWatchStore(str(tmp_path / "followups.sqlite3"))
+    older = store.add_watch(
+        client_ref="st_annes",
+        client_name="St. Anne's",
+        recipient="draper.carter@gmail.com",
+        subject="St. Anne's Invoice - June 2026 Services",
+        sent_at_utc_iso="2026-07-17T04:23:30+00:00",
+        invoice_ref="ST-ANNES-2026-06-INVOICE-3",
+    )
+    corrected = store.add_watch(
+        client_ref="st_annes",
+        client_name="St. Anne's",
+        recipient="draper.carter@gmail.com",
+        subject="Corrected: St. Anne's Invoice - June 2026 Services",
+        sent_at_utc_iso="2026-07-17T13:47:14+00:00",
+        invoice_ref="ST-ANNES-2026-06-INVOICE-3",
+    )
+
+    closed = store.record_reply_seen_for_invoice(
+        client_ref="st_annes",
+        invoice_ref="ST-ANNES-2026-06-INVOICE-3",
+        reply_seen_at_utc_iso="2026-07-17T15:43:07+00:00",
+        reply_ref="19f70bf03affd5a3",
+    )
+
+    assert {row["watch_id"] for row in closed} == {
+        older["watch_id"],
+        corrected["watch_id"],
+    }
+    assert {row["status"] for row in closed} == {"closed_reply_seen"}
+    assert {row["reply_ref"] for row in closed} == {"19f70bf03affd5a3"}
+    assert store.due_followup_proposals("2026-07-22T00:00:00+00:00") == []

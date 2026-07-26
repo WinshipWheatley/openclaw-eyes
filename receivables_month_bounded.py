@@ -8,9 +8,13 @@ explicit canonical month facts into one packet-safe source for money answers.
 from __future__ import annotations
 
 import argparse
+import fcntl
+import hashlib
 import json
+import os
 import re
 import sqlite3
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -24,6 +28,10 @@ READ_MODEL_ID = "receivables_month_bounded"
 READ_MODEL_FILENAME = "receivables_month_bounded.json"
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_OUTPUT_PATH = DEFAULT_EXPORT_ROOT / READ_MODEL_FILENAME
+
+
+class ReadModelWriteConflict(RuntimeError):
+    """The output changed after the caller measured its expected version."""
 
 
 DEFAULT_CANONICAL_RECEIVABLE_MONTH_FACTS: tuple[dict[str, Any], ...] = (
@@ -124,6 +132,7 @@ _CLIENT_DISPLAY_NAMES = {
 _VALID_STATUSES = {
     "cancelled",
     "expected_uninvoiced",
+    "entered_for_payment_not_paid",
     "needs_reconcile",
     "open_amount_unknown",
     "open_not_paid",
@@ -263,6 +272,12 @@ def _empty_bucket(client_ref: str, month: str, currency: str, display_name: str 
         "open_minor_units": 0,
         "amount_known": True,
         "amount_source_count": 0,
+        "g2c_open_state_count": 0,
+        "g2c_entered_for_payment_count": 0,
+        "g2c_disputed_state_count": 0,
+        "g2c_satisfied_state_count": 0,
+        "g2c_written_off_state_count": 0,
+        "g2c_cancelled_state_count": 0,
         "invoiced_derived": False,
         "needs_reconcile": False,
         "payment_status": "unknown",
@@ -329,6 +344,36 @@ def _iter_current_receivables(db_path: str | Path) -> list[Any]:
     return records
 
 
+def _resolve_g2c_payment_status(bucket: dict[str, Any]) -> None:
+    """Resolve mixed G2C lifecycle states without record-order dependence."""
+    disputed = int(bucket.get("g2c_disputed_state_count") or 0)
+    plain_open = int(bucket.get("g2c_open_state_count") or 0)
+    entered = int(bucket.get("g2c_entered_for_payment_count") or 0)
+    satisfied = int(bucket.get("g2c_satisfied_state_count") or 0)
+    written_off = int(bucket.get("g2c_written_off_state_count") or 0)
+    cancelled = int(bucket.get("g2c_cancelled_state_count") or 0)
+    terminal_conflict = bool(satisfied and (written_off or cancelled)) or bool(
+        written_off and cancelled
+    )
+    if disputed or terminal_conflict:
+        status = "needs_reconcile"
+        bucket["needs_reconcile"] = True
+    elif plain_open:
+        status = "open_not_paid"
+    elif entered:
+        status = "entered_for_payment_not_paid"
+    elif satisfied:
+        status = "settled"
+    elif written_off:
+        status = "written_off"
+    elif cancelled:
+        status = "cancelled"
+    else:
+        status = "unknown"
+    bucket["payment_status"] = status
+    bucket["settled_past_no_compound"] = status == "settled"
+
+
 def _merge_g2c_receivable(buckets: dict[tuple[str, str, str], dict[str, Any]], receivable: Any) -> None:
     month = _month_from_date(getattr(receivable, "due_date_iso", ""))
     if not month:
@@ -343,24 +388,41 @@ def _merge_g2c_receivable(buckets: dict[tuple[str, str, str], dict[str, Any]], r
     bucket["amount_source_count"] = int(bucket.get("amount_source_count") or 0) + 1
     state = str(getattr(receivable, "lifecycle_state", "") or "open").strip().lower()
     bucket["invoiced_minor_units"] += amount
-    if state == "satisfied":
+    if state == "entered_for_payment":
+        bucket["g2c_entered_for_payment_count"] = (
+            int(bucket.get("g2c_entered_for_payment_count") or 0) + 1
+        )
+        bucket["open_minor_units"] += amount
+        _append_unique(
+            bucket["notes"],
+            "Payer confirmed the invoice was entered for payment; funds have not been received.",
+        )
+    elif state == "satisfied":
+        bucket["g2c_satisfied_state_count"] = (
+            int(bucket.get("g2c_satisfied_state_count") or 0) + 1
+        )
         bucket["paid_minor_units"] += amount
-        bucket["settled_past_no_compound"] = True
-        if bucket["payment_status"] == "unknown":
-            bucket["payment_status"] = "settled"
     elif state == "written_off":
-        bucket["payment_status"] = "written_off"
+        bucket["g2c_written_off_state_count"] = (
+            int(bucket.get("g2c_written_off_state_count") or 0) + 1
+        )
         _append_unique(bucket["notes"], "written_off receivable excluded from open owed amount.")
     elif state == "cancelled":
-        bucket["payment_status"] = "cancelled"
+        bucket["g2c_cancelled_state_count"] = (
+            int(bucket.get("g2c_cancelled_state_count") or 0) + 1
+        )
         _append_unique(bucket["notes"], "cancelled receivable excluded from open owed amount.")
     else:
         bucket["open_minor_units"] += amount
         if state == "disputed":
-            bucket["needs_reconcile"] = True
-            bucket["payment_status"] = "needs_reconcile"
-        elif bucket["payment_status"] == "unknown":
-            bucket["payment_status"] = "open_not_paid"
+            bucket["g2c_disputed_state_count"] = (
+                int(bucket.get("g2c_disputed_state_count") or 0) + 1
+            )
+        else:
+            bucket["g2c_open_state_count"] = (
+                int(bucket.get("g2c_open_state_count") or 0) + 1
+            )
+    _resolve_g2c_payment_status(bucket)
     bucket["source_kinds"].add("g2c_expected_receivable")
     _append_unique(bucket["source_refs"], str(getattr(receivable, "source_ref", "") or "g2c:expected_receivable"))
     _append_unique(bucket["receivable_ids"], str(getattr(receivable, "receivable_id", "") or ""))
@@ -495,6 +557,12 @@ def _finalize_bucket(bucket: Mapping[str, Any]) -> dict[str, Any]:
     row["open_minor_units"] = open_value
     row["invoiced_derived"] = bool(row.get("invoiced_derived"))
     row.pop("amount_source_count", None)
+    row.pop("g2c_open_state_count", None)
+    row.pop("g2c_entered_for_payment_count", None)
+    row.pop("g2c_disputed_state_count", None)
+    row.pop("g2c_satisfied_state_count", None)
+    row.pop("g2c_written_off_state_count", None)
+    row.pop("g2c_cancelled_state_count", None)
     row["source_kinds"] = sorted(str(item) for item in row.get("source_kinds", set()) if str(item))
     row["source_refs"] = sorted(dict.fromkeys(str(item) for item in row.get("source_refs", []) if str(item)))
     row["notes"] = list(dict.fromkeys(str(item) for item in row.get("notes", []) if str(item)))
@@ -658,15 +726,44 @@ def export_receivables_month_bounded(
     facts_path: str | Path | None = None,
     output_path: str | Path = DEFAULT_OUTPUT_PATH,
     generated_at: str | None = None,
+    recurrence_rule_db_path: str | Path | None = None,
+    expected_output_sha256: str | None = None,
 ) -> dict[str, Any]:
-    payload = build_receivables_month_bounded(
-        g2c_db_path=g2c_db_path,
-        facts_path=facts_path,
-        generated_at=generated_at,
-    )
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(stable_json(payload), encoding="utf-8")
+    lock_path = path.with_name(f".{path.name}.lock")
+    # Every exporter, including the ordinary CLI path, takes the same stable
+    # sidecar lock *before* reading sources.  The lock therefore survives output
+    # inode replacement and prevents a waiting exporter from publishing a
+    # payload it built before another exporter completed.
+    with lock_path.open("a+b") as lock_handle:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+        if expected_output_sha256 is not None:
+            if not path.exists():
+                raise ReadModelWriteConflict("receivables_read_model_missing")
+            observed = hashlib.sha256(path.read_bytes()).hexdigest()
+            if observed != expected_output_sha256:
+                raise ReadModelWriteConflict("receivables_read_model_changed")
+        payload = build_receivables_month_bounded(
+            g2c_db_path=g2c_db_path,
+            facts_path=facts_path,
+            generated_at=generated_at,
+            recurrence_rule_db_path=recurrence_rule_db_path,
+        )
+        encoded = stable_json(payload).encode("utf-8")
+        temporary = path.with_name(
+            f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp"
+        )
+        with temporary.open("xb") as output:
+            output.write(encoded)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     return payload
 
 
@@ -677,6 +774,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
     parser.add_argument("--output", default="")
     parser.add_argument("--generated-at", default="")
+    parser.add_argument("--recurrence-rule-db", default="")
     parser.add_argument("--format", choices=("json", "summary"), default="summary")
     args = parser.parse_args(argv)
 
@@ -686,6 +784,7 @@ def main(argv: list[str] | None = None) -> int:
         facts_path=args.facts or None,
         output_path=output_path,
         generated_at=args.generated_at or None,
+        recurrence_rule_db_path=args.recurrence_rule_db or None,
     )
     if args.format == "json":
         print(stable_json(payload), end="")

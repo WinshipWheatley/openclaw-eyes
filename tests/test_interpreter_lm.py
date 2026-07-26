@@ -76,6 +76,109 @@ def _make_raising_pg_fn(exc: Exception):
 # ---------------------------------------------------------------------------
 
 class TestInterpretOperatorMessage:
+    def test_brain_interpretation_retains_private_answer_draft_for_single_birth_reuse(self):
+        import interpreter_lm
+
+        result = interpreter_lm._parse_interpreter_output(
+            json.dumps(
+                {
+                    "route": "BRAIN",
+                    "fact_selection": [],
+                    "confidence": 0.96,
+                    "reason": "conversational question",
+                    "intent": "",
+                    "client": "",
+                    "contact": "",
+                    "description": "",
+                    "date": "",
+                    "as_of": "",
+                    "scope": "",
+                    "partial": False,
+                    "needs_clarification": False,
+                    "what": "",
+                    "requesting_agent": "",
+                    "answer_draft": "A bounded packet reduces irrelevant context. COPPERKITE",
+                }
+            )
+        )
+
+        assert result.route == "BRAIN"
+        assert result.is_high_confidence_brain() is True
+        assert getattr(result, "_answer_draft") == (
+            "A bounded packet reduces irrelevant context. COPPERKITE"
+        )
+
+    def test_interpreter_prompt_requests_a_brain_answer_draft(self):
+        import interpreter_lm
+
+        prompt = interpreter_lm._build_interpreter_prompt("Why use bounded context?")
+
+        assert '"answer_draft"' in prompt
+        assert "For BRAIN only" in prompt
+
+    def test_lm1_shared_seam_passes_original_message_and_packet_to_generator(self):
+        from interpreter_lm import interpret_operator_message
+
+        observed: dict[str, Any] = {}
+        raw_message = "What is Niles doing with my exact mix note?!"
+        packet = {
+            "schema_version": "maestro_context_packet_v0",
+            "packet_id": "maestro_context_packet:test",
+            "package_minimized": True,
+            "facts": [{"topic": "agent_presence", "value": "Niles is online."}],
+        }
+
+        def fn(prompt: str, **kwargs: Any) -> str:
+            observed["prompt"] = prompt
+            observed.update(kwargs)
+            return json.dumps(
+                {
+                    "route": "BRAIN",
+                    "fact_selection": ["agent_presence.json"],
+                    "confidence": 0.91,
+                    "reason": "status question",
+                }
+            )
+
+        result = interpret_operator_message(
+            raw_message,
+            session={"addressed_agent": "niles"},
+            context_packet=packet,
+            protected_generate_fn=fn,
+        )
+
+        assert result.route == "BRAIN"
+        assert raw_message in observed["prompt"]
+        assert observed["context_packet"] == packet
+        assert observed["agent"] == "niles"
+        assert observed["original_operator_message"] == raw_message
+
+    def test_neutral_interpreter_prompt_omits_dynamic_invoice_registry(self, monkeypatch):
+        import interpreter_lm
+
+        monkeypatch.setattr(
+            interpreter_lm,
+            "_invoice_client_prompt_lines",
+            lambda: "PRIVATE REGISTRY VALUE MUST NOT APPEAR",
+        )
+
+        prompt = interpreter_lm._build_interpreter_prompt("How are you doing today?")
+
+        assert "PRIVATE REGISTRY VALUE MUST NOT APPEAR" not in prompt
+        assert "Registry omitted because this message has no invoice intent." in prompt
+
+    def test_lm1_shared_seam_disables_direct_fast_lane_bypass(self):
+        import interpreter_lm
+
+        selected = interpreter_lm._select_interpreter_generate_fn(
+            {
+                "OPENCLAW_INTERPRETER_FAST_LANE": "1",
+                "OPENCLAW_LM1_SHARED_SEAM": "1",
+            }
+        )
+
+        assert selected is interpreter_lm._default_protected_generate_fn
+
     def test_brain_high_confidence(self):
         """Mock returns BRAIN 0.9 → InterpretResult.is_high_confidence_brain() is True."""
         from interpreter_lm import interpret_operator_message, ROUTE_BRAIN

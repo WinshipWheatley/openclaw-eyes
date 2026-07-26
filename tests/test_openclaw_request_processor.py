@@ -1729,6 +1729,27 @@ def test_lm1_shared_seam_receipt_and_counter_are_exported():
     assert status["machine_proof"]["lm1_shared_seam_used_count"] == 3
 
 
+def test_model_birth_summary_counts_lm1_answer_reuse_as_one_birth():
+    summary = processor._model_birth_summary(
+        {
+            "model_call_performed": True,
+            "external_brain": {"effective_lane_id": "hard_lane"},
+        },
+        {
+            "model_call_performed": True,
+            "lm1_reused_for_lm2": True,
+            "external_brain_route_receipt": {"effective_lane_id": "hard_lane"},
+        },
+    )
+
+    assert summary == {
+        "model_births": 1,
+        "model_birth_lanes": ["hard_lane"],
+        "model_birth_reason": "lm1_answer_reused_same_session",
+        "identical_lane_double_birth_defect": False,
+    }
+
+
 def test_guardian_output_gate_blocks_rogue_role_claims():
     result = guardian_output_gate.validate_response_payload(
         {

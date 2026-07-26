@@ -1,0 +1,19 @@
+{
+  "doctrine": "Client dissatisfaction reaches Chief in the client's own words. Chief answers it with a repair, not an explanation. The captain hears the outcome.",
+  "escalation_path": "client -> cassandra -> chief -> fixed",
+  "generated_at": "2026-07-26T05:10:47Z",
+  "items": [],
+  "never": "client -> captain-as-developer",
+  "open_count": 0,
+  "owner": "chief",
+  "read_model_id": "client_repair_queue",
+  "rehearsal_count": 1,
+  "rehearsal_note": "Rehearsal rows are held in the queue for audit and kept off the board.",
+  "reporter": "cassandra",
+  "schema_version": "client_repair_queue_v0",
+  "source_refs": [
+    "client_repair_escalation.py",
+    "client_repair_queue.jsonl"
+  ],
+  "trust_damage_count": 0
+}

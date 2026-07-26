@@ -34,6 +34,7 @@ Security:
 
 import asyncio
 import contextvars
+import hashlib
 import os
 
 import first_touch_decision
@@ -62,6 +63,7 @@ from guardian_lamd_emergency_trip import install_guardian_lamd_emergency_signal
 from listener_resilience import clean_stale_carryover, honest_short_fail
 from telegram_receipt_adapter import (
     contract_delivery_descriptor,
+    register_operator_text_delivery_v2,
     register_telegram_delivery,
     render_verified_receipt_reply,
     resolve_telegram_receipt_request,
@@ -456,6 +458,38 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     text = update.message.text.strip()
     effective_chat = getattr(update, "effective_chat", None)
     chat_id = effective_chat.id if effective_chat else AUTHORIZED_USER_ID
+    trace_source_message_id = str(getattr(update, "update_id", "") or "")
+    delivery_source_message_id = str(getattr(update.message, "message_id", "") or "")
+    source_binding = hashlib.sha256(
+        f"guardian|{chat_id}|{delivery_source_message_id}".encode("utf-8")
+    ).hexdigest()[:12]
+    source_request_id = (
+        f"guardian_telegram_{delivery_source_message_id}_{source_binding}"
+    )
+
+    async def _reply_text(reply_text: str):
+        delivered = await update.message.reply_text(reply_text)
+        try:
+            register_operator_text_delivery_v2(
+                delivered_text=reply_text,
+                source_request_id=source_request_id,
+                chat_id=chat_id,
+                source_message_id=delivery_source_message_id,
+                delivered_message=delivered,
+                effective_service="chief-guardian-listener.service",
+                effective_surface="guardian_listener",
+                effective_bot_identity="guardian",
+                token_owner_label="GUARDIAN_BOT_TOKEN",
+                bot_token=BOT_TOKEN,
+                response_author="guardian",
+                carrier_identity="guardian",
+            )
+        except Exception as exc:
+            print(
+                f"[chief_guardian_listener] v2 delivery receipt skipped: {type(exc).__name__}",
+                flush=True,
+            )
+        return delivered
     try:
         receipt_resolution = resolve_telegram_receipt_request(
             text,
@@ -469,27 +503,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             f"[chief_guardian_listener] receipt lookup failed: {type(exc).__name__}",
             flush=True,
         )
-        await update.message.reply_text(guardian_resilient_reply(
+        await _reply_text(guardian_resilient_reply(
             "The receipt index is unavailable right now. No send, workflow, model, tool, "
             "ledger, payment, or external action ran.",
             source_request=text,
         ))
         return
     if receipt_resolution is not None:
-        await update.message.reply_text(
+        await _reply_text(
             guardian_resilient_reply(receipt_resolution.text, source_request=text)
         )
         return
 
-    trace_source_message_id = str(getattr(update, "update_id", "") or "")
-    delivery_source_message_id = str(getattr(update.message, "message_id", "") or "")
     first_touch = first_touch_decision.attempt_first_touch(
         text,
         agent="guardian",
         surface="guardian_listener",
     )
     if first_touch.handled and first_touch.decision is not None:
-        await update.message.reply_text(
+        await _reply_text(
             guardian_resilient_reply(
                 first_touch.decision.reply,
                 source_request=text,
@@ -513,7 +545,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # gate; legitimate typed decisions ("A3F2 1") never match and flow on.
     _refusal = None if first_touch.attempted else _operator_refusal_reply(text)
     if _refusal is not None:
-        await update.message.reply_text(
+        await _reply_text(
             guardian_resilient_reply(_refusal, source_request=text)
         )
         return
@@ -530,7 +562,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         approved_by=str(update.effective_user.id) if update.effective_user else "operator",
     )
     if _hitl_result.get("handled"):
-        await update.message.reply_text(
+        await _reply_text(
             guardian_resilient_reply(
                 str(_hitl_result.get("reply") or "HITL reply handled."),
                 source_request=text,
@@ -565,7 +597,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 _log_no_pending_guardian_packet(_build_no_pending_guardian_packet(text))
             except Exception:
                 pass
-        await update.message.reply_text(
+        await _reply_text(
             guardian_resilient_reply(_reply, source_request=text)
         )
         return
@@ -639,7 +671,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     error_type=type(exc).__name__,
                 )
             else:
-                await update.message.reply_text(
+                await _reply_text(
                     guardian_resilient_reply(
                         "I couldn't classify that against the pending approval, so I left the approval unchanged. "
                         "No retrievable delivery record was created.",
@@ -668,7 +700,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 _typed_descriptor,
                 raw_ref=str(getattr(_typed.receipt, "receipt_pointer", "") or ""),
             )
-            delivered_message = await update.message.reply_text(
+            delivered_message = await _reply_text(
                 guardian_resilient_reply(_typed_reply, source_request=text)
             )
             try:
@@ -716,7 +748,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             f"{_ans}\n\n———\n{error}" if _ans else error,
             source_request=text,
         )
-        await update.message.reply_text(safe_reply)
+        await _reply_text(safe_reply)
         if _ans:
             _fire_agent_voice(
                 "guardian",
@@ -726,7 +758,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     reply = record_decision(decision, expected_id=_pending_id)
-    await update.message.reply_text(
+    await _reply_text(
         guardian_resilient_reply(reply, source_request=text)
     )
 

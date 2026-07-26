@@ -13,10 +13,16 @@ Status:
 - Here is the next safe move: Model the build-now-vs-hold queue posture as another read-model, without running queues.
 
 ## Visible Status Signals
-- Chief work-board cards: `23`.
+- Chief work-board cards: `37`.
 - Chief work packets: `1`.
 - Chief intent routes: `2`.
 - Chief dropped/deferred intents: `7`.
+
+## Fleet Health (Grounded)
+- Fleet: 4/6 agents online. Online: cassandra, chief, guardian, hermes. Offline: niles. Blockers: niles(offline).
+- Sync: mirror=needs_pc_import, display=waiting_for_pc_import. Last Mac sync: 2026-06-12T10:49:56+00:00 (synced). No blocking sync problems.
+- Shipped milestones: 10 on `codex/stress-fixes`. Latest: feat(dank-1): orchestration-progress grounding for the Maestro packet (35ff950b).
+  source: `generated/read_models/chief_agent_fleet_health.json`, as-of: 2026-06-23T00:58:26+00:00
 
 ## Proven Now
 - Chief work packets: Work packets are review/planning artifacts; they do not execute commands or activate agents.

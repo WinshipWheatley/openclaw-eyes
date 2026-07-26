@@ -49,12 +49,12 @@
       "allowed_default_on": true,
       "deadline_local": "2026-05-28T16:00:00-04:00",
       "do_not_spend_time_on": [
-        "new dashboards",
-        "bigger architecture changes",
-        "unbounded polling"
+        "new modules",
+        "non-critical workflow expansion",
+        "research or broad refactoring"
       ],
       "gravity_status": "PURPOSE_BOUND_OK",
-      "manual_fallback_required_by": null,
+      "manual_fallback_required_by": "2026-05-28T16:00:00-04:00",
       "not_allowed_reasons": [
         "None"
       ],
@@ -63,7 +63,7 @@
         "generated/read_models/purpose_bound_automation_charter.json"
       ],
       "reason_codes": [],
-      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "recommended_steel_thread": "Do not continue automation. Run manual fallback with proof capture and record outcomes.",
       "required_operator_controls": [
         "pause",
         "revoke",
@@ -80,18 +80,18 @@
         "access_class=WINSHIP_DEVELOPER"
       ],
       "safer_alternative": "",
-      "time_constraint_status": "NO_URGENCY"
+      "time_constraint_status": "EXPIRED"
     },
     {
       "allowed_default_on": true,
       "deadline_local": "2026-05-28T16:00:00-04:00",
       "do_not_spend_time_on": [
-        "new dashboards",
-        "bigger architecture changes",
-        "unbounded polling"
+        "new modules",
+        "non-critical workflow expansion",
+        "research or broad refactoring"
       ],
       "gravity_status": "SURVEILLANCE_RISK",
-      "manual_fallback_required_by": null,
+      "manual_fallback_required_by": "2026-05-28T16:00:00-04:00",
       "not_allowed_reasons": [
         "Raw continuous location is not permitted.",
         "Location work outside declared window is blocked.",
@@ -106,7 +106,7 @@
         "LOCATION_WINDOW_MUST_BE_DECLARED",
         "UNDECLARED_ACTION"
       ],
-      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "recommended_steel_thread": "Do not continue automation. Run manual fallback with proof capture and record outcomes.",
       "required_operator_controls": [
         "pause",
         "revoke",
@@ -129,18 +129,18 @@
         "operator_in_loop_required"
       ],
       "safer_alternative": "Use an event-window location request only during the declared gig/proof window and do not retain raw GPS outside that window.",
-      "time_constraint_status": "NO_URGENCY"
+      "time_constraint_status": "EXPIRED"
     },
     {
       "allowed_default_on": true,
       "deadline_local": "2026-05-28T16:00:00-04:00",
       "do_not_spend_time_on": [
-        "new dashboards",
-        "bigger architecture changes",
-        "unbounded polling"
+        "new modules",
+        "non-critical workflow expansion",
+        "research or broad refactoring"
       ],
       "gravity_status": "PURPOSE_BOUND_OK",
-      "manual_fallback_required_by": null,
+      "manual_fallback_required_by": "2026-05-28T16:00:00-04:00",
       "not_allowed_reasons": [
         "None"
       ],
@@ -149,7 +149,7 @@
         "generated/read_models/purpose_bound_automation_charter.json"
       ],
       "reason_codes": [],
-      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "recommended_steel_thread": "Do not continue automation. Run manual fallback with proof capture and record outcomes.",
       "required_operator_controls": [
         "pause",
         "revoke",
@@ -166,18 +166,18 @@
         "access_class=WINSHIP_DEVELOPER"
       ],
       "safer_alternative": "",
-      "time_constraint_status": "NO_URGENCY"
+      "time_constraint_status": "EXPIRED"
     },
     {
       "allowed_default_on": true,
       "deadline_local": "2026-05-28T16:00:00-04:00",
       "do_not_spend_time_on": [
-        "new dashboards",
-        "bigger architecture changes",
-        "unbounded polling"
+        "new modules",
+        "non-critical workflow expansion",
+        "research or broad refactoring"
       ],
       "gravity_status": "CUSTOMER_SAFE",
-      "manual_fallback_required_by": null,
+      "manual_fallback_required_by": "2026-05-28T16:00:00-04:00",
       "not_allowed_reasons": [
         "None"
       ],
@@ -186,7 +186,7 @@
         "generated/read_models/purpose_bound_automation_charter.json"
       ],
       "reason_codes": [],
-      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "recommended_steel_thread": "Do not continue automation. Run manual fallback with proof capture and record outcomes.",
       "required_operator_controls": [
         "pause",
         "revoke",
@@ -203,18 +203,18 @@
         "access_class=CUSTOMER_OPERATOR"
       ],
       "safer_alternative": "",
-      "time_constraint_status": "NO_URGENCY"
+      "time_constraint_status": "EXPIRED"
     },
     {
       "allowed_default_on": true,
       "deadline_local": "2026-05-28T16:00:00-04:00",
       "do_not_spend_time_on": [
-        "new dashboards",
-        "bigger architecture changes",
-        "unbounded polling"
+        "new modules",
+        "non-critical workflow expansion",
+        "research or broad refactoring"
       ],
       "gravity_status": "NEEDS_NARROWING",
-      "manual_fallback_required_by": null,
+      "manual_fallback_required_by": "2026-05-28T16:00:00-04:00",
       "not_allowed_reasons": [
         "General inbox watching is blocked.",
         "Only declared charter actions are allowed."
@@ -227,7 +227,7 @@
         "UNOWNED_EMAIL_SURVEILLANCE",
         "UNDECLARED_ACTION"
       ],
-      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "recommended_steel_thread": "Do not continue automation. Run manual fallback with proof capture and record outcomes.",
       "required_operator_controls": [
         "pause",
         "revoke",
@@ -248,18 +248,18 @@
         "action_declared_in_charter"
       ],
       "safer_alternative": "Declare the action in a module purpose charter and require explicit receipts.",
-      "time_constraint_status": "NO_URGENCY"
+      "time_constraint_status": "EXPIRED"
     },
     {
       "allowed_default_on": false,
       "deadline_local": "2026-05-28T16:00:00-04:00",
       "do_not_spend_time_on": [
-        "new dashboards",
-        "bigger architecture changes",
-        "unbounded polling"
+        "new modules",
+        "non-critical workflow expansion",
+        "research or broad refactoring"
       ],
       "gravity_status": "NEEDS_OPERATOR_OPT_IN",
-      "manual_fallback_required_by": null,
+      "manual_fallback_required_by": "2026-05-28T16:00:00-04:00",
       "not_allowed_reasons": [
         "No location purpose specified.",
         "No declared proof window supplied.",
@@ -274,7 +274,7 @@
         "MISSING_LOCATION_WINDOW",
         "MISSING_RAW_RETENTION_CONTROL"
       ],
-      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "recommended_steel_thread": "Do not continue automation. Run manual fallback with proof capture and record outcomes.",
       "required_operator_controls": [
         "pause",
         "revoke",
@@ -295,18 +295,18 @@
         "raw_data_minimization_required"
       ],
       "safer_alternative": "Require explicit purpose, event window, and raw retention minimization approvals.",
-      "time_constraint_status": "NO_URGENCY"
+      "time_constraint_status": "EXPIRED"
     },
     {
       "allowed_default_on": false,
       "deadline_local": "2026-05-28T16:00:00-04:00",
       "do_not_spend_time_on": [
-        "new dashboards",
-        "bigger architecture changes",
-        "unbounded polling"
+        "new modules",
+        "non-critical workflow expansion",
+        "research or broad refactoring"
       ],
       "gravity_status": "NEEDS_OPERATOR_OPT_IN",
-      "manual_fallback_required_by": null,
+      "manual_fallback_required_by": "2026-05-28T16:00:00-04:00",
       "not_allowed_reasons": [
         "Unapproved integration path blocked."
       ],
@@ -317,7 +317,7 @@
       "reason_codes": [
         "UNAPPROVED_INTEGRATION_PATH"
       ],
-      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "recommended_steel_thread": "Do not continue automation. Run manual fallback with proof capture and record outcomes.",
       "required_operator_controls": [
         "pause",
         "revoke",
@@ -337,10 +337,10 @@
         "integration_whitelist_required"
       ],
       "safer_alternative": "Use only official integration paths and keep device reads behind an approval receipt.",
-      "time_constraint_status": "NO_URGENCY"
+      "time_constraint_status": "EXPIRED"
     }
   ],
-  "generated_at": "2026-05-28T12:00:00+00:00",
+  "generated_at": "2026-07-21T00:18:44.058913+00:00",
   "gravity_statuses": [
     "PURPOSE_BOUND_OK",
     "NEEDS_NARROWING",
@@ -352,11 +352,11 @@
   ],
   "machine_proof": {
     "all_authority_flags_false": true,
-    "content_hash": "sha256:6c7380cda601f003020d05475b67aabea6625967b454fdf266df1682baf92416",
+    "content_hash": "sha256:5acc44811dc39c0a4ec3427c9d5e9dbc9d46836153a113a8741b7adb7918beda",
     "example_count": 7,
     "read_model_only": true,
     "samples_total": 6,
-    "time_constraint_status": "NO_URGENCY"
+    "time_constraint_status": "EXPIRED"
   },
   "operator_summary": {
     "customer_view": "Hermes shows module purpose and controls for approved scopes only.",
@@ -424,13 +424,13 @@
   "time_constraint": {
     "deadline_local": "2026-05-28T16:00:00-04:00",
     "do_not_spend_time_on": [
-      "new dashboards",
-      "bigger architecture changes",
-      "unbounded polling"
+      "new modules",
+      "non-critical workflow expansion",
+      "research or broad refactoring"
     ],
-    "manual_fallback_required_by": null,
-    "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
-    "status": "NO_URGENCY"
+    "manual_fallback_required_by": "2026-05-28T16:00:00-04:00",
+    "recommended_steel_thread": "Do not continue automation. Run manual fallback with proof capture and record outcomes.",
+    "status": "EXPIRED"
   },
   "time_constraint_statuses": [
     "NO_URGENCY",

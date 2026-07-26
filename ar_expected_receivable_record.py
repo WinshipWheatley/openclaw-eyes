@@ -4,6 +4,7 @@ import uuid
 
 VALID_RECEIVABLE_LIFECYCLE_STATES = frozenset([
     "open",
+    "entered_for_payment",
     "disputed",
     "satisfied",
     "written_off",

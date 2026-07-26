@@ -52,6 +52,10 @@ AUTHORITY_BOUNDARY = {
 _EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
 _DRAPER_FORWARDED_RE = re.compile(r"\bforward(?:ed|ing)?\b", re.IGNORECASE)
 _GLENN_RE = re.compile(r"\bglenn?\b|\btreasurer\b", re.IGNORECASE)
+_PAYMENT_PROCESSING_RE = re.compile(
+    r"(?:\bprocess(?:ed|ing)?\b.{0,120}\bpayment\b|\bpayment\b.{0,120}\bprocess(?:ed|ing)?\b)",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 @dataclass(frozen=True)
@@ -272,6 +276,18 @@ def _detect_ack(
     )
 
 
+def _payment_processing_proof(
+    ack_proof: Mapping[str, Any] | None,
+    glenn_note: str,
+) -> dict[str, Any] | None:
+    if not ack_proof or not _PAYMENT_PROCESSING_RE.search(glenn_note):
+        return None
+    return {
+        **dict(ack_proof),
+        "signal": "glenn_payment_processing_instruction",
+    }
+
+
 def _followup_draft(step: str, invoice_ref: str) -> dict[str, str]:
     signoff = str(voice_copy_rules_for_speaker("clara")["signoff"])
     closure = loop_closing_ask_for_workflow(WORKFLOW_REF, client_ref=CLIENT_REF)
@@ -400,6 +416,7 @@ def advance_st_annes_receivable_state(
         if sent
         else (None, "")
     )
+    payment_processing_proof = _payment_processing_proof(ack_proof, glenn_note)
     if ack_proof and not forward_proof:
         forward_proof = {
             **ack_proof,
@@ -420,6 +437,10 @@ def advance_st_annes_receivable_state(
         workflow_stage = "awaiting_glenn_ack"
         followup_step = "glenn_ack"
         followup_baseline = forwarded_at
+    elif payment_processing_proof:
+        workflow_stage = "payment_processing"
+        followup_step = None
+        followup_baseline = None
     else:
         workflow_stage = "awaiting_payment"
         followup_step = None
@@ -437,6 +458,7 @@ def advance_st_annes_receivable_state(
         "awaiting_forward_to_glenn": "AWAITING_DRAPER_FORWARD_TO_GLENN",
         "awaiting_glenn_ack": "AWAITING_GLENN_ACKNOWLEDGMENT",
         "awaiting_payment": "AWAITING_PAYMENT_PROOF",
+        "payment_processing": "CHECK_EXPECTED",
     }
     unknown_pending = {"status": "UNKNOWN", "state": "pending"}
     milestones = {
@@ -491,19 +513,34 @@ def advance_st_annes_receivable_state(
         "glenn_note": glenn_note,
         "workflow_stage": workflow_stage,
         "operator_surface_flag": surface_flags[workflow_stage],
-        "payment_status": "NOT_MARKED_PAID",
+        "payment_status": "CHECK_EXPECTED" if payment_processing_proof else "NOT_MARKED_PAID",
+        "payment_processing": (
+            {
+                "status": "PROVEN",
+                "state": "check_expected",
+                "proof_ref": str(payment_processing_proof.get("message_id") or ""),
+                "initiated_at_utc_iso": acknowledged_at,
+                "processor_recipients": list(payment_processing_proof.get("to") or []),
+            }
+            if payment_processing_proof
+            else {"status": "UNKNOWN", "state": "pending"}
+        ),
         "paid": False,
         "check_received": False,
         "milestones": milestones,
         "monitoring": {
-            "status": "ARMED" if followup_step else "NOT_ARMED",
-            "step": followup_step or "",
+            "status": "ARMED" if followup_step or payment_processing_proof else "NOT_ARMED",
+            "step": "check_arrival" if payment_processing_proof else (followup_step or ""),
             "due_at_utc_iso": due_at,
             "local_observed_messages_only": True,
             "auto_send": False,
         },
         "payment_check_cadence": {
-            "status": "NOT_ARMED_AWAITING_GLENN_ACK",
+            "status": (
+                "ARMED_CHECK_EXPECTED"
+                if payment_processing_proof
+                else "NOT_ARMED_AWAITING_GLENN_ACK"
+            ),
             "normal_mail_check_window": "15th-20th",
             "defer_when_glenn_ack_after_day": 10,
             "money_state_mutated": False,
@@ -511,6 +548,7 @@ def advance_st_annes_receivable_state(
         "send_proof": send_proof,
         "forward_proof": forward_proof,
         "ack_proof": ack_proof,
+        "payment_processing_proof": payment_processing_proof,
         "follow_up": follow_up,
         "observed_message_count": len(message_list),
         "contacts_source": contacts["contacts_source"],

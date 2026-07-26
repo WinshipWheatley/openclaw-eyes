@@ -24,6 +24,7 @@ from telegram_listener_integrity import (
 )
 from telegram_receipt_adapter import (
     contract_delivery_descriptor,
+    register_operator_text_delivery_v2,
     register_telegram_delivery,
     render_verified_receipt_reply,
     resolve_telegram_receipt_request,
@@ -165,6 +166,37 @@ async def _send_reply(
         except Exception:
             pass
     delivered_message = await update.message.reply_text(safe_text)
+    try:
+        chat_id = str(
+            getattr(getattr(update, "effective_chat", None), "id", "")
+            or getattr(update.message, "chat_id", "")
+            or AUTHORIZED_USER_ID
+        )
+        source_message_id = str(getattr(update.message, "message_id", "") or "")
+        source_binding = hashlib.sha256(
+            f"chief|{chat_id}|{source_message_id}".encode("utf-8")
+        ).hexdigest()[:12]
+        register_operator_text_delivery_v2(
+            delivered_text=safe_text,
+            source_request_id=(
+                f"chief_telegram_{source_message_id}_{source_binding}"
+            ),
+            chat_id=chat_id,
+            source_message_id=source_message_id,
+            delivered_message=delivered_message,
+            effective_service="chief-listener.service",
+            effective_surface="chief_listener",
+            effective_bot_identity="chief",
+            token_owner_label="CHIEF_BOT_TOKEN",
+            bot_token=BOT_TOKEN,
+            response_author="chief",
+            carrier_identity="chief",
+        )
+    except Exception as exc:
+        print(
+            f"[chief_listener] v2 delivery receipt skipped: {type(exc).__name__}",
+            flush=True,
+        )
     if not vote_timeout_reply:
         _fire_agent_voice("chief", safe_text, update)
     return delivered_message

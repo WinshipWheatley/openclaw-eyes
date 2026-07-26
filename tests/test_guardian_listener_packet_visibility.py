@@ -70,16 +70,24 @@ class _ReplyMessage:
     def __init__(self, text: str, sent: list[str]) -> None:
         self.text = text
         self.chat_id = 456
+        self.message_id = 162
         self._sent = sent
 
-    async def reply_text(self, text: str) -> None:
+    async def reply_text(self, text: str):
         self._sent.append(text)
+        return SimpleNamespace(message_id=9005)
 
 
 def test_guardian_no_pending_reply_builds_packet_but_does_not_show_raw_packet(monkeypatch) -> None:
     listener = _load_listener(monkeypatch)
+    delivery_calls: list[dict] = []
     monkeypatch.setattr(listener, "claim_listener_update", lambda *args, **kwargs: True)
     monkeypatch.setattr(listener, "record_telegram_listener_update_safe", lambda **kwargs: None)
+    monkeypatch.setattr(
+        listener,
+        "register_operator_text_delivery_v2",
+        lambda **kwargs: delivery_calls.append(kwargs),
+    )
 
     import chief_approval_brain
     import hitl_notification_service
@@ -118,6 +126,9 @@ def test_guardian_no_pending_reply_builds_packet_but_does_not_show_raw_packet(mo
     assert packet_calls[0]["question_class"] == "approval_posture_no_pending"
     assert "GUARDIAN_CONTEXT_PACKET" not in sent[0]
     assert "TEMPORAL ANCHOR" not in sent[0]
+    assert len(delivery_calls) == 1
+    assert delivery_calls[0]["response_author"] == "guardian"
+    assert delivery_calls[0]["carrier_identity"] == "guardian"
 
 
 def test_first_touch_refusal_precedes_guardian_intake_and_approval_parser(tmp_path, monkeypatch) -> None:
@@ -147,3 +158,4 @@ def test_first_touch_refusal_precedes_guardian_intake_and_approval_parser(tmp_pa
     assert len(sent) == 1
     assert "Nothing was deleted" in sent[0]
     assert (tmp_path / "refusal-receipts.jsonl").is_file()
+

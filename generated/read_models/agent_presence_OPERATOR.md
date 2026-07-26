@@ -1,9 +1,11 @@
 # OpenClaw Agent Presence
 
+Run: `agentpresence_e58f3a284713d94c2fc6`
+Observed through: `2026-07-26T04:57:57+00:00`
 Agents: 6
-Expected online: 5
-Online: 4
-Unexpected offline/degraded/unknown: 1
+Expected online: 6
+Online: 6
+Unexpected offline/degraded/unknown: 0
 Recovery available: 0
 
 Cassandra:
@@ -20,15 +22,19 @@ Agents:
 - `chief` desired=online actual=online source=service_check recovery=not_needed action=chief_systemd_user_start
 - `guardian` desired=online actual=online source=service_check recovery=not_needed action=guardian_systemd_user_start
 - `hermes` desired=online actual=online source=service_check recovery=not_needed action=hermes_systemd_user_start
-- `niles` desired=online actual=offline source=runtime_surface recovery=blocked action=niles_producer_script_start
-- `report_bridge` desired=unknown_review actual=metadata_available source=read_model recovery=not_needed action=report_bridge_status_only
+- `maestro` desired=online actual=online source=service_check recovery=not_needed action=maestro_systemd_user_start
+- `niles` desired=online actual=online source=service_check recovery=not_needed action=niles_systemd_user_start
+
+Supplemental (not in agent denominator):
+- `report_bridge` actual=metadata_available source=read_model included_in_agent_denominator=`false`
 
 Recovery actions:
 - `cassandra` `cassandra_systemd_user_start` kind=systemd_user_start safe_to_attempt=`false` classification=safe_start_candidate
 - `chief` `chief_systemd_user_start` kind=systemd_user_start safe_to_attempt=`false` classification=safe_start_candidate
 - `guardian` `guardian_systemd_user_start` kind=systemd_user_start safe_to_attempt=`false` classification=safe_start_candidate
 - `hermes` `hermes_systemd_user_start` kind=systemd_user_start safe_to_attempt=`false` classification=safe_start_candidate
-- `niles` `niles_producer_script_start` kind=script_start safe_to_attempt=`false` classification=needs_operator_review
+- `maestro` `maestro_systemd_user_start` kind=systemd_user_start safe_to_attempt=`false` classification=safe_start_candidate
+- `niles` `niles_systemd_user_start` kind=systemd_user_start safe_to_attempt=`false` classification=safe_start_candidate
 - `report_bridge` `report_bridge_status_only` kind=status_only safe_to_attempt=`true` classification=safe_status_check
 
 Recovery clearances:
@@ -38,9 +44,6 @@ Recovery clearances:
 Recent recovery attempts:
 - `cassandra` action=cassandra_systemd_user_start attempted=`false` succeeded=`false` blocker=agent actual_state is online; recovery is not needed
 - `cassandra` action=cassandra_systemd_user_start attempted=`true` succeeded=`false` blocker=recovery command returned non-zero exit code
-
-Blockers:
-- `niles`: expected runtime evidence missing -> Inspect the documented service/process surface and choose a bounded recovery lane if needed.
 
 No-authority posture:
 - `broad_agent_activation_allowed`: `false`

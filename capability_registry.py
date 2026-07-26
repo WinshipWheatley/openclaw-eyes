@@ -130,6 +130,17 @@ REGISTRY: dict = {
                 caveats="No cron, scheduler, or autonomous execution wired in",
             ),
             Capability(
+                "clara_client_intake_autonomous_response", "client_intake",
+                "Autonomously respond to potential gig clients as Clara",
+                connected=False, scope=[],
+                caveats=(
+                    "FUTURE ladder-gated capability only, explicitly AFTER email, scheduling, "
+                    "money, and tone basics. Graduation requires the GIG_BUSINESS_DOCTRINE "
+                    "knowledge battery, fresh calendar and logistics proof, Guardian approval "
+                    "rails, human timing, and an operator rung promotion. W4 remains closed."
+                ),
+            ),
+            Capability(
                 "tts_voice", "voice",
                 "Speak replies aloud via TTS (Kokoro / Piper)",
                 connected=True, scope=["execute"],
@@ -278,6 +289,7 @@ _DOMAIN_KEYWORDS: dict = {
     "approval":   ("approve", "approval", "gate", "permission", "authorize"),
     "automation": ("remind", "reminder", "check again", "follow up", "follow-up",
                    "check back", "check tomorrow", "check next"),
+    "client_intake": ("potential client", "client intake", "gig inquiry", "booking inquiry"),
     "billing":    ("billing", "invoice", "receipt"),
     "routing":    ("route", "handle that", "process that", "manage that"),
 }

@@ -13,7 +13,7 @@
     "money_answers_source": "receivables_month_bounded rows only; do not infer totals from narrative.",
     "settle_past_no_compound": "Rows with payment_status=settled force open_minor_units=0 and do not resurface as owed."
   },
-  "generated_at": "2026-07-17T22:25:05+00:00",
+  "generated_at": "2026-07-21T14:44:57+00:00",
   "read_model_id": "receivables_month_bounded",
   "rows": [
     {
@@ -65,6 +65,34 @@
       ],
       "source_refs": [
         "operator_graded_fact:live_arts_md:2026-07-17:telegram_msg_1781:zero_current_balance"
+      ],
+      "structured_fact": true
+    },
+    {
+      "amount_known": true,
+      "client_display_name": "Live Arts MD",
+      "client_ref": "live_arts_md",
+      "currency_iso": "USD",
+      "current_truth": true,
+      "invoiced_derived": false,
+      "invoiced_minor_units": 10000,
+      "month": "2026-07",
+      "needs_reconcile": false,
+      "notes": [
+        "Payer confirmed the invoice was entered for payment; funds have not been received."
+      ],
+      "open_minor_units": 10000,
+      "paid_minor_units": 0,
+      "payment_status": "entered_for_payment_not_paid",
+      "receivable_ids": [
+        "recv:live_arts_md:2026-1004"
+      ],
+      "settled_past_no_compound": false,
+      "source_kinds": [
+        "g2c_expected_receivable"
+      ],
+      "source_refs": [
+        "canonical_fact:fact:receivable:live_arts_md:2026-1004:entered_for_payment:20260719T163400Z:sha256:9f34f6932118b4e99a5f4681b596eb970dcd4e114a8e6195f8049ec275b369fc"
       ],
       "structured_fact": true
     },
@@ -153,20 +181,22 @@
     "canonical_business_fact:st_annes:2026-04:apr_may_paid",
     "canonical_business_fact:st_annes:2026-05:apr_may_paid",
     "canonical_business_fact:st_annes_current_open:2026-07:expected_uninvoiced",
+    "canonical_fact:fact:receivable:live_arts_md:2026-1004:entered_for_payment:20260719T163400Z:sha256:9f34f6932118b4e99a5f4681b596eb970dcd4e114a8e6195f8049ec275b369fc",
+    "gig_to_cash:/home/openclaw/state/gig_to_cash/gig_to_cash.sqlite3",
     "operator_graded_fact:live_arts_md:2026-07-17:telegram_msg_1781:zero_current_balance"
   ],
   "source_status": {
     "canonical_month_fact_count": 5,
     "facts_path": "",
-    "g2c_current_receivable_count": 0,
+    "g2c_current_receivable_count": 1,
     "g2c_db_path": "/home/openclaw/state/gig_to_cash/gig_to_cash.sqlite3",
-    "g2c_db_present": false,
+    "g2c_db_present": true,
     "recurrence_rule_derived_fact_count": 0
   },
   "summary": {
     "client_count": 3,
     "invoiced_minor_units_by_client": {
-      "live_arts_md": 100000,
+      "live_arts_md": 110000,
       "st_annes": 125000
     },
     "month_count": 4,
@@ -174,14 +204,14 @@
       "capital_hilton:2026-06"
     ],
     "open_minor_units_by_client": {
-      "live_arts_md": 0,
+      "live_arts_md": 10000,
       "st_annes": 0
     },
     "paid_minor_units_by_client": {
       "live_arts_md": 100000,
       "st_annes": 125000
     },
-    "row_count": 5,
+    "row_count": 6,
     "unknown_amount_keys": [
       "capital_hilton:2026-06",
       "st_annes:2026-07"

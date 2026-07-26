@@ -478,6 +478,7 @@ def test_timeout_contract_suppresses_stale_request_after_newer_one(monkeypatch):
 def test_handle_message_keeps_original_prompt_delivery_after_newer_prompt(monkeypatch):
     listener = _load_listener(monkeypatch)
     sent: list[str] = []
+    delivery_calls: list[dict] = []
     captured_should_deliver = []
 
     class FakeUser:
@@ -489,9 +490,12 @@ def test_handle_message_keeps_original_prompt_delivery_after_newer_prompt(monkey
 
     class FakeMessage:
         text = "Can you summarize the Capital Hilton status?"
+        message_id = 162
+        forward_origin = None
 
         async def reply_text(self, text: str):
             sent.append(text)
+            return types.SimpleNamespace(message_id=9005)
 
     class FakeBot:
         async def send_chat_action(self, **kwargs):
@@ -509,6 +513,11 @@ def test_handle_message_keeps_original_prompt_delivery_after_newer_prompt(monkey
     monkeypatch.setattr(listener, "_log_cassandra_route", lambda text, intent: None, raising=False)
     monkeypatch.setattr(listener, "speak", lambda *args, **kwargs: None, raising=False)
     monkeypatch.setattr(listener, "synthesize_for_voice_note", lambda *args, **kwargs: None, raising=False)
+    monkeypatch.setattr(
+        listener,
+        "register_operator_text_delivery_v2",
+        lambda **kwargs: delivery_calls.append(kwargs),
+    )
 
     update = types.SimpleNamespace(
         effective_user=FakeUser(),
@@ -522,6 +531,9 @@ def test_handle_message_keeps_original_prompt_delivery_after_newer_prompt(monkey
 
     assert captured_should_deliver == [True]
     assert sent == ["Correlated answer."]
+    assert len(delivery_calls) == 1
+    assert delivery_calls[0]["response_author"] == "cassandra"
+    assert delivery_calls[0]["carrier_identity"] == "cassandra"
 
 
 def test_first_touch_refusal_precedes_sender_map_governed_intake_and_router(tmp_path, monkeypatch):

@@ -56,10 +56,10 @@
     "source_ref": "generated/read_models/openclaw_authority_semantics_registry.json"
   },
   "chief_allowed_to_build": [
-    "prepare bounded implementation package",
-    "run local tests",
-    "emit receipts",
-    "chief_build_task:finish_invoice_steel_thread_sequence"
+    "inspect read-model diffs",
+    "run bounded tests",
+    "emit diagnostic package",
+    "hermes_package:diagnose_material_change"
   ],
   "chief_forbidden_actions": [
     "launch Chief runtime",
@@ -77,7 +77,7 @@
     "enable swarm mode",
     "push git"
   ],
-  "confidence": "HIGH",
+  "confidence": "MEDIUM",
   "contract_status": "DETERMINISTIC_HERMES_SIDECAR_RECOMMENDATION_LAYER_NO_EXECUTION",
   "current_posture": {
     "calls_lm": false,
@@ -88,7 +88,7 @@
       "hermes_chief_build_handoff"
     ],
     "launches_chief": false,
-    "material_change_priority_active": false,
+    "material_change_priority_active": true,
     "missing_required_inputs": [],
     "posture_ref": "hermes_sidecar_current_posture_v0",
     "recommends_only": true,
@@ -116,7 +116,7 @@
     "enable swarms",
     "push git"
   ],
-  "generated_at": "2026-05-31T23:00:00+00:00",
+  "generated_at": "2026-07-21T00:18:57+00:00",
   "guardian_required": true,
   "input_manifest": [
     {
@@ -126,7 +126,7 @@
       "required": false,
       "resolved_path": "generated/read_models/hermes_mission_sentinel.json",
       "schema_version": "hermes_mission_sentinel_v0",
-      "sha256": "sha256:5fb7f99839fd0763bb60eddcbaf7167a301c7ef6a90880d0888a8233435b0a47",
+      "sha256": "sha256:1c270101137991ce176de17c00c85550da9225d0a913e0e48a108ba9903e088b",
       "status": "PRESENT"
     },
     {
@@ -136,7 +136,7 @@
       "required": false,
       "resolved_path": "generated/read_models/hermes_gravity_controller.json",
       "schema_version": "hermes_gravity_controller_v0",
-      "sha256": "sha256:51d57984bea39a6769fcaba0129e69a26e7761bfefc0a18b0d9ff77ffe628bec",
+      "sha256": "sha256:e3d4d9ed1fa41281a6d40ceae45d13154c961c4e7a266a86fe0cbeecada9b2f2",
       "status": "PRESENT"
     },
     {
@@ -156,7 +156,7 @@
       "required": false,
       "resolved_path": "generated/read_models/hermes_chief_build_handoff.json",
       "schema_version": "hermes_chief_build_handoff_v0",
-      "sha256": "sha256:3fc1448b7a8236a3142814315790c427797c646295276429c6ceee42b005388a",
+      "sha256": "sha256:bfc2a538ed4b85ce760f499b3a76bebcd8e3506c35ee6d33915a6e04ae2e2910",
       "status": "PRESENT"
     },
     {
@@ -166,7 +166,7 @@
       "required": true,
       "resolved_path": "generated/read_models/openclaw_change_sentinel.json",
       "schema_version": "openclaw_change_sentinel_read_model_v0",
-      "sha256": "sha256:27212caa01a3aad802228df61d59f3c716c5c76b598f5594c2a3f89c2bbbfdd9",
+      "sha256": "sha256:dfcb762d08c4d3ed7b148d0f1fccf9d96882ea0a5b4e0a971730127bf8da0ac8",
       "status": "PRESENT"
     },
     {
@@ -246,14 +246,14 @@
       "required": false,
       "resolved_path": "generated/read_models/openclaw_service_keeper_status.json",
       "schema_version": "openclaw_service_keeper_status_v0",
-      "sha256": "sha256:7ae80a0debc921f151e2a855893d68c4b2af6d4696e4f77ce4bfffa21c98ed0e",
+      "sha256": "sha256:fbffcd2113d689b5baeacf8f4e16df8165a1f70aaafaa72728b24689f3968b62",
       "status": "PRESENT"
     }
   ],
   "machine_proof": {
     "browser_accessed": false,
     "chief_launched": false,
-    "content_hash": "sha256:3a27c180082be2046047c8338d485a2426be5d03734dd52430f7c33bb1c11378",
+    "content_hash": "sha256:6a13c7b90908ae872337e7db90659dbe3493052c52130c8df0cc566dbc51fcec",
     "coupa_accessed": false,
     "email_accessed": false,
     "git_push_performed": false,
@@ -276,15 +276,46 @@
     "services_started": false,
     "workbook_cells_read": false
   },
-  "material_changes": [],
+  "material_changes": [
+    {
+      "change_kind": "MATERIAL_CHANGE",
+      "change_ref": "change:service_status:openclaw-request-response.service",
+      "payload": {
+        "action_required": false,
+        "can_wait": true,
+        "change_ref": "change:service_status:openclaw-request-response.service",
+        "material_ref": "material:service_status:openclaw-request-response.service",
+        "material_status": "MATERIAL_CHANGE_DETECTED",
+        "operator_summary": "service_status:openclaw-request-response.service changed from 'active' to 'active'.",
+        "severity": "MEDIUM"
+      },
+      "source_ref": "generated/read_models/openclaw_change_sentinel.json",
+      "summary": "{'action_required': False, 'can_wait': True, 'change_ref': 'change:service_status:openclaw-request-response.service', 'material_ref': 'material:service_status:openclaw-request-response.service', 'material_status': 'MATERIAL_CHANGE_DETECTED', 'operator_summary': \"service_status:openclaw-request-response.service changed from 'active' to 'active'.\", 'severity': 'MEDIUM'}"
+    },
+    {
+      "change_kind": "MATERIAL_CHANGE",
+      "change_ref": "change:service_restart_count:openclaw-request-response.service",
+      "payload": {
+        "action_required": true,
+        "can_wait": false,
+        "change_ref": "change:service_restart_count:openclaw-request-response.service",
+        "material_ref": "material:service_restart_count:openclaw-request-response.service",
+        "material_status": "SERVICE_UNSTABLE",
+        "operator_summary": "service_restart_count:openclaw-request-response.service changed from '4' to '5'.",
+        "severity": "HIGH"
+      },
+      "source_ref": "generated/read_models/openclaw_change_sentinel.json",
+      "summary": "{'action_required': True, 'can_wait': False, 'change_ref': 'change:service_restart_count:openclaw-request-response.service', 'material_ref': 'material:service_restart_count:openclaw-request-response.service', 'material_status': 'SERVICE_UNSTABLE', 'operator_summary': \"service_restart_count:openclaw-request-response.service changed from '4' to '5'.\", 'severity': 'HIGH'}"
+    }
+  ],
   "read_model_id": "openclaw_hermes_sidecar",
   "readiness": "READY_FOR_RECOMMENDATION_NOT_EXECUTION",
-  "recommended_model_class": "PC_CODEX_DETERMINISTIC_PACKAGE_BUILDER",
+  "recommended_model_class": "PC_CODEX_DETERMINISTIC_DIAGNOSTIC",
   "recommended_next_package": {
     "allowed_actions": [
-      "prepare bounded implementation package",
-      "run local tests",
-      "emit receipts"
+      "inspect read-model diffs",
+      "run bounded tests",
+      "emit diagnostic package"
     ],
     "forbidden_actions": [
       "launch Chief runtime",
@@ -302,14 +333,12 @@
       "enable swarm mode",
       "push git"
     ],
-    "package_ref": "chief_build_task:finish_invoice_steel_thread_sequence",
-    "package_type": "build_planning_package",
-    "reason": "Live Arts, Capital Hilton, and St. Anne's are not all proven. Finish the invoice steel-thread sequence before opening a new adjacent lane.",
-    "recommended_next_lane": "finish_invoice_steel_thread_sequence",
+    "package_ref": "hermes_package:diagnose_material_change",
+    "package_type": "diagnostic_package",
+    "reason": "Change Sentinel reports material change, so Hermes prioritizes diagnosis over new feature work.",
+    "recommended_next_lane": "diagnose_material_change_before_feature_work",
     "source_refs": [
-      "generated/read_models/openclaw_lane_capability_harvest.json",
-      "generated/read_models/openclaw_authority_semantics_registry.json",
-      "generated/read_models/openclaw_lm_child_package_gate.json"
+      "generated/read_models/openclaw_change_sentinel.json"
     ]
   },
   "schema_version": "openclaw_hermes_sidecar_v0",

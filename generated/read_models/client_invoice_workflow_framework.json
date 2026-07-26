@@ -17,6 +17,7 @@
     "pdf_export_allowed": false,
     "production_state_mutation_allowed": false,
     "spreadsheet_cell_read_allowed": false,
+    "supplier_portal_submit_allowed": false,
     "tax_filing_allowed": false,
     "tool_execution_allowed": false,
     "workbook_body_read_allowed": false
@@ -42,6 +43,7 @@
         "pdf_export_allowed": false,
         "production_state_mutation_allowed": false,
         "spreadsheet_cell_read_allowed": false,
+        "supplier_portal_submit_allowed": false,
         "tax_filing_allowed": false,
         "tool_execution_allowed": false,
         "workbook_body_read_allowed": false
@@ -385,6 +387,7 @@
         "pdf_export_allowed": false,
         "production_state_mutation_allowed": false,
         "spreadsheet_cell_read_allowed": false,
+        "supplier_portal_submit_allowed": false,
         "tax_filing_allowed": false,
         "tool_execution_allowed": false,
         "workbook_body_read_allowed": false
@@ -730,6 +733,7 @@
         "pdf_export_allowed": false,
         "production_state_mutation_allowed": false,
         "spreadsheet_cell_read_allowed": false,
+        "supplier_portal_submit_allowed": false,
         "tax_filing_allowed": false,
         "tool_execution_allowed": false,
         "workbook_body_read_allowed": false
@@ -1011,6 +1015,7 @@
         "pdf_export_allowed": false,
         "production_state_mutation_allowed": false,
         "spreadsheet_cell_read_allowed": false,
+        "supplier_portal_submit_allowed": false,
         "tax_filing_allowed": false,
         "tool_execution_allowed": false,
         "workbook_body_read_allowed": false
@@ -1278,8 +1283,9 @@
   "machine_proof": {
     "all_action_authority_false": true,
     "capital_hilton_has_coupa_recipe": true,
+    "capital_hilton_supplier_portal_provider": "COUPA",
     "capital_hilton_workflow_incomplete_without_email_send": true,
-    "content_hash": "sha256:f18ac29f886b7326df97dc0885f1bcd8e2a2b4fda85a57a59e275b51100e95bd",
+    "content_hash": "sha256:2be33c80efda2a811c8a23776e53991c60a32bb2962509768a9ce3b6e368285b",
     "draft_does_not_equal_sent": true,
     "guardian_approval_is_not_execution": true,
     "live_arts_md_has_no_coupa_by_default": true,
@@ -1845,10 +1851,15 @@
         "payment_watch_required": true
       },
       "client_specific_portal_requirements": {
+        "portal_provider": "COUPA",
         "portal_ref": "coupa_supplier_portal",
+        "portal_submission_action_allowed": false,
         "portal_submission_is_payment_trigger": true,
         "portal_submission_proof_required": true,
+        "provider_display_name": "Coupa supplier portal",
         "purchase_order_required": true,
+        "requires_purchase_order": true,
+        "supplier_portal_provider": "COUPA",
         "supplier_portal_required": true
       },
       "next_safe_move": "Confirm PO/reference, dates/rate, artifact proof, Clara draft, and approvals before any send or Coupa submit.",
@@ -2011,8 +2022,13 @@
       },
       "client_specific_portal_requirements": {
         "configure_only_if_client_requires_it": true,
+        "portal_provider": null,
         "portal_ref": null,
+        "portal_submission_action_allowed": false,
+        "portal_submission_proof_required": false,
+        "provider_display_name": null,
         "purchase_order_required": false,
+        "supplier_portal_provider": null,
         "supplier_portal_required": false
       },
       "next_safe_move": "Use the simple St. Anne's recipe until a PO/portal requirement is configured.",
@@ -2144,8 +2160,13 @@
       },
       "client_specific_portal_requirements": {
         "configure_only_if_client_requires_it": true,
+        "portal_provider": null,
         "portal_ref": null,
+        "portal_submission_action_allowed": false,
+        "portal_submission_proof_required": false,
+        "provider_display_name": null,
         "purchase_order_required": false,
+        "supplier_portal_provider": null,
         "supplier_portal_required": false
       },
       "next_safe_move": "Use the simple Live Arts MD recipe until a PO/portal requirement is configured.",

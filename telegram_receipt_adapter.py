@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +15,7 @@ from fleet_receipt_index import (
     RegistrationResult,
     build_receipt_descriptor,
     register_delivered_receipt,
+    register_delivered_text_receipt_v2,
     render_receipt_safe_visible_text,
     resolve_receipt_request,
 )
@@ -218,6 +220,55 @@ def register_telegram_delivery(
     )
 
 
+def register_operator_text_delivery_v2(
+    *,
+    delivered_text: str,
+    source_request_id: str,
+    chat_id: str | int,
+    source_message_id: str | int,
+    delivered_message: Any,
+    effective_service: str,
+    effective_surface: str,
+    effective_bot_identity: str,
+    token_owner_label: str,
+    bot_token: str,
+    response_author: str,
+    carrier_identity: str,
+    transport: str = "telegram",
+    db_path: str | Path | None = None,
+    mirror_path: str | Path | None = None,
+) -> Any:
+    """Record a v2 proof only after delivery and without persisting the token."""
+
+    outbound_id = str(getattr(delivered_message, "message_id", "") or "").strip()
+    inbound_id = str(source_message_id or "").strip()
+    request_id = str(source_request_id or "").strip()
+    token = str(bot_token or "")
+    if not outbound_id or not inbound_id or not request_id or not token:
+        return None
+    token_fingerprint = "sha256:" + hashlib.sha256(token.encode("utf-8")).hexdigest()
+    kwargs = {
+        "effective_service": effective_service,
+        "effective_surface": effective_surface,
+        "effective_bot_identity": effective_bot_identity,
+        "token_owner_label": token_owner_label,
+        "token_fingerprint": token_fingerprint,
+        "chat_id": str(chat_id),
+        "source_message_id": inbound_id,
+        "delivered_message_id": outbound_id,
+        "source_request_id": request_id,
+        "response_author": response_author,
+        "carrier_identity": carrier_identity,
+        "transport": transport,
+        "delivered_text": delivered_text,
+        "delivery_succeeded": True,
+        "db_path": receipt_index_path(db_path),
+    }
+    if mirror_path is not None:
+        kwargs["mirror_path"] = Path(mirror_path)
+    return register_delivered_text_receipt_v2(**kwargs)
+
+
 def render_verified_receipt_reply(
     text: Any,
     descriptor: ReceiptDescriptor | None,
@@ -235,6 +286,7 @@ def render_verified_receipt_reply(
 __all__ = [
     "contract_delivery_descriptor",
     "receipt_index_path",
+    "register_operator_text_delivery_v2",
     "register_telegram_delivery",
     "render_verified_receipt_reply",
     "reply_to_message_id",

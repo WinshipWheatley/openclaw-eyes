@@ -146,7 +146,7 @@
   ],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-06-19T03:04:59+00:00",
+  "generated_at": "2026-07-21T00:18:58+00:00",
   "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
@@ -156,7 +156,7 @@
     "manifest_written": true,
     "marker_seen": true,
     "status": "idle",
-    "time": "2026-06-19T03:02:29+00:00"
+    "time": "2026-07-05T18:17:04+00:00"
   },
   "last_pc_import": {
     "manifest_hash": "af2b7e5b2521135c87b6927c455adb6754f9bcb9b17386c423893a6aa55cdabd",
@@ -195,11 +195,11 @@
     },
     {
       "present": 1,
-      "source_hash": "55060b05dde06fe39a824a6f5f3bc269f4a5afa517280e7eeb93a6afbc2ee459",
+      "source_hash": "4fce2919a6ec60c906bdd045efb3041fcb648d29640e21f6982ddf1457841814",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "idle",
-      "source_time": "2026-06-19T03:02:29+00:00"
+      "source_time": "2026-07-05T18:17:04+00:00"
     },
     {
       "present": 1,
@@ -211,7 +211,7 @@
     },
     {
       "present": 1,
-      "source_hash": "c36df337453068e14474a01e18fc3af42911b1025ddf06563b812e69fdb0c440",
+      "source_hash": "44ee1c3966e08849ba5a30538e72942ade35e25cc2372de2d824af1c9a9dd1a3",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
@@ -223,7 +223,7 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-06-19T03:00:02+00:00"
+      "source_time": "2026-07-05T18:15:07+00:00"
     },
     {
       "present": 1,
@@ -247,7 +247,7 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-06-19T03:04:47+00:00"
+      "source_time": "2026-07-05T18:19:48+00:00"
     }
   ],
   "raw_read_model_mirror_status": {
