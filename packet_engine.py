@@ -47,6 +47,7 @@ def build_agent_packet(
     question_class: str | None = None,
     authority: Mapping[str, Any] | None = None,
     consumer_kind: str = "daemon",
+    target: str = "",
     session_id: str = "",
     persona_already_delivered: bool = False,
     turn_self_facts: Mapping[str, Any] | None = None,
@@ -101,6 +102,7 @@ def build_agent_packet(
         authority=authority,
         persona_core=persona_core,
         consumer_kind=normalized_consumer,
+        target=target,
         session_id=session_id,
         persona_already_delivered=persona_already_delivered,
         turn_self_facts=turn_self_facts,
@@ -294,6 +296,67 @@ def _score_packet_dankness(packet: dict[str, Any], question: str) -> dict[str, A
         return {"error": type(exc).__name__}
 
 
+# A doer packet is deliberately narrow: the target, what bears on it, and
+# nothing else. Extra breadth is where a spawned agent drifts off-assignment.
+SPAWNED_FACT_LIMIT = 8
+
+
+def _shape_for_doer(
+    packet: dict[str, Any], *, target: str, question: str
+) -> dict[str, Any]:
+    """Narrow a packet to its assignment.
+
+    Daemon packets are for judgement and keep their breadth. A spawned doer is
+    told "this is your target" — so it gets the facts bearing on that target,
+    bounded, plus an explicit assignment block. Never drops facts when nothing
+    matches: an unfiltered packet beats an empty one.
+    """
+    import read_model_demand_index
+
+    focus = f"{target} {question}".strip()
+    tokens = read_model_demand_index._tokenize(focus)
+    facts = [row for row in packet.get("facts", ()) if isinstance(row, Mapping)]
+    if tokens and facts:
+        scored = [
+            (
+                len(
+                    tokens
+                    & read_model_demand_index._tokenize(
+                        " ".join(
+                            str(row.get(key, "")) for key in ("topic", "label", "value")
+                        )
+                    )
+                ),
+                row,
+            )
+            for row in facts
+        ]
+        # Persona and doctrine facts are identity, not breadth — narrowing the
+        # assignment must never strip who the doer is or the rules it works under.
+        def _is_identity(row: Mapping[str, Any]) -> bool:
+            marker = f"{row.get('topic','')} {row.get('fact_id','')}".lower()
+            return "persona" in marker or "doctrine" in marker
+
+        kept = [row for score, row in scored if score > 0 or _is_identity(row)]
+        if any(score > 0 for score, _ in scored):
+            facts = kept[:SPAWNED_FACT_LIMIT]
+    packet["facts"] = facts
+    packet["assignment"] = {
+        "target": target,
+        "mode": "doer",
+        "instruction": (
+            "This is your assignment. Work only from the facts in this packet. "
+            "If the packet does not cover something you need, say so plainly "
+            "instead of guessing."
+        ),
+    }
+    existing_text = str(packet.get("packet_text") or "").strip()
+    packet["packet_text"] = "\n".join(
+        part for part in (f"ASSIGNMENT: {target}" if target else "", existing_text) if part
+    )
+    return packet
+
+
 def _decorate_packet(
     packet: dict[str, Any],
     *,
@@ -303,10 +366,11 @@ def _decorate_packet(
     authority: Mapping[str, Any] | None,
     persona_core: Mapping[str, Any],
     consumer_kind: str,
-    session_id: str,
-    persona_already_delivered: bool,
-    turn_self_facts: Mapping[str, Any] | None,
-    builder_ref: str,
+    target: str = "",
+    session_id: str = "",
+    persona_already_delivered: bool = False,
+    turn_self_facts: Mapping[str, Any] | None = None,
+    builder_ref: str = "",
     build_ms: int,
     failures: list[dict[str, str]],
 ) -> dict[str, Any]:
@@ -345,7 +409,6 @@ def _decorate_packet(
         else:
             packet["status"] = "GIG_BUSINESS_DOCTRINE_UNAVAILABLE"
     packet["agent_id"] = agent
-    packet["packet_dankness"] = _score_packet_dankness(packet, question)
     packet["persona_delivery"] = _persona_delivery(
         persona,
         mode=delivery_mode,
@@ -368,6 +431,11 @@ def _decorate_packet(
 
         packet = inject_turn_self_facts(packet, turn_self_facts)
         sections.append("turn_self_facts")
+    # Shape last: the doer packet must be narrowed AFTER persona and
+    # self-facts land, and scored on exactly what the consumer receives.
+    if consumer_kind == "spawned":
+        packet = _shape_for_doer(packet, target=target, question=question)
+    packet["packet_dankness"] = _score_packet_dankness(packet, question)
     receipt = _receipt(
         agent=agent,
         question_class=question_class,
