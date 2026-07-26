@@ -8037,7 +8037,13 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     cassandra_packet_block = ""
     try:
         from cassandra_context_packet import build_cassandra_context_packet
-        _ccp = build_cassandra_context_packet(question=query)
+        from packet_engine import build_agent_packet
+
+        _ccp = build_agent_packet(
+            agent="cassandra",
+            question=query,
+            legacy_builder=build_cassandra_context_packet,
+        )
         _ccp_text = _ccp.get("packet_text") or ""
         if _ccp_text:
             cassandra_packet_block = f"{_ccp_text}\n\n"

@@ -19,6 +19,7 @@ from typing import Any, Callable, Mapping, Sequence
 
 from agent_introspection import (
     classify_agent_introspection,
+    deterministic_model_brain_surface,
     inject_turn_self_facts,
     introspection_answer_grounding_gaps,
     normalize_turn_self_facts,
@@ -1147,9 +1148,14 @@ def _answer_outside_session_vote_failure(
     if disposition is VoteTimeoutDisposition.DETERMINISTIC_DIGEST:
         try:
             from maestro_context_packet import build_maestro_context_packet
+            from packet_engine import build_agent_packet
 
-            packet = build_maestro_context_packet(
+            # Shared engine: persona, build receipt and dankness scoring, with
+            # Maestro's own builder still doing the data assembly.
+            packet = build_agent_packet(
+                agent="maestro",
                 question=text,
+                legacy_builder=build_maestro_context_packet,
                 session=session,
                 source_surface=source_surface,
                 require_real_truth=True,
@@ -3035,15 +3041,30 @@ def _answer_with_maestro_brain(
             session=session,
             route_receipt=receipt,
         )
-        answer_grounding_gaps = introspection_answer_grounding_gaps(
-            answer_text,
-            match=introspection_match,
-            facts=final_introspection_facts,
-        )
         original_message_included = bool(
             receipt.get("original_message_present_in_submitted_prompt") is True
             or receipt.get("original_message_present_in_prompt") is True
         )
+        deterministic_surface_used = False
+        if introspection_match.kind == "model_brain" and original_message_included:
+            candidate_answer = deterministic_model_brain_surface(
+                agent=agent,
+                facts=final_introspection_facts,
+            )
+            answer_grounding_gaps = introspection_answer_grounding_gaps(
+                candidate_answer,
+                match=introspection_match,
+                facts=final_introspection_facts,
+            )
+            if not answer_grounding_gaps:
+                answer_text = candidate_answer
+                deterministic_surface_used = True
+        else:
+            answer_grounding_gaps = introspection_answer_grounding_gaps(
+                answer_text,
+                match=introspection_match,
+                facts=final_introspection_facts,
+            )
         if not original_message_included:
             answer_grounding_gaps = tuple(
                 dict.fromkeys((*answer_grounding_gaps, "original_message"))
@@ -3057,6 +3078,7 @@ def _answer_with_maestro_brain(
         introspection_proof = {
             "turn_self_facts": final_introspection_facts,
             "turn_self_facts_delivered": bool(context_packet.get("turn_self_facts")),
+            "deterministic_introspection_surface_used": deterministic_surface_used,
             "answer_grounded_in_turn_self_facts": answer_grounded,
             "answer_grounding_missing_fields": answer_grounding_gaps,
         }
