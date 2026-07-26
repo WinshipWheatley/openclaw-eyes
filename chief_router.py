@@ -1780,7 +1780,10 @@ def _chief_demand_context(question: str, *, root: "_Path | None" = None) -> str:
         payload, _ = _read_json_read_model(source_root, row.relative_path)
         if not payload:
             continue
-        lines.append(f"- {row.id}: {_json.dumps(payload, sort_keys=True)[:900]}")
+        lines.append(
+            f"- {row.id}{read_model_demand_index.age_label(row)}: "
+            f"{_json.dumps(payload, sort_keys=True)[:900]}"
+        )
     return "\n".join(lines)
 
 

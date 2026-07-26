@@ -188,6 +188,67 @@ def test_common_token_alone_does_not_drag_in_unrelated_read_models(
     assert [row.id for row in selected] == ["capital_hilton_invoice"]
 
 
+def _age_file(path: Path, days: float) -> None:
+    import os
+    import time
+
+    when = time.time() - days * 86400
+    os.utime(path, (when, when))
+
+
+def test_stale_rows_are_age_labelled_so_they_read_as_history_not_now(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(root, "old_invoice_summary.json", {"amount": 1})
+    _age_file(root / "old_invoice_summary.json", 54)
+    rows = demand_index.build_demand_index(root, repo_root=tmp_path)
+
+    label = demand_index.age_label(rows[0])
+
+    assert "54" in label and "ago" in label
+
+
+def test_fresh_rows_get_no_age_noise(tmp_path: Path) -> None:
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(root, "agent_presence.json", {"agents": []})
+    rows = demand_index.build_demand_index(root, repo_root=tmp_path)
+
+    assert demand_index.age_label(rows[0]) == ""
+
+
+def test_index_row_carries_age_so_staleness_is_visible(tmp_path: Path) -> None:
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(root, "old_invoice_summary.json", {"amount": 1})
+    _age_file(root / "old_invoice_summary.json", 54)
+
+    rows = demand_index.build_demand_index(root, repo_root=tmp_path)
+
+    assert 53 <= rows[0].age_days <= 55
+
+
+def test_fresher_read_model_outranks_an_equally_relevant_stale_one(
+    tmp_path: Path,
+) -> None:
+    """451 of 514 live read-models are >30 days old; a stale one must not be
+    presented as current just because it matched."""
+
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(root, "hilton_invoice_alpha.json", {"amount": 1})
+    _write_read_model(root, "hilton_invoice_beta.json", {"amount": 2})
+    _age_file(root / "hilton_invoice_alpha.json", 400)
+    _age_file(root / "hilton_invoice_beta.json", 0)
+    rows = demand_index.build_demand_index(root, repo_root=tmp_path)
+
+    selected = demand_index.select_read_models(rows, "hilton invoice")
+
+    assert selected[0].id == "hilton_invoice_beta"
+
+
 def test_spine_is_the_small_always_loaded_layer(tmp_path: Path) -> None:
     root = tmp_path / "read_models"
     root.mkdir()

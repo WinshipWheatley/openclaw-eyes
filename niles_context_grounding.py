@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import read_model_demand_index
+from read_model_demand_index import age_label
 
 DEFAULT_GEAR_LIMIT = 4
 
@@ -160,7 +161,10 @@ def build_niles_grounding(
                 payload = _json.loads(path.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 continue
-            rows.append(f"- {row.id}: {_json.dumps(payload, sort_keys=True)[:900]}")
+            rows.append(
+                f"- {row.id}{age_label(row)}: "
+                f"{_json.dumps(payload, sort_keys=True)[:900]}"
+            )
         if rows:
             sections.append("Question-relevant read-models:\n" + "\n".join(rows))
 

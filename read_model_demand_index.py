@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import math
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,10 @@ DEFAULT_SELECTION_BYTE_BUDGET = 60_000
 # match, so weak common-word matches cannot ride along beside a strong one.
 RELATIVE_SELECTION_FRACTION = 0.25
 
+# Age at which a read-model's ranking weight halves. Relevance still
+# dominates; this stops months-old data quietly winning on a tie.
+FRESHNESS_HALF_LIFE_DAYS = 90.0
+
 _STOPWORDS = frozenset(
     """a an and are as at be by do does for from get give has have how i in is it
     its me my of on or our that the their there this to was we what when where
@@ -53,6 +58,7 @@ class ReadModelIndexRow:
     relative_path: str
     key_fields: tuple[str, ...]
     size_bytes: int
+    age_days: float = 0.0
 
     @property
     def topic_tags(self) -> tuple[str, ...]:
@@ -113,10 +119,14 @@ def select_read_models(
     def _score(row: ReadModelIndexRow) -> float:
         # Smoothed inverse document frequency: a token most of the library
         # contains is weak evidence, a distinctive one is strong.
-        return sum(
+        relevance = sum(
             math.log((total + 1) / (frequency.get(token, 1) + 0.5))
             for token in query_tokens & row.match_tokens()
         )
+        # Most of this library is months old. Relevance still dominates, but
+        # a stale read-model must not outrank an equally relevant fresh one
+        # and then be read as current fact.
+        return relevance * (1.0 / (1.0 + (row.age_days / FRESHNESS_HALF_LIFE_DAYS)))
 
     scored = [(score, row) for score, row in ((_score(row), row) for row in index) if score > 0]
     if not scored:
@@ -140,6 +150,22 @@ def select_read_models(
         selected.append(row)
         spent += row.size_bytes
     return tuple(selected)
+
+
+AGE_LABEL_THRESHOLD_DAYS = 2.0
+
+
+def age_label(row: ReadModelIndexRow) -> str:
+    """`" (as of N days ago)"` for anything not current; `""` when fresh.
+
+    Most of this library is months old. Injecting a stale read-model without
+    saying so invites the model to answer with old facts stated as current —
+    the exact stale-truth failure this system has been burned by before.
+    """
+
+    if row.age_days < AGE_LABEL_THRESHOLD_DAYS:
+        return ""
+    return f" (as of {int(row.age_days)} days ago)"
 
 
 @dataclass(frozen=True)
@@ -273,6 +299,7 @@ def build_demand_index(
                 relative_path=path.relative_to(root).as_posix(),
                 key_fields=_key_fields(_load_payload(path)),
                 size_bytes=path.stat().st_size,
+                age_days=max(0.0, (time.time() - path.stat().st_mtime) / 86400.0),
             )
         )
     index = tuple(rows)
