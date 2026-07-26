@@ -100,6 +100,20 @@ READ_MODEL_REFRESH_REGISTRY: dict[str, dict[str, Any]] = {
         ),
         "steps": [refresh_step("scripts/export_agent_presence_read_model.py", "--format", "json")],
     },
+    "google_credential_health.json": {
+        "refreshable": True,
+        "reason": (
+            "Probes live Google access with one Class A capability call (gmail.read.metadata, "
+            "which auto-proceeds and never prompts) and writes only to generated/read_models. "
+            "Stores status and remedy text, never authorisation material or message content. "
+            "Refreshing matters more here than for most sources: the signal is a liveness claim, "
+            "and a stale one is a claim that the account was fine at a moment that has passed. "
+            "Run it with the runtime interpreter — under a python lacking the Google client "
+            "libraries it honestly reports DEPS_MISSING, which still lights the lamp but "
+            "describes the venv rather than the account."
+        ),
+        "steps": [refresh_step("scripts/export_google_credential_health.py", "--format", "json")],
+    },
     "niles_track_registry.json": {
         "refreshable": True,
         "reason": "Reads a governed local CSV (.openclaw/agents/chief/album/track-registry.csv) and writes only to generated/read_models.",

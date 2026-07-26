@@ -6,6 +6,7 @@ Status:
 - Issue type: system/workbench reliability, not a normal domain lane.
 
 Why:
+- Google access is down. Every capability behind the shared authorisation fails together: inbox reads, calendar reads, and outbound Gmail send.
 - The PC C: drive recently reached critical free-space pressure before conservative cleanup.
 - The main recovered space came from Remote Desktop-style ETL trace growth, not from Repo A generated artifacts.
 - The expected Mac mount for the Windows E: OpenClaw shuttle is missing, so the normal Mac bridge cannot be treated as complete.
@@ -35,6 +36,7 @@ Do Not:
 - store raw private logs, credentials, broad temp listings, or raw private file bodies
 
 Signals:
+- google_access_authorisation_health: blocked - Google access is down. Every capability behind the shared authorisation fails together: inbox reads, calendar reads, and outbound Gmail send. (lights Check Engine).
 - c_drive_free_space_low: warning - The PC C: drive recently reached critical free-space pressure before conservative cleanup. (lights Check Engine).
 - rd_client_trace_growth: warning - The main recovered space came from Remote Desktop-style ETL trace growth, not from Repo A generated artifacts. (lights Check Engine).
 - shuttle_mount_missing: blocked - The expected Mac mount for the Windows E: OpenClaw shuttle is missing, so the normal Mac bridge cannot be treated as complete. (lights Check Engine).
@@ -57,7 +59,7 @@ Storage Boundary:
 - Generated output remains under `generated/read_models/` in Repo A.
 - C: references here are evidence labels only, not artifact targets.
 
-SQLite Receipt:
+SQLite Evidence Record:
 - Existing safe pattern: `business_ops_ledger.record_receipt`.
 - Receipt meaning: metadata-only `generated_status`, receipt-record-only, no runtime authority.
 - Raw logs, credentials, broad temp listings, and private file bodies are not stored.

@@ -82,6 +82,7 @@ def test_required_check_engine_signals_are_present_and_button_ready(tmp_path):
     signal_ids = {signal["signal_id"] for signal in payload["signals"]}
 
     assert signal_ids == {
+        "google_access_authorisation_health",
         "c_drive_free_space_low",
         "rd_client_trace_growth",
         "shuttle_mount_missing",
@@ -247,7 +248,7 @@ def test_export_writes_generated_json_operator_and_cli(tmp_path, capsys):
     )
 
     assert result.schema_version == posture.SCHEMA_VERSION
-    assert result.signal_count == 8
+    assert result.signal_count == 9
     assert result.check_engine_on is True
     assert result.sqlite_receipt_supported is True
     assert result.c_drive_artifact_written is False

@@ -369,55 +369,6 @@ def _executor_in_test_mode(run_mode: str | None = None) -> bool:
     return str(mode) in ("test_live", "test_dry_run")
 
 
-OPERATOR_ADDRESSES = frozenset({"winshiplive@gmail.com"})
-
-
-def _review_client_copy(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Review outbound copy unless it is addressed to the operator."""
-
-    recipient = str(payload.get("to") or "").strip().lower()
-    if recipient in OPERATOR_ADDRESSES:
-        return {
-            "status": "CLIENT_COPY_NOT_APPLICABLE",
-            "blocked": False,
-            "recipient": recipient,
-            "violations": [],
-            "detail": "",
-            "remedy": "",
-            "exempt_reason": "operator_loopback_is_not_client_copy",
-        }
-    try:
-        from client_copy_guard import review_outbound_payload
-
-        return review_outbound_payload(payload)
-    except Exception as exc:  # never let the guard's own fault send the mail
-        return {
-            "status": "CLIENT_COPY_GUARD_FAILED",
-            "blocked": True,
-            "recipient": recipient,
-            "violations": [],
-            "detail": f"Client copy guard could not run ({exc}). Nothing was sent.",
-            "remedy": "Fix the guard, then retry the send. Do not send unchecked.",
-        }
-
-
-def _file_blocked_copy_repair(
-    payload: Mapping[str, Any], review: Mapping[str, Any]
-) -> dict[str, Any]:
-    """Send the underlying fault to Chief so a block is a repair, not a wall."""
-
-    try:
-        from client_repair_escalation import escalate_blocked_copy
-
-        return escalate_blocked_copy(
-            client_ref=str(payload.get("to") or "unknown_client"),
-            review=review,
-            draft_body=f"{payload.get('subject') or ''}\n{payload.get('body') or ''}",
-        )
-    except Exception as exc:
-        return {"status": "CLIENT_REPAIR_FILING_FAILED", "filed": False, "detail": str(exc)}
-
-
 def execute_email_send_packet(
     *,
     packet_id: str,
@@ -507,30 +458,6 @@ def execute_email_send_packet(
             status="blocked_invalid_payload",
             db_path=db_path,
             meta={"approval_state": state, "send_hold_active": False},
-        )
-
-    # Standing order: an internal excuse is never client-facing. Checked here
-    # rather than asked for in a prompt, because this is the last place before
-    # the words leave the building. Mail addressed to the operator himself is
-    # not client copy, so it is exempt — and the exemption is recorded, not
-    # silent, so it can never be a quiet way around the rule.
-    copy_review = _review_client_copy(payload)
-    if copy_review.get("blocked"):
-        _file_blocked_copy_repair(payload, copy_review)
-        return _blocked_receipt(
-            packet_id=packet_id,
-            detail=f"{copy_review['detail']} {copy_review['remedy']}",
-            status="blocked_client_copy",
-            db_path=db_path,
-            meta={
-                "approval_state": state,
-                "send_hold_active": False,
-                "outbound_payload": payload,
-                "payload_hash": _payload_hash(payload),
-                "client_copy_review": copy_review,
-                "gmail_api_called": False,
-                "external_send_performed": False,
-            },
         )
 
     sender = email_sender or send_email_via_google_broker

@@ -226,15 +226,107 @@ def _sync_status(sync_health: dict[str, Any]) -> str:
     )
 
 
-def _build_signals(*, sync_health: dict[str, Any]) -> list[dict[str, Any]]:
+#: Google access health arrives as an already-exported read-model, never as a
+#: live probe from this lane. This module is contractually forbidden from
+#: touching credentials or account mechanisms, and reading a health summary
+#: somebody else observed keeps that true.
+GOOGLE_CREDENTIAL_HEALTH_SOURCE = "google_credential_health.json"
+
+_CREDENTIAL_STATUS_MAP = {
+    "GOOGLE_ACCESS_OK": ("ok", False),
+    # Blocked, not warning: an armed send that cannot fire is a stop, not a nag.
+    "GOOGLE_ACCESS_EXPIRED_OR_REVOKED": ("blocked", True),
+    "GOOGLE_ACCESS_NOT_CONFIGURED": ("blocked", True),
+    "GOOGLE_ACCESS_DEPS_MISSING": ("warning", True),
+    "GOOGLE_ACCESS_UNKNOWN": ("unknown", True),
+}
+
+
+def _credential_posture(credential_health: dict[str, Any]) -> tuple[str, bool, str]:
+    """Map an observed Google-access health read-model onto a signal posture.
+
+    An absent or unrecognised read-model is ``unknown`` and lights the lamp. It
+    is never ``ok``: "nobody looked" and "all clear" must not render the same,
+    which is the whole reason this signal exists.
+    """
+
+    if not credential_health:
+        return (
+            "unknown",
+            True,
+            "Google access health has not been observed, so nothing can be said about it.",
+        )
+    status = str(credential_health.get("status") or "")
+    posture, lights = _CREDENTIAL_STATUS_MAP.get(status, ("unknown", True))
+    if posture == "ok":
+        meaning = "Google access answered a live read, so Gmail and Calendar capabilities are usable."
+    elif status == "GOOGLE_ACCESS_DEPS_MISSING":
+        meaning = (
+            "The Google client libraries are absent from the interpreter that ran the check, "
+            "so the probe could not reach the account layer."
+        )
+    else:
+        meaning = (
+            "Google access is down. Every capability behind the shared authorisation fails "
+            "together: inbox reads, calendar reads, and outbound Gmail send."
+        )
+    return posture, lights, meaning
+
+
+def _build_signals(
+    *, sync_health: dict[str, Any], credential_health: dict[str, Any] | None = None
+) -> list[dict[str, Any]]:
     generated_at = sync_health.get("generated_at")
     canonical_expected = sync_health.get("canonical_expected")
     observed = sync_health.get("observed")
     missing_expected = sync_health.get("missing_expected")
     sync_status = _sync_status(sync_health)
     sync_missing_files = sync_health.get("missing_files") if isinstance(sync_health.get("missing_files"), list) else []
+    credential_health = credential_health or {}
+    credential_status, credential_lights, credential_meaning = _credential_posture(credential_health)
+    credential_downstream = [
+        str(row.get("what") or "")
+        for row in (credential_health.get("downstream_at_risk") or ())
+        if isinstance(row, dict)
+    ]
 
     return [
+        _signal(
+            signal_id="google_access_authorisation_health",
+            status=credential_status,
+            plain_language_meaning=credential_meaning,
+            evidence=[
+                _evidence(
+                    evidence_type="observed",
+                    label="google_access_status",
+                    value=credential_health.get("status") or "not_observed",
+                    source_path=f"generated/read_models/{GOOGLE_CREDENTIAL_HEALTH_SOURCE}",
+                    observed_at=credential_health.get("checked_at"),
+                ),
+                _evidence(
+                    evidence_type="observed",
+                    label="downstream_at_risk",
+                    value=credential_downstream,
+                    source_path=f"generated/read_models/{GOOGLE_CREDENTIAL_HEALTH_SOURCE}",
+                    observed_at=credential_health.get("checked_at"),
+                ),
+            ],
+            why_it_matters=(
+                "One shared authorisation sits under Gmail read, Calendar read, and Gmail send. "
+                "When it lapses, an armed monthly auto-send still reports as armed and silently "
+                "cannot fire, and inbound client mail stops being watched."
+            ),
+            safe_next_diagnostic_step=(
+                "Chief should surface the observed status and the operator-only re-authorisation "
+                "step. Re-authorising is interactive and belongs to the operator; no agent performs it."
+            ),
+            forbidden_actions=(
+                "re-authorise or refresh the authorisation from this lane",
+                "read, store, or move any authorisation material",
+                "call Gmail, Calendar, or any account mechanism from this read-model",
+            ),
+            lights_check_engine=credential_lights,
+        ),
         _signal(
             signal_id="c_drive_free_space_low",
             status="warning",
@@ -589,7 +681,10 @@ def build_chief_check_engine_environment_posture(
     root = Path(repo_root)
     generated_at = generated_at or utc_now()
     sync_health = _read_json_if_present(DEFAULT_EXPORT_ROOT / "sync_health.json", repo_root=root)
-    signals = _build_signals(sync_health=sync_health)
+    credential_health = _read_json_if_present(
+        DEFAULT_EXPORT_ROOT / GOOGLE_CREDENTIAL_HEALTH_SOURCE, repo_root=root
+    )
+    signals = _build_signals(sync_health=sync_health, credential_health=credential_health)
     check_engine = _check_engine_summary(signals)
     package_preview = _chief_package_preview(signals)
 
@@ -656,6 +751,15 @@ def build_chief_check_engine_environment_posture(
                 "operator_reported_mac_bridge_facts": OPERATOR_REPORTED_MAC_BRIDGE_FACTS,
                 "operator_reported_sync_facts": OPERATOR_REPORTED_SYNC_FACTS,
                 "operator_reported_workbench_facts": OPERATOR_REPORTED_WORKBENCH_FACTS,
+                "observed_google_credential_health_source": {
+                    "path": f"generated/read_models/{GOOGLE_CREDENTIAL_HEALTH_SOURCE}",
+                    "evidence_type": "observed",
+                    "probe_performed_by_this_lane": False,
+                    "note": (
+                        "Produced by google_credential_health.py. This lane reads the summary "
+                        "only and never reaches the account layer itself."
+                    ),
+                },
                 "observed_sync_health_source": {
                 "path": "generated/read_models/sync_health.json",
                 "present": bool(sync_health),

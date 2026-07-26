@@ -30,6 +30,7 @@
     "status": "blocked",
     "system_workbench_issue": true,
     "why": [
+      "Google access is down. Every capability behind the shared authorisation fails together: inbox reads, calendar reads, and outbound Gmail send.",
       "The PC C: drive recently reached critical free-space pressure before conservative cleanup.",
       "The main recovered space came from Remote Desktop-style ETL trace growth, not from Repo A generated artifacts.",
       "The expected Mac mount for the Windows E: OpenClaw shuttle is missing, so the normal Mac bridge cannot be treated as complete.",
@@ -90,6 +91,7 @@
       "record metadata-only receipt if ledger pattern is used"
     ],
     "signal_ids_included": [
+      "google_access_authorisation_health",
       "c_drive_free_space_low",
       "rd_client_trace_growth",
       "shuttle_mount_missing",
@@ -133,7 +135,7 @@
     "runtime_execution": true,
     "send_submit_approval": true
   },
-  "generated_at": "2026-05-20T03:00:40+00:00",
+  "generated_at": "2026-07-26T05:38:27+00:00",
   "gmail_calendar_coupa_accessed": false,
   "lane_type": "system_workbench_reliability_check_engine",
   "lm_called": false,
@@ -208,7 +210,7 @@
   "raw_logs_stored": false,
   "raw_private_content_inspected": false,
   "read_model_only": true,
-  "receipt_hash": "sha256:a117c111d3ad73b486d1d68cd4afb9c3b14032c38e68b6bd0a14f4f6d7fd76a7",
+  "receipt_hash": "sha256:2a37f5589f7eb2c84dc04461ee548b3357b34794732af13ac98599065de4d309",
   "remount_authority_added": false,
   "repo_b_code_executed": false,
   "repo_b_filesystem_inspected": false,
@@ -216,8 +218,48 @@
   "safe_next_diagnostic_step": "Chief Check-Engine Diagnostic Packet: compare disk-pressure posture, RD trace-growth clue, Mac mount status, sync proof, and workbench validation friction without repair authority.",
   "schema_version": "chief_check_engine_environment_posture_v0",
   "send_or_submit_authority_added": false,
-  "signal_count": 8,
+  "signal_count": 9,
   "signals": [
+    {
+      "evidence": [
+        {
+          "credentials_stored": false,
+          "evidence_type": "observed",
+          "label": "google_access_status",
+          "observed_at": "2026-07-26T05:37:53Z",
+          "private_content_stored": false,
+          "raw_body_stored": false,
+          "source_path": "generated/read_models/google_credential_health.json",
+          "value": "GOOGLE_ACCESS_EXPIRED_OR_REVOKED"
+        },
+        {
+          "credentials_stored": false,
+          "evidence_type": "observed",
+          "label": "downstream_at_risk",
+          "observed_at": "2026-07-26T05:37:53Z",
+          "private_content_stored": false,
+          "raw_body_stored": false,
+          "source_path": "generated/read_models/google_credential_health.json",
+          "value": [
+            "LAMD monthly auto-send",
+            "Cassandra inbound watch",
+            "Calendar reads"
+          ]
+        }
+      ],
+      "forbidden_actions": [
+        "re-authorise or refresh the authorisation from this lane",
+        "read, store, or move any authorisation material",
+        "call Gmail, Calendar, or any account mechanism from this read-model"
+      ],
+      "owner": "Chief",
+      "safe_next_diagnostic_step": "Chief should surface the observed status and the operator-only re-authorisation step. Re-authorising is interactive and belongs to the operator; no agent performs it.",
+      "should_light_check_engine": true,
+      "signal_id": "google_access_authorisation_health",
+      "status": "blocked",
+      "what_it_means_plain_language": "Google access is down. Every capability behind the shared authorisation fails together: inbox reads, calendar reads, and outbound Gmail send.",
+      "why_it_matters": "One shared authorisation sits under Gmail read, Calendar read, and Gmail send. When it lapses, an armed monthly auto-send still reports as armed and silently cannot fire, and inbound client mail stops being watched."
+    },
     {
       "evidence": [
         {
@@ -354,22 +396,17 @@
           "credentials_stored": false,
           "evidence_type": "observed",
           "label": "current_observed_sync_health_posture",
-          "observed_at": "2026-05-20T03:00:37+00:00",
+          "observed_at": "2026-07-21T00:18:58+00:00",
           "private_content_stored": false,
           "raw_body_stored": false,
           "source_path": "generated/read_models/sync_health.json",
           "value": {
-            "canonical_expected": 196,
-            "missing_expected": 4,
-            "missing_files": [
-              "chief_check_engine_environment_posture.json",
-              "chief_check_engine_environment_posture_OPERATOR.md",
-              "operator_nested_lane_mission_package_spine.json",
-              "operator_nested_lane_mission_package_spine_OPERATOR.md"
-            ],
-            "observed": 192,
-            "sync_lifecycle_state": "sync_requested_waiting_for_mac",
-            "trust_status": "stale_needs_mac_sync"
+            "canonical_expected": 325,
+            "missing_expected": 0,
+            "missing_files": [],
+            "observed": 327,
+            "sync_lifecycle_state": "mac_synced_waiting_for_pc_import",
+            "trust_status": "stale_needs_pc_import"
           }
         }
       ],
@@ -402,13 +439,13 @@
           "credentials_stored": false,
           "evidence_type": "observed",
           "label": "pc_sync_health_count",
-          "observed_at": "2026-05-20T03:00:37+00:00",
+          "observed_at": "2026-07-21T00:18:58+00:00",
           "private_content_stored": false,
           "raw_body_stored": false,
           "source_path": "generated/read_models/sync_health.json",
           "value": {
-            "canonical_expected": 196,
-            "observed": 192
+            "canonical_expected": 325,
+            "observed": 327
           }
         }
       ],
@@ -520,12 +557,13 @@
     }
   ],
   "signals_by_status": {
-    "blocked": 1,
+    "blocked": 2,
     "ok": 1,
     "unknown": 0,
     "warning": 6
   },
   "signals_that_light_check_engine": [
+    "google_access_authorisation_health",
     "c_drive_free_space_low",
     "rd_client_trace_growth",
     "shuttle_mount_missing",
@@ -535,14 +573,20 @@
     "launch_window_screenshot_fragility"
   ],
   "source_inputs": {
+    "observed_google_credential_health_source": {
+      "evidence_type": "observed",
+      "note": "Produced by google_credential_health.py. This lane reads the summary only and never reaches the account layer itself.",
+      "path": "generated/read_models/google_credential_health.json",
+      "probe_performed_by_this_lane": false
+    },
     "observed_sync_health_source": {
-      "canonical_expected": 196,
-      "generated_at": "2026-05-20T03:00:37+00:00",
-      "missing_expected": 4,
-      "observed": 192,
+      "canonical_expected": 325,
+      "generated_at": "2026-07-21T00:18:58+00:00",
+      "missing_expected": 0,
+      "observed": 327,
       "path": "generated/read_models/sync_health.json",
       "present": true,
-      "trust_status": "stale_needs_mac_sync"
+      "trust_status": "stale_needs_pc_import"
     },
     "operator_reported_mac_bridge_facts": {
       "current_mount_status": "missing_on_mac",
