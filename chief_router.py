@@ -1755,6 +1755,26 @@ Response discipline:
 - Maintain a professional, results-oriented partnership with Winship.
 """
 
+def _chief_engine_packet(question: str, *, root: "_Path | None" = None) -> dict:
+    """Build Chief's packet through the shared engine.
+
+    Chief had no packet builder, so the engine — persona, build receipt,
+    dankness scoring — could never wrap it. Routing through
+    ``build_agent_packet`` puts Chief on the same path as every other agent
+    instead of assembling context ad hoc in the router.
+    """
+    from chief_context_packet import build_chief_context_packet
+    from packet_engine import build_agent_packet
+
+    source_root = root if root is not None else _Path("generated/read_models")
+    return build_agent_packet(
+        agent="chief",
+        question=question,
+        legacy_builder=build_chief_context_packet,
+        read_model_root=source_root,
+    )
+
+
 def _chief_demand_context(question: str, *, root: "_Path | None" = None) -> str:
     """Question-relevant read-model grounding for Chief.
 
@@ -1794,9 +1814,16 @@ def _chief_fallback_reply(text: str) -> list[str]:
     from cassandra_brain import build_context_snapshot
 
     context = build_context_snapshot()
-    demand_context = _chief_demand_context(text)
-    if demand_context:
-        context = f"{context}\n\nQuestion-relevant read-models:\n{demand_context}"
+    # Grounding comes from the shared packet engine so Chief gets persona, a
+    # build receipt and dankness scoring like every other agent. Falls back to
+    # the direct demand context if the engine is unavailable, so a packet
+    # failure can never leave Chief less grounded than before.
+    try:
+        grounded = str(_chief_engine_packet(text).get("packet_text") or "").strip()
+    except Exception:
+        grounded = _chief_demand_context(text)
+    if grounded:
+        context = f"{context}\n\nGrounded packet:\n{grounded}"
     prompt = (
         f"{_CHIEF_SYSTEM_PROMPT}\n\n"
         f"Current system context:\n{context}\n\n"

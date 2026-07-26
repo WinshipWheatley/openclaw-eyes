@@ -41,6 +41,18 @@ REGISTERED_CONTEXT_PACKET_BUILDERS: dict[str, PacketBuilderSpec] = {
         build_function="build_guardian_context_packet",
         adapter="guardian",
     ),
+    "chief_context_packet.py": PacketBuilderSpec(
+        filename="chief_context_packet.py",
+        module_name="chief_context_packet",
+        build_function="build_chief_context_packet",
+        adapter="chief",
+    ),
+    "niles_context_packet.py": PacketBuilderSpec(
+        filename="niles_context_packet.py",
+        module_name="niles_context_packet",
+        build_function="build_niles_context_packet",
+        adapter="niles",
+    ),
     "cassandra_clara_fact_packet.py": PacketBuilderSpec(
         filename="cassandra_clara_fact_packet.py",
         module_name="cassandra_clara_fact_packet",
@@ -135,6 +147,20 @@ def build_registered_packet(filename: str, *, tmp_path: Path) -> dict[str, Any]:
         return mod.build_guardian_context_packet(
             question="ledger contract probe",
             read_model_root=tmp_path / "guardian_read_models",
+        )
+    if spec.adapter == "chief":
+        import chief_context_packet as mod
+
+        return mod.build_chief_context_packet(
+            question="ledger contract probe",
+            read_model_root=tmp_path / "chief_read_models",
+        )
+    if spec.adapter == "niles":
+        import niles_context_packet as mod
+
+        return mod.build_niles_context_packet(
+            question="ledger contract probe",
+            read_model_root=tmp_path / "niles_read_models",
         )
     if spec.adapter == "cassandra_clara":
         import cassandra_clara_fact_packet as mod

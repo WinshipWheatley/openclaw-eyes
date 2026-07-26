@@ -17,6 +17,23 @@ def _write(root: Path, name: str, payload: dict) -> None:
     (root / name).write_text(json.dumps(payload), encoding="utf-8")
 
 
+def test_chief_grounding_is_built_through_the_packet_engine(tmp_path: Path) -> None:
+    """Chief's live grounding must come from the shared engine, not ad-hoc, so
+    it gets persona, a build receipt and dankness scoring like every agent."""
+
+    root = tmp_path / "generated" / "read_models"
+    root.mkdir(parents=True)
+    _write(root, "gpu_model_health.json", {"gpu": "starved"})
+
+    packet = chief_router._chief_engine_packet(
+        "why is the gpu model health bad", root=root
+    )
+
+    assert packet["agent_id"] == "chief"
+    assert packet["packet_engine_receipt"]
+    assert packet["persona_delivery"]
+
+
 def test_relevant_read_model_is_added_to_chief_grounding(tmp_path: Path) -> None:
     root = tmp_path / "generated" / "read_models"
     root.mkdir(parents=True)

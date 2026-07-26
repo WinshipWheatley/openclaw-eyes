@@ -117,7 +117,16 @@ def answer_with_grounding(
     model fails, so the caller keeps its existing honest fallback.
     """
 
-    grounding = build_niles_grounding(question, read_model_root=read_model_root)
+    try:
+        grounding = str(
+            niles_engine_packet(question, read_model_root=read_model_root).get(
+                "packet_text"
+            )
+            or ""
+        ).strip()
+    except Exception:
+        # A packet failure must never leave Niles less grounded than before.
+        grounding = build_niles_grounding(question, read_model_root=read_model_root)
     if not grounding:
         return None
     prompt = (
@@ -133,6 +142,28 @@ def answer_with_grounding(
         return None
     reply = str(reply or "").strip()
     return reply or None
+
+
+def niles_engine_packet(
+    question: str,
+    *,
+    read_model_root: str | Path = Path("generated/read_models"),
+) -> dict:
+    """Build Niles' packet through the shared engine.
+
+    Niles had no packet builder at all, so the engine — persona, build receipt,
+    dankness scoring — could never wrap it. This puts Niles on the same path as
+    every other agent.
+    """
+    from niles_context_packet import build_niles_context_packet
+    from packet_engine import build_agent_packet
+
+    return build_agent_packet(
+        agent="niles",
+        question=question,
+        legacy_builder=build_niles_context_packet,
+        read_model_root=read_model_root,
+    )
 
 
 def build_niles_grounding(

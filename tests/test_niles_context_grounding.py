@@ -14,6 +14,21 @@ from pathlib import Path
 import niles_context_grounding as grounding
 
 
+def test_niles_grounding_is_built_through_the_packet_engine(tmp_path: Path) -> None:
+    """Same shared path as every other agent: persona, receipt, dank scoring."""
+
+    root = tmp_path / "generated" / "read_models"
+    root.mkdir(parents=True)
+
+    packet = grounding.niles_engine_packet(
+        "x32 monitor mix", read_model_root=root
+    )
+
+    assert packet["agent_id"] == "niles"
+    assert packet["packet_engine_receipt"]
+    assert packet["persona_delivery"]
+
+
 def test_gear_question_reaches_the_matching_device() -> None:
     lines = grounding.select_gear_context("how do I control the x32 monitor mix")
 
