@@ -37,7 +37,22 @@ STATUS_DEPS_MISSING = "GOOGLE_ACCESS_DEPS_MISSING"
 STATUS_NOT_CONFIGURED = "GOOGLE_ACCESS_NOT_CONFIGURED"
 STATUS_UNKNOWN = "GOOGLE_ACCESS_UNKNOWN"
 
-REAUTH_COMMAND = "python3 google_access_broker.py --auth"
+#: The remedy is only ever read at the moment access is already broken, so it has
+#: to be the command that actually works on this host — not the generic one.
+#: Both halves were wrong once and cost real time on 2026-07-26:
+#:   * `python3` is the system interpreter and lacks the Google client libraries;
+#:     the runtime lives in chief_env. Using it misreports a live token as
+#:     DEPS_MISSING.
+#:   * `--auth` runs flow.run_local_server() INSIDE WSL, and the Windows browser
+#:     cannot reach that callback — consent succeeds and no token is ever written.
+#:     `--auth-manual` exists precisely for WSL2: it prints a URL and takes the
+#:     redirect back by paste.
+#: It also needs a real TTY, so it cannot be driven from a non-interactive agent
+#: shell. That is a floor, not an inconvenience: issuing a credential is the
+#: operator's own act.
+REAUTH_COMMAND = (
+    "/home/openclaw/chief_env/bin/python google_access_broker.py --auth-manual"
+)
 
 #: What stops working while this is down. Named so the blast radius is read
 #: off the board instead of discovered by an automation on the day it fires.
@@ -95,9 +110,11 @@ def classify(error: str) -> str:
 def _remedy(status: str) -> str:
     if status == STATUS_EXPIRED:
         return (
-            f"Re-authorise Google access from the terminal: {REAUTH_COMMAND}. "
+            f"Re-authorise Google access from a real terminal: {REAUTH_COMMAND}. "
             "Interactive OAuth — it needs the operator's own browser session, so no "
-            "agent can do it."
+            "agent can do it. Run it in an actual terminal window, not an agent "
+            "shell: the paste prompt needs a TTY. The flow is PKCE, so if it dies "
+            "before you paste, that code is dead — start over rather than retry it."
         )
     if status == STATUS_DEPS_MISSING:
         return (
@@ -106,7 +123,10 @@ def _remedy(status: str) -> str:
             "the operator's call."
         )
     if status == STATUS_NOT_CONFIGURED:
-        return "No OAuth client secret is present. Place credentials.json, then run --auth."
+        return (
+            "No OAuth client secret is present. Place the OAuth client secret, then "
+            f"run: {REAUTH_COMMAND}"
+        )
     if status == STATUS_UNKNOWN:
         return "Broker failed for an unrecognised reason. Read the detail before assuming."
     return ""

@@ -85,3 +85,39 @@ def test_the_probe_uses_a_class_a_capability_so_it_never_prompts() -> None:
     from google_access_policy import get_class
 
     assert get_class(health.PROBE_AGENT, health.PROBE_CAPABILITY) == "A"
+
+
+def test_the_remedy_names_the_command_that_actually_works_on_this_host() -> None:
+    """A remedy is read only when things are already broken. Wrong = worse than none.
+
+    Both halves of the old string were wrong and cost real time on 2026-07-26:
+    `python3` lacks the Google client libraries (the runtime is chief_env, and the
+    system interpreter misreports a live token as DEPS_MISSING), and `--auth` runs
+    the OAuth callback server inside WSL where the Windows browser cannot reach it,
+    so consent succeeds and no token is written. `--auth-manual` is the WSL2 path.
+    """
+    assert health.REAUTH_COMMAND == (
+        "/home/openclaw/chief_env/bin/python google_access_broker.py --auth-manual"
+    )
+    # The bare flag must not survive: "--auth-manual".startswith("--auth") means a
+    # regression to the broken flag would otherwise pass a naive substring check.
+    assert "--auth-manual" in health.REAUTH_COMMAND
+    assert not health.REAUTH_COMMAND.startswith("python3 ")
+
+
+def test_every_actionable_remedy_hands_over_the_working_command() -> None:
+    """No remedy may name a different, wrong re-auth incantation of its own."""
+
+    for status in (health.STATUS_EXPIRED, health.STATUS_NOT_CONFIGURED):
+        remedy = health._remedy(status)
+        assert health.REAUTH_COMMAND in remedy, status
+        # No stale bare "--auth" outside the canonical command.
+        assert "--auth" not in remedy.replace(health.REAUTH_COMMAND, ""), status
+
+
+def test_the_remedy_says_it_needs_a_real_terminal() -> None:
+    """The agent-shell EOFError trap: it must be written down, not rediscovered."""
+
+    remedy = health._remedy(health.STATUS_EXPIRED)
+    assert "terminal" in remedy.lower()
+    assert "PKCE" in remedy or "start over" in remedy.lower()
