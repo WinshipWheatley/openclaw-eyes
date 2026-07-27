@@ -14,6 +14,16 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
+# /run is tmpfs: it is wiped on every boot. The installer's install-time mkdir of
+# /run/openclaw-authority therefore survives exactly until the first reboot, after
+# which ReadWritePaths below cannot be set up and the unit dies 226/NAMESPACE on
+# every start, forever, at RestartSec=2s. RuntimeDirectory recreates it at each
+# unit start instead. Mode matches the installer's own contract (install -d -m 0755).
+# Preserve=yes because openclaw-contained-observe.service also writes under
+# /run/openclaw-authority/public/ and must not lose it when this unit stops.
+RuntimeDirectory=openclaw-authority
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
 ReadWritePaths=/var/lib/openclaw-authority /run/openclaw-authority
 RestrictAddressFamilies=AF_UNIX
 LockPersonality=yes
