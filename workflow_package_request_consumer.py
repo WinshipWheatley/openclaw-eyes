@@ -425,6 +425,10 @@ def _system_question_receipt(
         "system_question_answer": answer_payload,
         "proof_refs": list(dict.fromkeys(str(ref) for ref in proof_refs)),
         "proof_refs_collapsed": True,
+        # Same carriage on the system-question path: both are grounded answers, and
+        # wiring only the one that was caught in the battery is how the other keeps
+        # the bug.
+        **_grounded_answer_provenance(answer_payload, source_text=question),
         "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
         "request_authority_boundary_all_false": not _authority_blockers(raw_request),
         "no_external_authority_granted": True,
@@ -524,6 +528,54 @@ def _business_question_source_text(raw_request: Mapping[str, Any]) -> str:
     return _source_text(raw_request) or mcr.operator_text_from_request(raw_request)
 
 
+def _grounded_answer_provenance(result: Any, *, source_text: str) -> dict[str, Any]:
+    """The three fields the reply egress needs, extracted from the real result.
+
+    Kept deliberately total: a missing packet, a result object without the
+    attribute, or a malformed status must degrade to "carry nothing extra" rather
+    than break a response that is otherwise fine. A response that fails to send is
+    worse than one that lacks a citation.
+    """
+
+    payload: dict[str, Any] = {"source_text": str(source_text or "")}
+
+    # Callers pass either a result object (maestro answer) or a plain payload
+    # mapping (system question). Handle both, because wiring only the shape that
+    # happened to fail in the battery is how the other one keeps the bug.
+    def _get(obj: Any, key: str) -> Any:
+        if isinstance(obj, Mapping):
+            return obj.get(key)
+        return getattr(obj, key, None)
+
+    packet = _get(result, "packet")
+    if not isinstance(packet, Mapping):
+        packet = result if isinstance(result, Mapping) else {}
+
+    refs: list[str] = []
+    for key in ("source_refs", "packet_source_refs"):
+        value = packet.get(key)
+        if isinstance(value, (list, tuple)):
+            refs.extend(str(v).strip() for v in value if str(v).strip())
+    for row in packet.get("facts", ()) or ():
+        if isinstance(row, Mapping):
+            ref = str(row.get("source_ref") or "").strip()
+            if ref:
+                refs.append(ref)
+    if refs:
+        payload["source_refs"] = list(dict.fromkeys(refs))
+
+    status = packet.get("retrieval_status")
+    if not isinstance(status, Mapping):
+        status = _get(result, "retrieval_status")
+    if isinstance(status, Mapping) and str(status.get("status") or ""):
+        payload["retrieval_status"] = {
+            "status": str(status.get("status") or ""),
+            "detail": str(status.get("detail") or ""),
+            "source_path": str(status.get("source_path") or ""),
+        }
+    return payload
+
+
 def _business_question_receipt(
     raw_request: Mapping[str, Any],
     *,
@@ -605,6 +657,14 @@ def _business_question_receipt(
         },
         "proof_refs": list(dict.fromkeys(str(ref) for ref in proof_refs)),
         "proof_refs_collapsed": True,
+        # ── Carried to the shared reply egress ────────────────────────────────
+        # The listener can only surface a retrieval failure or a citation if the
+        # bridge actually sends them. Before this the response carried the ANSWER
+        # and dropped everything needed to judge it: Maestro said UNKNOWN and the
+        # operator had no way to learn that chief_status_rail.json had been
+        # selected and had failed to load. source_text rides along so the egress
+        # can tell a real answer from a persona changing the subject.
+        **_grounded_answer_provenance(result, source_text=source_text),
         "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
         "request_authority_boundary_all_false": not _authority_blockers(raw_request),
         "no_external_authority_granted": True,

@@ -1494,3 +1494,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_contract_wiring_integration.py
 !agent_reply_egress.py
 !tests/test_all_listener_egress_wiring.py
+!tests/test_bridge_provenance_payload.py
