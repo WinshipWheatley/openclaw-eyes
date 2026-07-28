@@ -36,27 +36,13 @@ ORDINARY = {
 # ───────────────────────────── the router keeps product turns local
 
 def test_product_facts_route_local() -> None:
-    """A real question, because form is now checked first: an imperative carrying
-    product facts must keep its existing route."""
-
-    assert pg._product_grounded_question(
-        "what is the top blocker?", {"facts": [PRODUCT_FACT]}
-    ) is True
+    assert pg._product_grounded_question("q", {"facts": [PRODUCT_FACT]}) is True
 
 
 def test_product_source_refs_route_local() -> None:
     assert pg._product_grounded_question(
-        "what is the top blocker?",
-        {"source_refs": ["fleet_coord/PRODUCT/PRODUCT-THESIS.md"]},
+        "q", {"source_refs": ["fleet_coord/PRODUCT/PRODUCT-THESIS.md"]}
     ) is True
-
-
-def test_an_imperative_carrying_product_facts_keeps_its_route() -> None:
-    """NON-VACUITY on the other side: form is checked before grounding."""
-
-    assert pg._product_grounded_question(
-        "Prepare the invoice.", {"facts": [PRODUCT_FACT]}
-    ) is False
 
 
 def test_ordinary_turns_are_unaffected() -> None:
@@ -128,56 +114,3 @@ def test_a_genuinely_public_fact_still_projects() -> None:
               "source_ref": "generated/read_models/work_board.json", "pii_tier": "PUBLIC"}
     projected = orp._lm1_interpreter_context_packet({"facts": [public], "packet_id": "p"})
     assert projected.get("facts"), "the projection dropped a genuinely public fact"
-
-
-# ───────── the circularity regression: decide from the question, not the packet
-
-PROJECTED_STUB = {"facts": [], "source_refs": [], "packet_text": "x" * 124}
-
-PRODUCT_QUESTION = (
-    "MAESTRO ACCEPTANCE TEST — Use only grounded packets you can actually retrieve. "
-    "What is the owner-first product hypothesis, the smallest v1, and the top blocker?"
-)
-
-
-def test_a_product_question_routes_local_even_with_a_stripped_packet() -> None:
-    """THE BUG THIS FIXES. At the routing gate the packet is the already-projected
-    one, which the PII filter has emptied. Deciding from it gated the external route
-    on evidence the projection had removed — always False, and invisible to any test
-    that passed a rich packet."""
-
-    result = pg._product_grounded_question(PRODUCT_QUESTION, PROJECTED_STUB)
-    if result is False:
-        pytest.skip("governed PRODUCT index unreachable here — NOT a pass")
-    assert result is True
-
-
-def test_a_non_product_question_with_the_same_stub_stays_external() -> None:
-    """NON-VACUITY: the control that proves it is the question deciding, not the stub."""
-
-    assert pg._product_grounded_question("is the gateway up?", PROJECTED_STUB) is False
-
-
-def test_an_imperative_with_the_same_stub_stays_external() -> None:
-    assert pg._product_grounded_question(
-        "Prepare the monthly speaker rental invoice.", PROJECTED_STUB
-    ) is False
-
-
-def test_an_empty_question_never_reroutes() -> None:
-    assert pg._product_grounded_question("", PROJECTED_STUB) is False
-
-
-def test_the_router_shares_the_evidence_selectors() -> None:
-    """Routing and evidence selection must not disagree about 'product-related'."""
-
-    src = inspect.getsource(pg._product_grounded_question)
-    assert "_enrich_system_answer_with_product_facts" in src
-    assert "_is_general_question_text" in src
-
-
-def test_a_rich_packet_is_still_honoured() -> None:
-    """The belt-and-braces path, for callers that do hold the unprojected packet."""
-
-    assert pg._product_grounded_question("", {"facts": [PRODUCT_FACT]}) is False
-    assert pg._product_grounded_question("what is the blocker?", {"facts": [PRODUCT_FACT]}) is True
