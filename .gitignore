@@ -1509,3 +1509,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_responder_identity_at_egress.py
 !tests/test_question_vs_instruction_routing.py
 !tests/test_system_question_product_enrichment.py
+!tests/test_producing_stack_receipt.py

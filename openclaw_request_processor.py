@@ -66,6 +66,55 @@ SCHEMA_VERSION = "openclaw_request_processor_v0"
 STATUS_READ_MODEL_ID = "openclaw_request_processor_status"
 RESPONSE_READ_MODEL_ID = "openclaw_response_for_mac"
 STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
+
+#: Append-only. This writer is the ONE function provably on the live path — every
+#: reply the operator sees is emitted here. Eight fixes tonight were verified in
+#: isolation and never applied to the live reply because I inferred the producing
+#: path from predicates instead of reading it. This records the frames, so the next
+#: change is aimed at a function that is named rather than assumed.
+PRODUCING_STACK_RECEIPTS = Path("/home/openclaw/state/producing_stack_receipts.jsonl")
+
+
+def _capture_producing_stack(source_request_id: str, *, path: Path | None = None) -> dict:
+    """Record module/function/line for the frames that produced this response.
+
+    Sanitized by construction: basename, function name and line number only. No
+    locals, no arguments, no prompt text, no full paths. Returns the row so a test
+    can assert without reading the file.
+    """
+
+    import inspect as _inspect
+    import os as _os
+
+    frames = []
+    try:
+        for frame in _inspect.stack()[1:26]:
+            frames.append(
+                {
+                    "module": _os.path.basename(frame.filename),
+                    "function": frame.function,
+                    "line": frame.lineno,
+                }
+            )
+    except Exception:  # noqa: BLE001
+        pass
+    row = {
+        "at": utc_now(),
+        "source_request_id": str(source_request_id or "")[:120],
+        "frames": frames,
+    }
+    try:
+        if path is None and _os.environ.get("OPENCLAW_TEST_MODE") == "1":
+            return row  # tests must never author state/
+        target = Path(path) if path is not None else PRODUCING_STACK_RECEIPTS
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+    except Exception:  # noqa: BLE001 - a receipt must never break a response
+        pass
+    return row
+
+
 STATUS_OPERATOR_EXPORT_NAME = "openclaw_request_processor_OPERATOR.md"
 RESPONSE_JSON_EXPORT_NAME = f"{RESPONSE_READ_MODEL_ID}.json"
 LATEST_RESPONSE_EXPORT_NAME = "openclaw_response_for_mac_latest.json"
@@ -1016,6 +1065,7 @@ def publish_response_for_mac_outbox(
         }
 
     published_at = published_at or utc_now()
+    _capture_producing_stack(source_request_id)
     response_dir.mkdir(parents=True, exist_ok=True)
     response_file = response_dir / f"openclaw_response_for_mac_{_safe_filename_part(source_request_id)}.json"
     latest_file = response_dir / LATEST_RESPONSE_EXPORT_NAME
