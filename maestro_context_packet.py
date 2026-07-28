@@ -1544,6 +1544,21 @@ def _product_artifact_facts(
         proof["product_artifact_status"] = "INDEX_EMPTY"
         return facts, refs, proof
 
+    # Receipt, not a log line. Seven times tonight a fix was verified in-process and
+    # then could not be observed on the live path, because the packet's own proof is
+    # not serialized into the response. This records what THIS loader did, on every
+    # build, so the next live turn is a decisive experiment instead of another guess.
+    # Written outside generated/read_models on purpose — a hot path must never author
+    # a tracked read-model, which is the defect that contaminated two of them today.
+    def _receipt(payload: dict[str, Any]) -> None:
+        try:
+            target = Path("/home/openclaw/state/product_artifact_loader_receipt.json")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n",
+                              encoding="utf-8")
+        except Exception:  # noqa: BLE001 - a receipt must never break a packet
+            pass
+
     verified: dict[str, bool] = {}
     for row, section in pai.rank_sections_across(
         rows, question, limit=PRODUCT_FACT_MAX_SECTIONS, clip=PRODUCT_FACT_SECTION_CHARS
@@ -1574,6 +1589,15 @@ def _product_artifact_facts(
             freshness={"as_of": row.modified_at, "source_ref": row.source_ref,
                        "sha256": row.sha256},
         )
+
+    _receipt({
+        "at": _utc_now(),
+        "question_head": str(question or "")[:120],
+        "fact_count": len(facts),
+        "selected": proof["product_artifacts_selected"],
+        "status": proof["product_artifact_status"],
+        "chars": sum(len(f.get("value") or "") for f in facts),
+    })
     return facts, refs, proof
 
 
