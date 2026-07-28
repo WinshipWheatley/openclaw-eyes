@@ -30,6 +30,12 @@ def _continuity_enabled() -> bool:
 
 SCHEMA_VERSION = "maestro_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
+
+#: Diagnostic receipt path, a module constant so a test can redirect it. It was
+#: hardcoded, and a test of mine wrote a sentinel straight into production state —
+#: the same defect class as tests authoring read-models, reintroduced by me hours
+#: after fixing it. A path a test cannot redirect is a path a test will pollute.
+TRUTH_FAILURE_RECEIPT_PATH = Path("/home/openclaw/state/truth_input_failure_receipt.json")
 DEFAULT_HITL_PENDING_STATE_PATH = Path("/mnt/c/OpenClaw/logs/hitl_pending_state.json")
 DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
@@ -3200,9 +3206,10 @@ def build_maestro_context_packet(
                 ),
                 "cwd": os.getcwd(),
                 "question_head": str(question or "")[:100],
+                "packet_id": str(_loc.get("packet_id") or ""),
                 "at": _utc_now(),
             }
-            _p = Path("/home/openclaw/state/truth_input_failure_receipt.json")
+            _p = Path(TRUTH_FAILURE_RECEIPT_PATH)
             _p.parent.mkdir(parents=True, exist_ok=True)
             _p.write_text(json.dumps(_diag, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         except Exception:  # noqa: BLE001 - diagnosis must never mask the guard
@@ -3538,6 +3545,7 @@ def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
             json.dumps(
                 {
                     "at": _utc_now(),
+                    "packet_id": str(packet.get("packet_id") or ""),
                     "question_head": question[:120],
                     "final_prompt_chars": len(text),
                     "budget": PROMPT_CHAR_BUDGET,

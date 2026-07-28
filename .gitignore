@@ -1503,3 +1503,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_prompt_packer_budget.py
 !tests/test_packet_build_failure_named.py
 !tests/test_truth_input_failure_diagnosis.py
+!tests/test_receipt_correlation.py

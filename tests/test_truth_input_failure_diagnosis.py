@@ -15,6 +15,15 @@ import pytest
 
 import maestro_context_packet as mcp
 
+#: Never the production path. Tests must not author anything under state/.
+@pytest.fixture(autouse=True)
+def _isolated_receipt(tmp_path, monkeypatch):
+    target = tmp_path / "truth_input_failure_receipt.json"
+    monkeypatch.setattr(mcp, "TRUTH_FAILURE_RECEIPT_PATH", target)
+    globals()["RECEIPT"] = target
+    yield target
+
+
 RECEIPT = Path("/home/openclaw/state/truth_input_failure_receipt.json")
 
 

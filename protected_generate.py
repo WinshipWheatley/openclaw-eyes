@@ -2016,6 +2016,8 @@ def protected_generate_with_receipt(
                 {
                     "at": _now_iso() if "_now_iso" in globals() else "",
                     "agent": str(agent or ""),
+                    "packet_id": str(packet.get("packet_id") or ""),
+                    "question_head": str(raw_prompt or "")[:120],
                     "front_door_profile": bool(front_door_profile),
                     "frontdoor_replaced_prompt": bool(fd_prompt_manifest),
                     "final_prompt_chars": len(system_prompt),
