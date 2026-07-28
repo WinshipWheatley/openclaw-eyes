@@ -1513,3 +1513,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_producing_stack_in_response.py
 !tests/test_run_and_write_product_connection.py
 !tests/test_pre_model_product_evidence.py
+!tests/test_evidence_reaches_the_model.py

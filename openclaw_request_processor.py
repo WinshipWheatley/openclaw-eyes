@@ -6182,6 +6182,23 @@ def _process_maestro_frontdoor_operator_instruction(
             session["lm1_reused_model_receipt"] = dict(lm1_receipt)
     source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
     agent = _resolved_frontdoor_agent(raw_request, session=session, _capsule=_capsule)
+
+    # THE CONSUMER. Everything upstream carried the evidence to raw_request and
+    # nothing read it, so the model kept answering "not retrievable in this lane" —
+    # truthfully. operator_text is what actually reaches the brain, so the evidence
+    # is appended here as a labelled section, immediately before the call.
+    #
+    # Classification, routing, staging and authority all ran earlier and are not
+    # touched: this adds grounded context to a question already routed to the brain.
+    # Absent evidence leaves operator_text byte-identical.
+    _evidence = str((raw_request or {}).get("product_artifact_evidence") or "").strip()
+    if _evidence:
+        _evidence = _evidence[:2600]  # budget: the front door is a 1024-token window
+        operator_text = (
+            f"{operator_text}\n\n"
+            "GROUNDED EVIDENCE (governed product artifacts, cited — answer from this):\n"
+            f"{_evidence}"
+        )
     try:
         result = maestro_cassandra_responder.answer_frontdoor_chat(
             operator_text,
