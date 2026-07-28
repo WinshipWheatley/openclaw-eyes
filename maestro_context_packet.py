@@ -3330,65 +3330,182 @@ def attach_retrieval_status(packet: dict, status: Any) -> dict:
 _attach_retrieval_status = attach_retrieval_status
 
 
+#: The front door runs at NUM_CTX=1024 — about 4,000 characters for EVERYTHING the
+#: model reads. This packet was rendering ~16,800 and letting the runtime amputate
+#: whatever did not fit. A fact-count cap of 30 does not bound characters at all, and
+#: the Boundaries block was emitted LAST, so the safety text was first to be cut.
+#:
+#: Ordering here is the whole fix, and it is a priority order, not a layout:
+#:   1. the operator's current question   — an answer to the wrong question is worthless
+#:   2. authority/safety boundaries       — must never be the thing that falls off
+#:   3. governed artifact evidence        — with source_ref and hash, so it is citable
+#:   4. everything else, while budget remains
+#: Personas and skills are last by construction. A persona that crowds out the
+#: evidence turns a grounded answer into a confident one, which is the failure this
+#: whole night has been about.
+PROMPT_CHAR_BUDGET = 3800
+#: Internal working ceiling. The join/strip at the end differs from the running
+#: tally by a few characters, and a budget that is "usually" met is not a budget.
+#: The margin makes the external guarantee exact rather than approximate.
+_PACK_MARGIN = 64
+_EVIDENCE_TOPICS = ("product_artifact",)
+
+
+def _fact_line(fact: Mapping[str, Any]) -> str:
+    source = str(fact.get("source_ref") or "")
+    provenance = str(fact.get("provenance") or "")
+    tier = str(fact.get("pii_tier") or "PUBLIC")
+    handling = ""
+    as_of = _fact_as_of(fact)
+    if as_of:
+        handling = f"{handling}; as_of={as_of}"
+    if fact.get("raw_operator_note") and fact.get("verbatim_readback") is False:
+        handling = "; raw_operator_note=true; verbatim_readback=false; distill_not_quote"
+    if fact.get("current_truth") is False:
+        handling = f"{handling}; current_truth=false; drift_resolution={fact.get('drift_resolution') or 'downranked'}"
+    sha = str((fact.get("freshness") or {}).get("sha256") or "")
+    sha_part = f"; sha256={sha[:23]}" if sha else ""
+    return (
+        f"- {fact.get('label')}: {fact.get('value')} "
+        f"[tier={tier}; provenance={provenance}; source={source}{sha_part}{handling}]"
+    )
+
+
+def _rank_remaining_facts(facts: Sequence[Mapping[str, Any]], question: str) -> list[Mapping[str, Any]]:
+    """Order by question overlap so the budget buys relevance, not arrival order."""
+
+    tokens = set(re.findall(r"[a-z0-9][a-z0-9_.-]{2,}", str(question or "").lower()))
+    if not tokens:
+        return list(facts)
+
+    def score(fact: Mapping[str, Any]) -> int:
+        blob = " ".join(
+            str(fact.get(k) or "") for k in ("label", "value", "topic", "source_ref")
+        ).lower()
+        return len(tokens & set(re.findall(r"[a-z0-9][a-z0-9_.-]{2,}", blob)))
+
+    return sorted(facts, key=lambda f: -score(f))
+
+
 def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)]
     skills = [skill for skill in packet.get("skills", ()) if isinstance(skill, Mapping)]
     actionable = packet.get("actionable") if isinstance(packet.get("actionable"), Mapping) else {}
     bounds = packet.get("bounds") if isinstance(packet.get("bounds"), Mapping) else {}
+    question = str(packet.get("question") or "")
+
+    # 1 + 2: question and boundaries FIRST, so neither can be truncated away.
     lines = [
         f"MAESTRO_CONTEXT_PACKET {packet.get('packet_id', '')}",
         f"Generated: {packet.get('generated_at', '')}",
         temporal_anchor_text(),
         "",
+        f"OPERATOR QUESTION: {question}" if question else "",
+        "",
+        "Boundaries:",
+        f"- SEND_HOLD absolute: {bool(bounds.get('send_hold_absolute', True))}",
+        f"- Outbound send allowed: {bool(bounds.get('outbound_send_allowed', False))}",
+        f"- Money movement allowed: {bool(bounds.get('money_movement_allowed', False))}",
+        f"- Ledger mutation allowed: {bool(bounds.get('ledger_mutation_allowed', False))}",
+        "",
         "Grounded facts:",
     ]
-    for fact in facts[:30]:
-        source = str(fact.get("source_ref") or "")
-        provenance = str(fact.get("provenance") or "")
-        tier = str(fact.get("pii_tier") or "PUBLIC")
-        handling = ""
-        as_of = _fact_as_of(fact)
-        if as_of:
-            handling = f"{handling}; as_of={as_of}"
-        if fact.get("raw_operator_note") and fact.get("verbatim_readback") is False:
-            handling = "; raw_operator_note=true; verbatim_readback=false; distill_not_quote"
-        if fact.get("current_truth") is False:
-            handling = f"{handling}; current_truth=false; drift_resolution={fact.get('drift_resolution') or 'downranked'}"
-        lines.append(
-            f"- {fact.get('label')}: {fact.get('value')} "
-            f"[tier={tier}; provenance={provenance}; source={source}{handling}]"
-        )
-    if skills:
-        lines.extend(["", "Applied skills:"])
+    spent = sum(len(line) + 1 for line in lines)
+
+    included_refs: list[str] = []
+    dropped = 0
+
+    # 3: governed artifact evidence, before anything competes for the budget.
+    evidence = [f for f in facts if str(f.get("topic") or "") in _EVIDENCE_TOPICS]
+    remaining = [f for f in facts if f not in evidence]
+    for fact in evidence:
+        line = _fact_line(fact)
+        lines.append(line)
+        spent += len(line) + 1
+        ref = str(fact.get("source_ref") or "")
+        if ref and ref not in included_refs:
+            included_refs.append(ref)
+
+    # 4: everything else, ranked by the question, only while budget remains.
+    for fact in _rank_remaining_facts(remaining, question):
+        line = _fact_line(fact)
+        if spent + len(line) + 1 > PROMPT_CHAR_BUDGET - _PACK_MARGIN:
+            dropped += 1
+            continue
+        lines.append(line)
+        spent += len(line) + 1
+        ref = str(fact.get("source_ref") or "")
+        if ref and ref not in included_refs:
+            included_refs.append(ref)
+    if dropped:
+        _note = f"- [{dropped} lower-relevance facts omitted to fit the context window]"
+        lines.append(_note)
+        spent += len(_note) + 1
+
+    def _try_append(line: str) -> bool:
+        """Append only if it fits. The budget is the contract, not a suggestion."""
+
+        nonlocal spent
+        if spent + len(line) + 1 > PROMPT_CHAR_BUDGET - _PACK_MARGIN:
+            return False
+        lines.append(line)
+        spent += len(line) + 1
+        return True
+
+    # 5: the actionable view, then personas/skills LAST — they may use what is left
+    # and nothing more. A persona that crowds out the evidence turns a grounded
+    # answer into a merely confident one.
+    if spent < PROMPT_CHAR_BUDGET - _PACK_MARGIN:
+        _try_append("")
+        _try_append("Actionable view:")
+        for title, key in (
+            ("Money in/out", "money_in_out"),
+            ("Needs attention", "needs_attention"),
+            ("Upcoming commitments", "upcoming_commitments"),
+        ):
+            values = [str(item) for item in actionable.get(key, ()) if str(item).strip()]
+            _try_append(f"- {title}: {' | '.join(values) if values else 'none in packet'}")
+
+    if skills and spent < PROMPT_CHAR_BUDGET - _PACK_MARGIN:
+        _try_append("")
+        _try_append("Applied skills:")
         for skill in skills:
-            tier_body = str(skill.get("tier_body") or "").strip()
-            lines.append(
+            if not _try_append(
                 f"- {skill.get('display_name') or skill.get('skill_id')} "
                 f"({skill.get('skill_id')}): owner={skill.get('owner_agent')}; "
                 f"tier={skill.get('selected_tier')}; authority={skill.get('authority')}; "
                 f"tools={', '.join(str(tool) for tool in skill.get('tools', ()))}"
-            )
+            ):
+                break
+            tier_body = str(skill.get("tier_body") or "").strip()
             if tier_body:
-                lines.append(f"  Instructions: {tier_body}")
-    lines.extend(["", "Actionable view:"])
-    for title, key in (
-        ("Money in/out", "money_in_out"),
-        ("Needs attention", "needs_attention"),
-        ("Upcoming commitments", "upcoming_commitments"),
-    ):
-        values = [str(item) for item in actionable.get(key, ()) if str(item).strip()]
-        lines.append(f"- {title}: {' | '.join(values) if values else 'none in packet'}")
-    lines.extend(
-        [
-            "",
-            "Boundaries:",
-            f"- SEND_HOLD absolute: {bool(bounds.get('send_hold_absolute', True))}",
-            f"- Outbound send allowed: {bool(bounds.get('outbound_send_allowed', False))}",
-            f"- Money movement allowed: {bool(bounds.get('money_movement_allowed', False))}",
-            f"- Ledger mutation allowed: {bool(bounds.get('ledger_mutation_allowed', False))}",
-        ]
-    )
-    return "\n".join(lines).strip()
+                _try_append(f"  Instructions: {tier_body}")
+    text = "\n".join(line for line in lines if line is not None).strip()
+
+    # Receipt: what the model was ACTUALLY handed. Every claim tonight that a fix
+    # worked was made about something upstream of this string; this is the string.
+    try:
+        target = Path("/home/openclaw/state/prompt_packer_receipt.json")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(
+                {
+                    "at": _utc_now(),
+                    "question_head": question[:120],
+                    "final_prompt_chars": len(text),
+                    "budget": PROMPT_CHAR_BUDGET,
+                    "within_budget": len(text) <= PROMPT_CHAR_BUDGET,
+                    "included_source_refs": included_refs,
+                    "facts_included": len(facts) - dropped,
+                    "facts_dropped": dropped,
+                },
+                indent=2, sort_keys=True,
+            ) + "\n",
+            encoding="utf-8",
+        )
+    except Exception:  # noqa: BLE001 - a receipt must never break a packet
+        pass
+    return text
 
 
 def resolve_ledger_reference(text: str, context: Mapping[str, Any] | None = None) -> dict[str, Any]:

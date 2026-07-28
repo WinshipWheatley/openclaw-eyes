@@ -1500,3 +1500,4 @@ generated/system_knowledge/*.sqlite
 !product_artifact_index.py
 !tests/test_product_artifact_index.py
 !generated/read_models/product_artifact_index.json
+!tests/test_prompt_packer_budget.py
