@@ -1042,6 +1042,47 @@ def stamp_proof_to_response_source_response_path(
     return payload
 
 
+#: Append-only, production-only, test-redirectable. Three receipts of mine tonight
+#: collected pytest rows that I then read as live traffic; the redirect and the
+#: OPENCLAW_TEST_MODE guard exist because closing that hole per-file kept failing.
+PRE_MODEL_APPEND_MARKERS = Path("/home/openclaw/state/pre_model_append_markers.jsonl")
+
+
+def _mark_pre_model_append(
+    raw_request: Any, evidence: str, operator_text: str, *, path: Path | None = None
+) -> dict[str, Any]:
+    """Record whether the pre-model append fired. Lengths, hash and flag only."""
+
+    import hashlib as _hl
+    import os as _os
+
+    correlation = ""
+    if isinstance(raw_request, Mapping):
+        correlation = str(
+            raw_request.get("request_id") or raw_request.get("source_request_id") or ""
+        )[:120]
+    row = {
+        "at": utc_now(),
+        "correlation": correlation,
+        "evidence_present": bool(evidence),
+        "evidence_len": len(evidence or ""),
+        "final_operator_text_len": len(operator_text or ""),
+        "operator_text_sha256": _hl.sha256(
+            (operator_text or "").encode("utf-8")
+        ).hexdigest()[:24],
+    }
+    try:
+        if path is None and _os.environ.get("OPENCLAW_TEST_MODE") == "1":
+            return row
+        target = Path(path) if path is not None else PRE_MODEL_APPEND_MARKERS
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+    except Exception:  # noqa: BLE001 - a marker must never break an answer
+        pass
+    return row
+
+
 def _product_evidence_for_request(request_path: Any) -> str | None:
     """Governed PRODUCT evidence for this request, or None. Never raises.
 
@@ -6199,6 +6240,11 @@ def _process_maestro_frontdoor_operator_instruction(
             "GROUNDED EVIDENCE (governed product artifacts, cited — answer from this):\n"
             f"{_evidence}"
         )
+    # Marker at the append site itself. The evidence visible in the response comes
+    # from the POST-answer wire and proves nothing about whether this append fired —
+    # that ambiguity is the only thing still separating "the brain ignored it" from
+    # "the brain never got it". Lengths, a hash and a flag; never content.
+    _mark_pre_model_append(raw_request, _evidence, operator_text)
     try:
         result = maestro_cassandra_responder.answer_frontdoor_chat(
             operator_text,
