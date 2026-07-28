@@ -490,35 +490,6 @@ def _external_brain_router_enabled() -> bool:
     }
 
 
-def _product_grounded_question(operator_prompt: Any, packet: Any) -> bool:
-    """True when this turn is grounded in governed PRODUCT artifacts.
-
-    Those artifacts grade LIGHT — client names, figures, operator identity — so the
-    external-safe projection correctly refuses to send them off-box, and the external
-    brain answers "no public facts suitable for this model lane". The evidence is not
-    missing; it is deliberately withheld from an external model.
-
-    The answer is to keep the turn local, not to weaken the projection. This does not
-    reclassify a single fact, does not touch detect_pii_tier, and changes no tier: it
-    only prefers the LOCAL brain for turns whose grounding cannot legitimately leave
-    the box. Every other turn routes exactly as before.
-    """
-
-    try:
-        facts = packet.get("facts") if isinstance(packet, Mapping) else None
-        if isinstance(facts, (list, tuple)):
-            for row in facts:
-                if isinstance(row, Mapping) and row.get("topic") == "product_artifact":
-                    return True
-        refs = packet.get("source_refs") if isinstance(packet, Mapping) else None
-        if isinstance(refs, (list, tuple)):
-            if any("fleet_coord/PRODUCT/" in str(r) for r in refs):
-                return True
-    except Exception:  # noqa: BLE001 - routing must never break on packet shape
-        return False
-    return False
-
-
 def _external_brain_live_attempt(
     *,
     raw_operator_prompt: str,
@@ -2221,11 +2192,7 @@ def protected_generate_with_receipt(
                 receipt=dict(receipt),
             )
     elif _live_model_allowed(allow_live_model):
-        if (
-            _external_brain_router_enabled()
-            and not fd_ledger_guard_failed
-            and not _product_grounded_question(operator_prompt, packet)
-        ):
+        if _external_brain_router_enabled() and not fd_ledger_guard_failed:
             context_chars = len(safe_packet)
             external_context_size = (
                 "huge" if context_chars >= 20_000 else ("large" if context_chars >= 8_000 else "small")
