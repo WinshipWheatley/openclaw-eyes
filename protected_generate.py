@@ -1990,6 +1990,54 @@ def protected_generate_with_receipt(
             )
         except Exception:
             fd_prompt_manifest = {}
+
+    # ── FINAL SEAM RECEIPT ────────────────────────────────────────────────────
+    # This is the last point before the model call, and the only place where the
+    # string the model actually reads exists. Everything verified tonight was
+    # verified upstream of here — the packet, its facts, packet_text — and when
+    # front_door_profile is on, build_frontdoor_prompt REPLACES that composition
+    # with one re-derived from the packet, so an upstream proof says nothing about
+    # what arrives. Records length, a hash, and which source refs survive.
+    # Never the prompt body, and never a secret: hash and refs only.
+    try:
+        import hashlib as _hl
+        import json as _json
+        from pathlib import Path as _Path
+
+        _refs = [
+            str(row.get("source_ref") or "")
+            for row in (packet.get("facts") or ())
+            if isinstance(row, Mapping) and str(row.get("source_ref") or "")
+        ]
+        _in_prompt = sorted({r for r in _refs if r and r in system_prompt})
+        _Path("/home/openclaw/state").mkdir(parents=True, exist_ok=True)
+        _Path("/home/openclaw/state/frontdoor_prompt_receipt.json").write_text(
+            _json.dumps(
+                {
+                    "at": _now_iso() if "_now_iso" in globals() else "",
+                    "agent": str(agent or ""),
+                    "front_door_profile": bool(front_door_profile),
+                    "frontdoor_replaced_prompt": bool(fd_prompt_manifest),
+                    "final_prompt_chars": len(system_prompt),
+                    "final_prompt_sha256": _hl.sha256(
+                        system_prompt.encode("utf-8")
+                    ).hexdigest()[:24],
+                    "packet_text_chars": len(str(packet.get("packet_text") or "")),
+                    "packet_fact_refs": sorted(set(_refs)),
+                    "source_refs_in_final_prompt": _in_prompt,
+                    "product_artifact_survived": any(
+                        "fleet_coord/PRODUCT/" in r for r in _in_prompt
+                    ),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    except Exception:  # noqa: BLE001 - a receipt must never break a generate
+        pass
+
     if front_door_profile and fd_prompt_manifest:
         try:
             from packet_dankness_critic import observe_packet_dankness
