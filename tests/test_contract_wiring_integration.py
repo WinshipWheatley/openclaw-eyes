@@ -72,7 +72,7 @@ def test_every_operator_reply_carries_the_identity_banner(monkeypatch) -> None:
     monkeypatch.setenv(ident.IDENTITY_BANNER_ENV, "1")
     out = listener._identity_gated_reply("The invoice is queued.")
     assert out.startswith(ident.identity_banner("maestro"))
-    assert "@openclaw_maestro_bot" in out
+    assert "@winship_maestro_bot" in out
     assert "The invoice is queued." in out
 
 
@@ -81,7 +81,7 @@ def test_the_banner_is_not_doubled_on_an_already_bannered_reply(monkeypatch) -> 
     monkeypatch.setenv(ident.IDENTITY_BANNER_ENV, "1")
     once = listener._identity_gated_reply("hello")
     twice = listener._identity_gated_reply(once)
-    assert twice.count("@openclaw_maestro_bot") == 1
+    assert twice.count("@winship_maestro_bot") == 1
 
 
 def test_a_nonce_is_withheld_at_egress_while_identity_is_unproven(monkeypatch) -> None:
@@ -221,7 +221,7 @@ def test_the_production_schema_materializes_and_seeds(tmp_path: Path) -> None:
     row = conn.execute(
         "SELECT telegram_bot_username FROM agent_lanes WHERE agent_id = 'cassandra'"
     ).fetchone()
-    assert row["telegram_bot_username"] == "@openclaw_cassandra_bot"
+    assert row["telegram_bot_username"] == "@cassandrastudio_bot"
 
 
 def test_a_declared_lane_is_refused_until_live_verification(tmp_path: Path) -> None:
@@ -240,7 +240,7 @@ def test_a_verified_lane_resolves(tmp_path: Path) -> None:
     conn = lanes.connect(tmp_path / "lanes.sqlite")
     lanes.seed_rows(conn)
     lanes.record_live_verification(conn, "cassandra", chat_id="5150",
-                                   username="@openclaw_cassandra_bot",
+                                   username="@cassandrastudio_bot",
                                    verified_at="2026-07-28T04:00:00Z")
     lane = lanes.resolve_lane(conn, "cassandra")
     assert lane.ok is True and lane.chat_id == "5150"
@@ -253,7 +253,7 @@ def test_verification_refuses_a_username_the_registry_does_not_declare(tmp_path:
     lanes.seed_rows(conn)
     with pytest.raises(lanes.LaneRegistryError):
         lanes.record_live_verification(conn, "cassandra", chat_id="5150",
-                                       username="@casandra_bot",
+                                       username="@casandrastudio_bot",
                                        verified_at="2026-07-28T04:00:00Z")
 
 

@@ -34,13 +34,29 @@ SCHEMA_VERSION = "agent_telegram_identity_v1"
 #: tests/test_t016_synthetic_e2e.py but no production CREATE TABLE was found, so the
 #: contract lived only in a fixture. This is that contract made real and importable.
 #: A row here is the ONLY thing that authorises resolution to a chat.
+#: CORRECTED 2026-07-28 from a live getMe audit of all six bots.
+#:
+#: The previous values (@openclaw_<agent>_bot) came from the pattern asserted in
+#: tests/test_t016_synthetic_e2e.py and were fiction: **all six were wrong**. Not one
+#: live bot uses that scheme. Had the interlock been opened on the strength of that
+#: table, resolution would have refused every real chat — or worse, a future edit
+#: "fixing" the mismatch could have pointed an agent at whatever did match.
+#:
+#: This is why declared is not proved, and why every lane stays UNVERIFIED until a
+#: live check writes it down. The check has now run for username and bot id.
 AGENT_IDENTITIES: dict[str, dict[str, str]] = {
-    "maestro":   {"role": "First Officer — bridge and front door", "username": "@openclaw_maestro_bot"},
-    "chief":     {"role": "Chief of Staff",                        "username": "@openclaw_chief_bot"},
-    "cassandra": {"role": "Client Voice (Clara Reid)",             "username": "@openclaw_cassandra_bot"},
-    "niles":     {"role": "Audio / X32",                           "username": "@openclaw_niles_bot"},
-    "guardian":  {"role": "Approvals and Gates",                   "username": "@openclaw_guardian_bot"},
-    "hermes":    {"role": "Messaging Gateway",                     "username": "@openclaw_hermes_bot"},
+    "maestro":   {"role": "First Officer — bridge and front door",
+                  "username": "@winship_maestro_bot",      "bot_id": "8719135741"},
+    "chief":     {"role": "Chief of Staff",
+                  "username": "@sysrelay_bot",             "bot_id": "8780205422"},
+    "cassandra": {"role": "Client Voice (Clara Reid)",
+                  "username": "@cassandrastudio_bot",      "bot_id": "8775077131"},
+    "niles":     {"role": "Audio / X32",
+                  "username": "@nilesproducerbot",         "bot_id": "8652409115"},
+    "guardian":  {"role": "Approvals and Gates",
+                  "username": "@deeppocketguardianbot",    "bot_id": "8545796633"},
+    "hermes":    {"role": "Messaging Gateway",
+                  "username": "@HermesWinshipBot",         "bot_id": "8651405393"},
 }
 
 REFUSE_UNKNOWN_AGENT = "unknown_agent"

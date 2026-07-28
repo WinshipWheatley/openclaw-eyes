@@ -158,7 +158,7 @@ def test_the_banner_stays_off_by_default_everywhere(
 
     monkeypatch.delenv(ident.IDENTITY_BANNER_ENV, raising=False)
     out = _call(module_name, attr, "ordinary reply")
-    assert "@openclaw_" not in out
+    assert not any(r["username"] in out for r in ident.AGENT_IDENTITIES.values())
 
 
 # ──────────────────────────────── retrieval status through the egress

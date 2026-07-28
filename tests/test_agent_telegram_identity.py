@@ -37,7 +37,7 @@ def test_every_agent_has_exactly_one_registry_row() -> None:
 
 
 def test_an_unknown_agent_is_refused_not_defaulted() -> None:
-    r = ident.resolve_agent_chat("carter", [_bot("@openclaw_cassandra_bot")])
+    r = ident.resolve_agent_chat("carter", [_bot("@cassandrastudio_bot")])
     assert r.ok is False
     assert r.reason == ident.REFUSE_UNKNOWN_AGENT
 
@@ -47,10 +47,10 @@ def test_an_unknown_agent_is_refused_not_defaulted() -> None:
 def test_a_correctly_registered_agent_resolves() -> None:
     """If this fails, every refusal below proves nothing."""
 
-    r = ident.resolve_agent_chat("cassandra", [_bot("@openclaw_cassandra_bot", "5150")])
+    r = ident.resolve_agent_chat("cassandra", [_bot("@cassandrastudio_bot", "5150")])
     assert r.ok is True, r.to_dict()
     assert r.chat_id == "5150"
-    assert r.username == "@openclaw_cassandra_bot"
+    assert r.username == "@cassandrastudio_bot"
 
 
 # ---------------------------------------------------------------- refusals
@@ -67,7 +67,7 @@ def test_a_display_name_collision_with_a_human_contact_is_refused() -> None:
 def test_targets_resolve_by_username_not_display_name() -> None:
     """Renaming the display name must not change resolution, in either direction."""
 
-    renamed = _bot("@openclaw_cassandra_bot", "5150", display="Casandra bot")
+    renamed = _bot("@cassandrastudio_bot", "5150", display="Casandra bot")
     assert ident.resolve_agent_chat("cassandra", [renamed]).ok is True
 
     impostor = _bot("@some_other_bot", "6000", display="Cassandra")
@@ -75,15 +75,15 @@ def test_targets_resolve_by_username_not_display_name() -> None:
 
 
 def test_username_mismatch_between_registry_and_chat_refuses() -> None:
-    """Catches `Casandra bot` masquerading as `@openclaw_cassandra_bot`."""
+    """Catches `Casandra bot` masquerading as `@cassandrastudio_bot`."""
 
-    r = ident.resolve_agent_chat("cassandra", [_bot("@casandra_bot", "7000")])
+    r = ident.resolve_agent_chat("cassandra", [_bot("@casandrastudio_bot", "7000")])
     assert r.ok is False
     assert r.reason in {ident.REFUSE_NO_MATCH, ident.REFUSE_HUMAN_CONTACT}
 
 
 def test_an_ambiguous_target_is_refused_not_guessed() -> None:
-    dupes = [_bot("@openclaw_cassandra_bot", "1"), _bot("@openclaw_cassandra_bot", "2")]
+    dupes = [_bot("@cassandrastudio_bot", "1"), _bot("@cassandrastudio_bot", "2")]
     r = ident.resolve_agent_chat("cassandra", dupes)
     assert r.ok is False
     assert r.reason == ident.REFUSE_AMBIGUOUS
@@ -102,7 +102,7 @@ def test_a_chat_without_a_username_can_never_be_selected() -> None:
 
 
 def test_a_bot_username_matching_but_flagged_human_is_refused() -> None:
-    sneaky = {"username": "@openclaw_cassandra_bot", "chat_id": "8", "type": "private",
+    sneaky = {"username": "@cassandrastudio_bot", "chat_id": "8", "type": "private",
               "is_bot": False, "display_name": "Cassandra"}
     r = ident.resolve_agent_chat("cassandra", [sneaky])
     assert r.ok is False
@@ -112,7 +112,7 @@ def test_a_bot_username_matching_but_flagged_human_is_refused() -> None:
 def test_there_is_no_best_match_path_at_all() -> None:
     """Adversarial: near-misses must all refuse, never rank."""
 
-    for near in ("@openclaw_cassandra", "@openclaw_cassandra_bot2", "@openclawcassandrabot"):
+    for near in ("@openclaw_cassandra", "@cassandrastudio_bot2", "@openclawcassandrabot"):
         r = ident.resolve_agent_chat("cassandra", [_bot(near, "3")])
         assert r.ok is False, f"{near} was accepted as a match"
 
@@ -136,8 +136,8 @@ def test_the_banner_comes_from_the_registry_not_a_label() -> None:
     """The sidebar said Cassandra while the header said Casandra bot. The banner
     cannot drift that way because it IS the registry."""
 
-    assert "@openclaw_cassandra_bot" in ident.identity_banner("cassandra")
-    assert "Casandra" not in ident.identity_banner("cassandra")
+    assert "@cassandrastudio_bot" in ident.identity_banner("cassandra")
+    assert "@casandrastudio_bot" not in ident.identity_banner("cassandra")
 
 
 # ---------------------------------------------------------------- interlock
