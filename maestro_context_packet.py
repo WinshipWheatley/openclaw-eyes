@@ -3086,6 +3086,13 @@ def build_maestro_context_packet(
     # When flag is off OR fact_selection is None/empty → NO change (byte-identical).
     # The interpreter_lm import is guarded behind fact_selection so the default
     # (None) path does not even import the module.
+    _pkt_counts = {
+        "facts_before_selection": len(facts),
+        "product_facts_before_selection": sum(
+            1 for f in facts if isinstance(f, Mapping) and f.get("topic") == "product_artifact"
+        ),
+    }
+
     if fact_selection:
         try:
             from interpreter_lm import _interpreter_enabled  # local import avoids circular dep
@@ -3214,6 +3221,14 @@ def build_maestro_context_packet(
             _p.write_text(json.dumps(_diag, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         except Exception:  # noqa: BLE001 - diagnosis must never mask the guard
             pass
+        _record_packet_build_counts(
+            question=question,
+            counts=locals().get("_pkt_counts") or {},
+            facts_after_selection=locals().get("facts") or (),
+            packet=None,
+            build_succeeded=False,
+            error_type="MaestroContextPacketError",
+        )
         raise MaestroContextPacketError(
             "Maestro context packet requires real truth inputs: operator truth plus generated read models."
         )
@@ -3361,7 +3376,72 @@ def build_maestro_context_packet(
 
     _attach_retrieval_status(packet, locals().get("_retrieval_status"))
 
+    _record_packet_build_counts(
+        question=question,
+        counts=locals().get("_pkt_counts") or {},
+        facts_after_selection=facts,
+        packet=packet,
+        build_succeeded=True,
+    )
     return packet
+
+
+#: Append-only, production-only, test-redirectable.
+PACKET_BUILD_COUNT_RECEIPTS = Path("/home/openclaw/state/packet_build_count_receipts.jsonl")
+
+
+def _record_packet_build_counts(
+    *,
+    question: str,
+    counts: Mapping[str, Any],
+    facts_after_selection: Any = (),
+    packet: Any = None,
+    build_succeeded: bool,
+    error_type: str = "",
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Counts only — never fact text.
+
+    The product-fact loader is already wired into this builder and its output is not
+    reaching the brain. Three possibilities remain and they are indistinguishable
+    from outside: the build raises and a stub is used, fact_selection filters the
+    product facts out, or they survive and something later drops them. Counting at
+    all three stages separates them in one turn.
+    """
+
+    def _count(rows: Any, topic: str | None = None) -> int:
+        if not isinstance(rows, (list, tuple)):
+            return 0
+        if topic is None:
+            return len(rows)
+        return sum(
+            1 for r in rows if isinstance(r, Mapping) and r.get("topic") == topic
+        )
+
+    packet_facts = packet.get("facts") if isinstance(packet, Mapping) else ()
+    row = {
+        "at": _utc_now(),
+        "question_sha256": hashlib.sha256(str(question or "").encode("utf-8")).hexdigest()[:24],
+        "question_head": str(question or "")[:80],
+        "build_succeeded": bool(build_succeeded),
+        "error_type": str(error_type or ""),
+        "facts_before_selection": int(counts.get("facts_before_selection") or 0),
+        "product_facts_before_selection": int(counts.get("product_facts_before_selection") or 0),
+        "facts_after_selection": _count(facts_after_selection),
+        "product_facts_after_selection": _count(facts_after_selection, "product_artifact"),
+        "facts_in_returned_packet": _count(packet_facts),
+        "product_facts_in_returned_packet": _count(packet_facts, "product_artifact"),
+    }
+    try:
+        if path is None and os.environ.get("OPENCLAW_TEST_MODE") == "1":
+            return row
+        target = Path(path) if path is not None else PACKET_BUILD_COUNT_RECEIPTS
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+    except Exception:  # noqa: BLE001 - a receipt must never break a packet
+        pass
+    return row
 
 
 def attach_retrieval_status(packet: dict, status: Any) -> dict:
