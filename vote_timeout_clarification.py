@@ -293,6 +293,43 @@ def clarification_for_vote_failure(receipt_or_decision: Any) -> str | None:
     return None
 
 
+def named_clarification_for_vote_failure(
+    receipt_or_decision: Any, *, agent: str = "agent", stage: str = "semantic_vote"
+) -> str | None:
+    """The same refusal, but it says which agent, which stage, and what happened.
+
+    Cassandra and Chief both answered the 2026-07-28 battery with *"The language
+    model didn't return a usable routing decision. I left your request untouched;
+    please try again in a moment."* That sentence is true and safe and nearly
+    useless: it names no agent, no stage, and no cause, and it promises that
+    retrying might help when nothing about the failure has changed.
+
+    Safety posture is identical — nothing ran, nothing was authorised. The only
+    difference is that the operator now learns which lever to pull.
+    """
+
+    kind = classify_vote_failure_kind(receipt_or_decision)
+    if kind is VoteFailureKind.NONE:
+        return None
+
+    from grounded_answer_contract import named_routing_failure
+
+    detail = {
+        VoteFailureKind.TIMEOUT: "the model did not classify the request before the deadline",
+        VoteFailureKind.MODEL_FAILURE: "the vote returned no usable routing decision",
+        VoteFailureKind.UNKNOWN_STATUS: "the vote returned a status this build does not recognise",
+    }[kind]
+    next_step = {
+        VoteFailureKind.TIMEOUT: "The GPU may be busy; a retry can help only if it frees up.",
+        VoteFailureKind.MODEL_FAILURE: "Retrying repeats this unless the model or the prompt changes.",
+        VoteFailureKind.UNKNOWN_STATUS: "This is a defect worth reporting, not a transient.",
+    }[kind]
+    return named_routing_failure(
+        agent=agent, stage=stage, failure_kind=kind.value.upper(),
+        detail=detail, operator_next_step=next_step,
+    )
+
+
 def unknown_vote_status_receipt(receipt_or_decision: Any) -> dict[str, Any] | None:
     """Return a countable defect receipt for an unrecognized vote status."""
 

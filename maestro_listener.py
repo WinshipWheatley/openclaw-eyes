@@ -159,6 +159,48 @@ def current_output_boundary_receipt() -> dict[str, Any] | None:
     return dict(receipt) if isinstance(receipt, dict) else None
 
 
+#: A nonce is what turns a message into an approval. It must never leave over a
+#: channel whose identity is unproven, so this is matched at the EGRESS rather than
+#: trusted to whoever built the text.
+_NONCE_IN_TEXT = re.compile(r"send-hold-graduation:[A-Za-z0-9:_-]{8,}")
+
+
+def _identity_gated_reply(text: str) -> str:
+    """Banner every reply, and refuse to emit a nonce while identity is unproven.
+
+    Two things happen here, both learned on 2026-07-28. The banner is rendered from
+    the identity registry, so it cannot drift the way `Casandra bot` drifted from
+    `Cassandra` — it IS the registry. And the interlock catches a nonce on the way
+    out: a preview that lands in the wrong chat is worse than no preview, because it
+    teaches the wrong human what a valid approval looks like.
+
+    Enforcing at egress rather than at the caller means a future preview builder
+    cannot forget to ask.
+    """
+
+    body = str(text or "")
+    try:
+        import agent_telegram_identity as ident
+    except Exception:  # noqa: BLE001 - a missing contract must not eat the operator's reply
+        return body
+
+    if _NONCE_IN_TEXT.search(body):
+        allowed, reason = ident.nonce_preview_allowed()
+        if not allowed:
+            return (
+                "Withheld: this reply carried an approval nonce and Telegram agent "
+                f"identity is not proven. {reason} Nothing was sent, approved, or "
+                "authorised."
+            )
+    if not ident.banner_enabled():
+        return body
+    try:
+        banner = ident.identity_banner("maestro")
+    except Exception:  # noqa: BLE001
+        return body
+    return body if body.startswith(banner) else f"{banner}\n{body}"
+
+
 def _final_operator_reply(
     reply: str,
     *,
@@ -175,7 +217,7 @@ def _final_operator_reply(
             action_receipt_refs=action_receipt_refs,
         )
         _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
-        return bounded.visible_text
+        return _identity_gated_reply(bounded.visible_text)
     except Exception:
         _OUTPUT_BOUNDARY_RECEIPT.set({
             "outcome": "adapter_boundary_error",
@@ -1005,14 +1047,79 @@ def _resilient_reply_text(text: str, *, payload: Mapping[str, Any] | None, reque
     )
 
 
+def _retrieval_status_suffix(payload: Mapping[str, Any] | None) -> str:
+    """Turn a bare UNKNOWN into a refusal the operator can act on.
+
+    Maestro answered `UNKNOWN` while `chief_status_rail.json` sat on disk at 30KB,
+    because a retrieval failure and an honest empty were the same value. If the
+    bridge reports a retrieval status, say which one it was.
+    """
+
+    if not isinstance(payload, Mapping):
+        return ""
+    try:
+        import packet_retrieval_status as prs
+    except Exception:  # noqa: BLE001 - never break a reply over a contract import
+        return ""
+
+    raw = payload.get("retrieval_status")
+    if not isinstance(raw, Mapping):
+        return ""
+    status = str(raw.get("status") or "")
+    if status not in prs.FAILURE_STATUSES:
+        return ""
+    result = prs.RetrievalResult(
+        facts=[], status=status, detail=str(raw.get("detail") or ""),
+        source_path=str(raw.get("source_path") or ""),
+    )
+    packet = {"source_refs": list(payload.get("source_refs") or ()), "facts": []}
+    return prs.answer_suffix(packet, retrieval=result)
+
+
+def _question_dominance_guard(payload: Mapping[str, Any] | None, text: str) -> str:
+    """Refuse to relay a persona deflection as if it answered the question.
+
+    Niles replied "What's the main goal: groove, melody, or arrangement?" to a
+    technical exact-send question. That reads as engagement while carrying nothing,
+    which is worse than an UNKNOWN because an UNKNOWN gets fixed.
+    """
+
+    if not isinstance(payload, Mapping) or not text:
+        return text
+    try:
+        import grounded_answer_contract as gac
+    except Exception:  # noqa: BLE001
+        return text
+    question = str(payload.get("source_text") or payload.get("operator_message") or "")
+    if not question:
+        return text
+    ok, reason = gac.check_question_dominance(question, text)
+    if ok:
+        return text
+    return (
+        f"UNKNOWN — I did not answer your question. ({reason}) "
+        "The reply I produced changed the subject rather than addressing it, so I am "
+        "not relaying it. Nothing ran and nothing was sent."
+    )
+
+
 def reply_text_from_bridge_response(payload: Mapping[str, Any] | None, *, request_id: str | None = None) -> str:
     if _blocked_or_unknown_response(payload):
         reply = _append_provenance(_failure_specific_reply(payload), payload=payload, request_id=request_id)
+        reply = _join_reply(reply, _retrieval_status_suffix(payload))
         return _resilient_reply_text(reply, payload=payload, request_id=request_id)
     assert payload is not None
-    text = _best_final_text(payload)
+    text = _question_dominance_guard(payload, _best_final_text(payload))
     reply = _append_provenance(text or BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
+    reply = _join_reply(reply, _retrieval_status_suffix(payload))
     return _resilient_reply_text(reply, payload=payload, request_id=request_id)
+
+
+def _join_reply(reply: str, suffix: str) -> str:
+    suffix = str(suffix or "").strip()
+    if not suffix or suffix in str(reply or ""):
+        return reply
+    return f"{reply}\n\n{suffix}".strip()
 
 
 def _reply_only_egress_enabled(env: Mapping[str, Any] | None = None) -> bool:

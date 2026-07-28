@@ -54,6 +54,15 @@ REFUSE_NO_USERNAME = "chat_has_no_username"
 #: unproven -> no nonce previews. Fail closed: the default is the safe answer.
 IDENTITY_PROOF_ENV = "OPENCLAW_TELEGRAM_IDENTITY_PROVEN"
 
+#: The banner changes what the operator reads on every single message, which is a
+#: deployment decision rather than a code one — three existing listener tests assert
+#: the exact visible reply, and they are right to. So the banner is opt-in.
+#:
+#: The nonce interlock is NOT opt-in and never will be: withholding a nonce is
+#: safety, and safety that can be switched off by forgetting an env var is
+#: decoration. Cosmetics are flagged; guards are not.
+IDENTITY_BANNER_ENV = "OPENCLAW_TELEGRAM_IDENTITY_BANNER"
+
 
 class IdentityError(RuntimeError):
     """Programmer error. A refused resolution is a Resolution, not an exception."""
@@ -226,6 +235,11 @@ def identity_proven(env: Mapping[str, str] | None = None) -> bool:
 
     source = env if env is not None else os.environ
     return source.get(IDENTITY_PROOF_ENV, "") == "1"
+
+
+def banner_enabled(env: Mapping[str, str] | None = None) -> bool:
+    source = env if env is not None else os.environ
+    return source.get(IDENTITY_BANNER_ENV, "") == "1"
 
 
 def nonce_preview_allowed(env: Mapping[str, str] | None = None) -> tuple[bool, str]:

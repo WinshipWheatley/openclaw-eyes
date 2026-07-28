@@ -1490,3 +1490,5 @@ generated/system_knowledge/*.sqlite
 !tests/test_agent_telegram_identity.py
 !tests/test_packet_retrieval_status.py
 !tests/test_grounded_answer_contract.py
+!agent_lanes_registry.py
+!tests/test_contract_wiring_integration.py
