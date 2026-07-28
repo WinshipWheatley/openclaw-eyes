@@ -6224,26 +6224,12 @@ def _process_maestro_frontdoor_operator_instruction(
     source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
     agent = _resolved_frontdoor_agent(raw_request, session=session, _capsule=_capsule)
 
-    # THE CONSUMER. Everything upstream carried the evidence to raw_request and
-    # nothing read it, so the model kept answering "not retrievable in this lane" —
-    # truthfully. operator_text is what actually reaches the brain, so the evidence
-    # is appended here as a labelled section, immediately before the call.
-    #
-    # Classification, routing, staging and authority all ran earlier and are not
-    # touched: this adds grounded context to a question already routed to the brain.
-    # Absent evidence leaves operator_text byte-identical.
+    # The packet ALREADY carries these sections as grounded facts with source_ref and
+    # sha256 — proven live: 5 product facts before selection, 5 after, 5 in the
+    # returned packet. Appending them to operator_text as well double-injected the
+    # same evidence into a ~4,000-character window and the answers degenerated to a
+    # single truncated line. The packet is the right home; this is not.
     _evidence = str((raw_request or {}).get("product_artifact_evidence") or "").strip()
-    if _evidence:
-        _evidence = _evidence[:2600]  # budget: the front door is a 1024-token window
-        operator_text = (
-            f"{operator_text}\n\n"
-            "GROUNDED EVIDENCE (governed product artifacts, cited — answer from this):\n"
-            f"{_evidence}"
-        )
-    # Marker at the append site itself. The evidence visible in the response comes
-    # from the POST-answer wire and proves nothing about whether this append fired —
-    # that ambiguity is the only thing still separating "the brain ignored it" from
-    # "the brain never got it". Lengths, a hash and a flag; never content.
     _mark_pre_model_append(raw_request, _evidence, operator_text)
     try:
         result = maestro_cassandra_responder.answer_frontdoor_chat(

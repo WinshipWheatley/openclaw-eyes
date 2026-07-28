@@ -76,9 +76,12 @@ def test_a_bad_request_shape_never_breaks_the_answer(tmp_path: Path) -> None:
         assert row["correlation"] == ""
 
 
-def test_the_marker_sits_at_the_append_site() -> None:
+def test_the_marker_sits_before_the_model_call() -> None:
+    """The free-text append it originally guarded is gone — the packet carries the
+    evidence now — but the marker stays, because it is what proved the duplication."""
+
     src = inspect.getsource(orp)
     marker = src.index("_mark_pre_model_append(raw_request, _evidence, operator_text)")
-    append = src.index("GROUNDED EVIDENCE")
-    call = src.index("answer_frontdoor_chat(", append)
-    assert append < marker < call, "the marker is not between the append and the model call"
+    call = src.index("answer_frontdoor_chat(", marker)
+    assert marker < call, "the marker no longer precedes the model call"
+    assert "GROUNDED EVIDENCE" not in src, "free-text evidence injection returned"

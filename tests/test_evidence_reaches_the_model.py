@@ -18,13 +18,14 @@ MARKER = "GROUNDED EVIDENCE"
 THESIS_REF = "fleet_coord/PRODUCT/PRODUCT-THESIS-PROVABLE-DELEGATION-20260728.md"
 
 
-def test_the_evidence_is_appended_before_the_brain_call() -> None:
-    """Structural, because the sandbox cannot run the brain: position is the contract."""
+def test_the_evidence_is_not_double_injected_as_free_text() -> None:
+    """Live counts proved the packet already carries 5 product facts with source_ref
+    and sha256. Appending the same text to operator_text put ~2,250 duplicate
+    characters into a ~4,000-character window and the answers degenerated to one
+    truncated line. The packet is the only home for this evidence."""
 
     src = inspect.getsource(orp)
-    marker = src.index(MARKER)
-    call = src.index("answer_frontdoor_chat(", marker)
-    assert marker < call, "evidence is appended after the model call"
+    assert MARKER not in src, "evidence is being appended as free text again"
 
 
 def test_it_reads_the_key_the_upstream_step_writes() -> None:
@@ -35,26 +36,21 @@ def test_it_reads_the_key_the_upstream_step_writes() -> None:
     assert 'raw_request = {**raw_request, "product_artifact_evidence": product_evidence}' in src
 
 
-def test_absent_evidence_leaves_the_text_untouched() -> None:
-    """Byte-identity: the append is guarded by a truthiness check on the key."""
+def test_operator_text_is_never_mutated_by_evidence() -> None:
+    """Byte-identity by construction: nothing rewrites operator_text at all now."""
 
     src = inspect.getsource(orp)
-    i = src.index(MARKER)
-    window = src[max(0, i - 400): i]
-    assert "if _evidence:" in window, "the append is unconditional"
+    assert "operator_text = (" not in src.split("_mark_pre_model_append")[0][-1200:]
 
 
-def test_the_evidence_is_budget_clipped() -> None:
-    src = inspect.getsource(orp)
-    i = src.index(MARKER)
-    assert "[:2600]" in src[max(0, i - 400): i], "unbounded evidence would blow the window"
+def test_the_packet_remains_the_single_source_of_evidence() -> None:
+    """The mechanism that works, asserted where it lives."""
 
+    import maestro_context_packet as mcp
 
-def test_the_label_tells_the_model_to_use_it() -> None:
-    src = inspect.getsource(orp)
-    i = src.index(MARKER)
-    label = src[i: i + 160]
-    assert "cited" in label and "answer from this" in label
+    psrc = inspect.getsource(mcp)
+    assert "_product_artifact_facts(question=question)" in psrc
+    assert "*product_facts," in psrc, "product facts dropped from a fact assembly"
 
 
 def test_the_derivation_still_refuses_imperatives(tmp_path) -> None:
