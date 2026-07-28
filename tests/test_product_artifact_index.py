@@ -362,3 +362,39 @@ def test_section_ranking_beats_document_ranking_on_the_real_prompt(corpus: Path)
     )
     picked = {row.source_ref for row, _s in pai.rank_sections_across(index, full_prompt, limit=3)}
     assert any(THESIS in ref for ref in picked), "section ranking still buried the thesis"
+
+
+def test_one_document_cannot_monopolise_the_section_slots() -> None:
+    """Diversity cap. The operator's prompt opens with an instruction preamble whose
+    words match the acceptance report, so that report took three of six slots and the
+    thesis sections answering 'hypothesis' and 'smallest v1' never appeared. The model
+    then correctly refused two of three sub-questions for lack of evidence.
+
+    Asserted against the REAL corpus: the synthetic fixture has only one document
+    matching this prompt, so it cannot reproduce a monopoly at all."""
+
+    full_prompt = (
+        "MAESTRO ACCEPTANCE TEST — Use only grounded packets you can actually "
+        "retrieve. " + INTENTS["product_thesis"]
+    )
+    hits = pai.rank_sections_across(_real_index(), full_prompt, limit=5)
+    per_doc: dict[str, int] = {}
+    for row, _section in hits:
+        per_doc[row.source_ref] = per_doc.get(row.source_ref, 0) + 1
+
+    # Diversity is the property that matters. The strict per-document ceiling is
+    # deliberately relaxed by the no-starve fallback when too few artifacts match,
+    # so asserting the ceiling here would test the fallback rather than the cap.
+    assert len(per_doc) >= 2, "a single document still claimed every slot"
+    assert any(THESIS in ref for ref in per_doc), "the thesis got no slot at all"
+
+
+def test_the_cap_does_not_starve_a_single_matching_document(tmp_path: Path) -> None:
+    """NON-VACUITY: when only one artifact matches, it may still fill the budget."""
+
+    d = tmp_path / "P"
+    _write(d, THESIS, "# Product thesis\n\n" + "\n\n".join(
+        f"## Section {i} hypothesis\nContent about the hypothesis {i}." for i in range(6)
+    ))
+    hits = pai.rank_sections_across(pai.build_index([d]), "hypothesis", limit=5)
+    assert len(hits) == 5, "the cap starved the only matching document"

@@ -50,6 +50,10 @@ ARTIFACT_TEXT_BUDGET = 6000
 #: A title/heading hit outweighs a body mention. See rank_artifacts for why.
 TITLE_MATCH_WEIGHT = 2.5
 
+#: No single artifact may claim more than this many section slots. See
+#: rank_sections_across — without it, one document crowds out every other.
+SECTIONS_PER_ARTIFACT_CAP = 3
+
 LOAD_OK = "OK"
 LOAD_MISSING = "ARTIFACT_MISSING"
 LOAD_UNREADABLE = "ARTIFACT_UNREADABLE"
@@ -283,9 +287,33 @@ def rank_sections_across(
                 scored.append((score, f"{row.source_ref}|{section.heading}", row, section))
 
     scored.sort(key=lambda item: (-item[0], item[1]))
+
+    # Diversity cap. Without it one document takes most of the slots and the others
+    # are unrepresented: the operator's prompt opens with an instruction preamble
+    # whose words match the acceptance report, so that report claimed three of six
+    # slots and the thesis sections answering "hypothesis" and "smallest v1" never
+    # appeared. The model then correctly refused two of three sub-questions for lack
+    # of evidence. Standard result diversification, not a rule about any document.
+    per_doc: dict[str, int] = {}
+    picked: list[tuple[float, str, ArtifactRow, ArtifactSection]] = []
+    for item in scored:
+        ref = item[2].source_ref
+        if per_doc.get(ref, 0) >= SECTIONS_PER_ARTIFACT_CAP:
+            continue
+        per_doc[ref] = per_doc.get(ref, 0) + 1
+        picked.append(item)
+        if len(picked) >= limit:
+            break
+    # If the cap starved the result (only one artifact matched at all), fall back to
+    # pure rank rather than return less evidence than the budget allows.
+    if len(picked) < limit:
+        seen = {id(item) for item in picked}
+        picked.extend(item for item in scored if id(item) not in seen)
+        picked = picked[:limit]
+
     return tuple(
         (row, ArtifactSection(section.heading, _clip(section.text, clip)))
-        for _s, _k, row, section in scored[:limit]
+        for _s, _k, row, section in picked
     )
 
 

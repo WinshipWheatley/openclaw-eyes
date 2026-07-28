@@ -1503,7 +1503,7 @@ def _demand_selected_read_model_facts(
 #: the packet survives. Raising the ceiling would cost latency and VRAM on a 6GB card
 #: and is the operator's call, not a default; nothing here needs it.
 PRODUCT_FACT_MAX_ARTIFACTS = 1
-PRODUCT_FACT_MAX_SECTIONS = 3
+PRODUCT_FACT_MAX_SECTIONS = 5
 PRODUCT_FACT_SECTION_CHARS = 320
 
 
