@@ -1511,3 +1511,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_system_question_product_enrichment.py
 !tests/test_producing_stack_receipt.py
 !tests/test_producing_stack_in_response.py
+!tests/test_run_and_write_product_connection.py

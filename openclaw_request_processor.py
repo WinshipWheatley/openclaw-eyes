@@ -1042,6 +1042,39 @@ def stamp_proof_to_response_source_response_path(
     return payload
 
 
+def _maybe_enrich_with_product_evidence(response_payload: Any) -> Any:
+    """Add governed PRODUCT evidence to a product-related answer. Otherwise unchanged.
+
+    Reuses the enrichment already proven on the grounded path — bounded sections,
+    sha256, ranked against the question, provenance preserved rather than replaced.
+    Nothing new is invented here; this is the wire, not the mechanism.
+
+    Byte-identity is the contract for everything else: if there is no question text,
+    or the question matches nothing in the index, the payload is returned as it came.
+    """
+
+    if not isinstance(response_payload, Mapping):
+        return response_payload
+    question = str(
+        response_payload.get("source_text")
+        or response_payload.get("operator_message")
+        or ""
+    ).strip()
+    if not question:
+        return response_payload
+    try:
+        from workflow_package_request_consumer import (
+            _enrich_system_answer_with_product_facts,
+        )
+
+        enriched = _enrich_system_answer_with_product_facts(response_payload, question)
+    except Exception:  # noqa: BLE001 - enrichment must never break a response
+        return response_payload
+    if not isinstance(enriched, Mapping) or "product_artifact_evidence" not in enriched:
+        return response_payload  # not product-related: byte-identical
+    return enriched
+
+
 def _sanitized_producing_stack(source_response_path: str) -> dict[str, Any]:
     """Frames that produced this response. Sanitized by construction."""
 
@@ -11472,6 +11505,17 @@ def run_and_write(
         blockers=quality_errors,
         previous_status=previous_status,
     )
+
+    # THE CONNECTION. This is the live boundary, named by a stack captured from the
+    # written response itself: service:2344 -> run_and_write -> here -> publish.
+    # Everything upstream of this was repaired tonight and none of it reached the
+    # operator, because it was wired to paths this request type never takes.
+    #
+    # Conditional and additive: _enrich_system_answer_with_product_facts returns the
+    # payload unchanged unless the question matches the governed PRODUCT index, so
+    # non-product and imperative payloads are byte-identical.
+    response_payload = _maybe_enrich_with_product_evidence(response_payload)
+
     publication = publish_response_for_mac_outbox(
         response_payload,
         response_dir=response_dir,
