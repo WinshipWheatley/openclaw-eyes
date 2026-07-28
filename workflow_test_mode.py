@@ -28,7 +28,12 @@ _TEST_MODES = frozenset({TEST_LIVE, TEST_DRY_RUN})
 
 # Send-class = capabilities that emit something OUTWARD (a real external effect). SEND_HOLD and the
 # test-mode redirect apply to these. Reads / internal ops are not send-class.
-_SEND_CLASS_CAPABILITIES = frozenset({"google.gmail.send"})
+# google.gmail.draft.send releases an ALREADY-EXISTING draft by id. It composes
+# nothing, but what leaves the building is identical, so it is send-class in every
+# respect: SEND_HOLD blocks it, test mode redirects it, and the exact-send
+# graduation gates it. Listing it here is what makes that automatic rather than
+# remembered.
+_SEND_CLASS_CAPABILITIES = frozenset({"google.gmail.send", "google.gmail.draft.send"})
 
 _TEST_SUBJECT_TAG = "[OPENCLAW TEST]"
 

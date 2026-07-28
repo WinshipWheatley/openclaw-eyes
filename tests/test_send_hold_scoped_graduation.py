@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -15,8 +16,17 @@ from send_hold_scoped_graduation import (
 )
 
 
-NOW = "2026-07-18T04:30:00+00:00"
-EXPIRES = "2026-07-18T06:30:00+00:00"
+# These were pinned to absolute instants ("2026-07-18T04:30Z" / "…T06:30Z"). The
+# graduation is deliberately short-lived, so the moment real time passed 06:30 on
+# 2026-07-18 every test that drives the BROKER — which checks expiry against the
+# wall clock — began failing, while the tests that only exercise issue/verify with
+# an explicit observed_at kept passing. A gate that was working looked broken for
+# ten days.
+#
+# Anchored to now instead. The window keeps the same two-hour shape, so the
+# expiry semantics under test are unchanged; it simply cannot rot again.
+NOW = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat(timespec="seconds")
+EXPIRES = (datetime.now(timezone.utc) + timedelta(minutes=90)).isoformat(timespec="seconds")
 REQUEST_ID = "exact_send_authority_request:lamd-copy-revision"
 PAYLOAD_HASH = "sha256:" + "a" * 64
 BODY = "Exact approved body"
@@ -241,3 +251,60 @@ def test_cassandra_routeback_carries_production_attachment_through_scoped_hold(t
     assert result["receipt"]["body_sha256"] == scoped_issue["body_sha256"]
     assert calls[0][2]["attachments"] == scope["attachment_paths"]
     assert calls[0][2]["send_hold_graduation_ref"] == str(scope["graduation_path"])
+
+
+def test_the_fixture_window_is_live_so_this_suite_cannot_rot_again(tmp_path: Path) -> None:
+    """Guard the guard.
+
+    Two tests in this file drive the broker, which checks expiry against the wall
+    clock. When the fixture pinned an absolute window those tests failed silently
+    from 2026-07-18T06:30Z onward and the exact-send gate looked broken for ten
+    days while it was in fact working correctly. A stale RED is expensive in a
+    different way than a stale GREEN: it trains people to ignore the gate.
+    """
+
+    scope = _scope(tmp_path)
+    now = datetime.now(timezone.utc)
+    generated = datetime.fromisoformat(scope["generated_at"])
+    expires = datetime.fromisoformat(scope["expires_at"])
+
+    assert generated < now < expires, (
+        f"fixture window {generated}..{expires} does not contain {now}; "
+        "this suite has rotted again"
+    )
+
+
+def test_an_expired_graduation_is_still_refused(tmp_path: Path) -> None:
+    """Adversarial: moving the window must not have softened expiry itself."""
+
+    scope = _scope(tmp_path)
+    scope["generated_at"] = (datetime.now(timezone.utc) - timedelta(hours=4)).isoformat(timespec="seconds")
+    scope["expires_at"] = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(timespec="seconds")
+    issue_send_hold_scoped_graduation(**scope)
+
+    observed = {key: scope[key] for key in (
+        "graduation_path", "send_hold_path", "request_id", "payload_hash",
+        "recipient", "body_sha256", "attachment_paths", "attachment_sha256",
+    )}
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with pytest.raises(SendHoldGraduationError) as caught:
+        verify_send_hold_scoped_graduation(**observed, observed_at=now)
+    assert "expired" in str(caught.value).lower()
+
+
+def test_expiry_is_evaluated_against_the_clock_not_the_issuance(tmp_path: Path) -> None:
+    """A live grant verifies; the same grant observed later does not."""
+
+    scope = _scope(tmp_path)
+    issue_send_hold_scoped_graduation(**scope)
+    observed = {key: scope[key] for key in (
+        "graduation_path", "send_hold_path", "request_id", "payload_hash",
+        "recipient", "body_sha256", "attachment_paths", "attachment_sha256",
+    )}
+
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    assert verify_send_hold_scoped_graduation(**observed, observed_at=now)["status"] == "ACTIVE"
+
+    later = (datetime.fromisoformat(scope["expires_at"]) + timedelta(seconds=1)).isoformat(timespec="seconds")
+    with pytest.raises(SendHoldGraduationError):
+        verify_send_hold_scoped_graduation(**observed, observed_at=later)

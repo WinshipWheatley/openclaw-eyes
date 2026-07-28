@@ -1475,3 +1475,10 @@ generated/system_knowledge/*.sqlite
 !tests/test_action_promise_integrity.py
 !tests/test_invoice_proof_request_routing.py
 !tests/test_maestro_fast_ack.py
+
+# Scoped Gmail draft approval (Telegram-carried, Chief/Guardian-gated)
+!telegram_send_approval_engine.py
+!telegram_approval_consumer.py
+!tests/test_telegram_send_approval_engine.py
+!tests/test_telegram_approval_consumer.py
+!tests/test_maestro_approval_intent_transport.py

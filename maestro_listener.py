@@ -316,6 +316,7 @@ def build_operator_maestro_chat_request(
     message_id: str,
     chat_id: int | None,
     created_at: str | None = None,
+    reply_to_message_id: str = "",
 ) -> dict[str, Any]:
     created_at = created_at or utc_now()
     request_id = f"maestro_telegram_{_safe_filename_part(str(message_id))}_{_short_hash(text, message_id, created_at)}"
@@ -378,6 +379,35 @@ def build_operator_maestro_chat_request(
         "no_external_action": True,
         "telegram_chat_ref": f"sha256:{_short_hash('telegram_chat', chat_id)}" if chat_id is not None else "unknown",
     }
+
+    # ── APPROVAL INTENT (narrow, additive, staging only) ─────────────────────
+    # A "SEND <nonce>" from Telegram is approval-SHAPED, and Maestro's job is to
+    # notice that and carry it — not to act on it. authority_boundary above stays
+    # all-false: staging an intent is not execution, and nothing downstream may
+    # read this block as permission. Chief/Guardian issue the scoped graduation
+    # and google_access_broker performs the send behind its own gate; this block
+    # cannot shorten that path.
+    #
+    # Attached BEFORE payload_hash on purpose, so the chat/message/reply/nonce
+    # binding is covered by the request's own content hash and cannot be edited
+    # in flight without invalidating it.
+    try:
+        from telegram_send_approval_engine import classify_approval_intent
+
+        _intent = classify_approval_intent(
+            text,
+            message_id=str(message_id),
+            chat_ref=str(request["telegram_chat_ref"]),
+            reply_to_message_id=str(reply_to_message_id or ""),
+            observed_at=created_at,
+        )
+        if _intent:
+            request["approval_intent"] = _intent
+    except Exception:
+        # Recognition failing must never cost the operator their message. The
+        # request still goes through as ordinary chat; it simply isn't staged.
+        pass
+
     request["payload_hash"] = _content_hash(request)
     # ── CONTINUITY CAPSULE (flag-gated, ADDITIVE) ────────────────────────────
     # When ON: mint a deterministic conversation_id and add it to the request so

@@ -102,6 +102,12 @@ _POLICY: dict[str, dict[str, str | None]] = {
         "cassandra": CLASS_C,
         "chief":     DENIED,
     },
+    # Releases an existing draft by id — no fresh composition. Same class as a
+    # send, because the recipient cannot tell the difference.
+    "google.gmail.draft.send": {
+        "cassandra": CLASS_C,
+        "chief":     DENIED,
+    },
 }
 
 

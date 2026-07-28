@@ -297,7 +297,7 @@ def _exact_send_gate_context_verified(
     params: Mapping[str, Any],
 ) -> bool:
     """True when Cassandra's exact-send gate already verified human approval."""
-    if agent.lower() != "cassandra" or capability != "google.gmail.send":
+    if agent.lower() != "cassandra" or capability not in ("google.gmail.send", "google.gmail.draft.send"):
         return False
     context = params.get("approval_context")
     if not isinstance(context, Mapping):
@@ -863,6 +863,71 @@ def _read_validated_attachment(path: str) -> tuple[bytes, str]:
         os.close(fd)
 
 
+def _exec_gmail_draft_send(creds, params: dict) -> dict:
+    """Release an ALREADY-EXISTING Gmail draft, named by id. Compose nothing.
+
+    This exists so an approval can be bound to bytes the operator actually saw.
+    ``_exec_gmail_send`` builds a message from ``to``/``subject``/``body`` params,
+    which means the thing approved and the thing sent are two different objects
+    assembled at two different times. Here the draft IS the artifact: it was
+    hashed at preview, re-hashed at decision, and this call releases that same id
+    without touching its contents.
+
+    Consequently there is no ``to``/``subject``/``body`` parameter and no
+    attachment handling — nothing for a caller to smuggle. A caller that wants to
+    change what is sent has to change the draft, which invalidates the approval
+    upstream before it ever reaches here.
+
+    Reaching this function already required: agent permission, Class C approval,
+    SEND_HOLD/test-mode disposition, and the exact-send scoped graduation. This
+    adds no gate of its own and removes none.
+    """
+
+    draft_id = str(params.get("draft_id") or "").strip()
+    if not draft_id:
+        return {"ok": False, "data": None, "error": "draft_id is required"}
+
+    for forbidden in ("to", "cc", "bcc", "subject", "body", "attachments", "attachment_path"):
+        if params.get(forbidden):
+            return {
+                "ok": False,
+                "data": None,
+                "error": (f"{forbidden} is not accepted by draft.send: this capability "
+                          "releases an existing draft and must not recompose it"),
+            }
+
+    try:
+        from googleapiclient.discovery import build
+    except Exception as exc:  # pragma: no cover - dependency readiness is gated above
+        return {"ok": False, "data": None, "error": f"gmail client unavailable: {exc}"}
+
+    try:
+        service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+        sent = service.users().drafts().send(userId="me", body={"id": draft_id}).execute()
+    except Exception as exc:
+        return {"ok": False, "data": None, "error": f"draft send failed: {exc}"}
+
+    message_id = str(sent.get("id") or "")
+    thread_id = str(sent.get("threadId") or "")
+    if not message_id:
+        # Gmail accepted the call but told us nothing we can verify against.
+        # Refuse to report a success we cannot evidence.
+        return {"ok": False, "data": {"raw": sent},
+                "error": "draft send returned no message id; outcome unverifiable"}
+
+    return {
+        "ok": True,
+        "data": {
+            "draft_id": draft_id,
+            "message_id": message_id,
+            "thread_id": thread_id,
+            "label_ids": list(sent.get("labelIds") or []),
+            "composed_fresh_text": False,
+        },
+        "error": None,
+    }
+
+
 def _exec_gmail_send(creds, params: dict) -> dict:
     """
     Send an email via the Gmail API.
@@ -1140,7 +1205,7 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     # gate; external recipients still pass through authority/credential checks before this
     # mode blocks execution.
     _gmail_self_test_send = False
-    if capability == "google.gmail.send" and _gmail_self_test_enabled():
+    if capability in ("google.gmail.send", "google.gmail.draft.send") and _gmail_self_test_enabled():
         _gmail_self_test_send = _gmail_send_recipients_allowed(params)
 
     # Workflow Test Mode: resolve run-mode from the TRUSTED backend state (not params) and compute
@@ -1227,7 +1292,7 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
             _audit(agent, capability, params, True, f"workflow_test_mode_redirect_flag:{_wtm_test_run_id}")
 
     if (
-        capability == "google.gmail.send"
+        capability in ("google.gmail.send", "google.gmail.draft.send")
         and _gmail_self_test_enabled()
         and not _gmail_self_test_send
         and _scoped_send_graduation is None
@@ -1257,6 +1322,8 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         result = _exec_gmail_draft_create(creds, params)
     elif capability == "google.gmail.send":
         result = _exec_gmail_send(creds, params)
+    elif capability == "google.gmail.draft.send":
+        result = _exec_gmail_draft_send(creds, params)
     else:
         result = _exec_not_implemented(capability)
 
