@@ -2157,6 +2157,12 @@ def _answer_generate_receipt(
         "generate_fn_injected": bool(injected),
     }
     try:
+        # Tests must never author state/. Existing suites drive this real function,
+        # so the default path collected pytest fixture rows and I read them as live
+        # traffic. Third time tonight a receipt of mine was polluted by tests; the
+        # sandbox guard I built covers generated/read_models and not state/.
+        if path is None and os.environ.get("OPENCLAW_TEST_MODE") == "1":
+            return row
         target = Path(path) if path is not None else ANSWER_GENERATE_RECEIPTS
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("a", encoding="utf-8") as handle:

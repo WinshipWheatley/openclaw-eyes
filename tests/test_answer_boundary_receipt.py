@@ -94,3 +94,31 @@ def test_a_bad_packet_shape_never_breaks_the_answer(tmp_path: Path) -> None:
         row = mcr._answer_generate_receipt(packet=bad, question="q", agent="maestro",
                                            injected=False, path=tmp_path / "a.jsonl")
         assert row["call_type"] == "answer_brain"
+
+
+def test_tests_can_never_write_the_production_receipt(monkeypatch) -> None:
+    """The defect this closes: existing suites drive the real answer function, so the
+    default path collected pytest fixture rows and I read them as live traffic.
+
+    Third time tonight a receipt of mine was polluted by tests. The sandbox guard
+    built this morning covers generated/read_models and not state/."""
+
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    before = (mcr.ANSWER_GENERATE_RECEIPTS.read_text(encoding="utf-8")
+              if mcr.ANSWER_GENERATE_RECEIPTS.exists() else "")
+    row = mcr._answer_generate_receipt(packet=PACKET, question="q", agent="maestro",
+                                       injected=False)
+    after = (mcr.ANSWER_GENERATE_RECEIPTS.read_text(encoding="utf-8")
+             if mcr.ANSWER_GENERATE_RECEIPTS.exists() else "")
+    assert after == before, "a test wrote the production receipt"
+    assert row["call_type"] == "answer_brain", "the row must still be returned"
+
+
+def test_an_explicit_path_still_writes_under_test_mode(tmp_path, monkeypatch) -> None:
+    """NON-VACUITY: the guard must block the DEFAULT path, not all writing."""
+
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    log = tmp_path / "a.jsonl"
+    mcr._answer_generate_receipt(packet=PACKET, question="q", agent="maestro",
+                                 injected=False, path=log)
+    assert log.exists() and log.read_text(encoding="utf-8").strip()
