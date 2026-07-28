@@ -2928,7 +2928,14 @@ def build_maestro_context_packet(
     # The param overrides the env (explicit beats implicit).
     _effective_source = packet_source if packet_source is not None else os.environ.get("OPENCLAW_PACKET_SOURCE", "flat")
     if _effective_source.lower() in ("sqlite", "hybrid"):
-        sqlite_facts = _sqlite_canonical_facts(question=question, agent="maestro")
+        # The last hop. The loader has always known WHY it returned nothing; until
+        # this dict was threaded through, that knowledge died at the call site and
+        # the packet carried an unexplained absence to the bridge, which carried it
+        # to the operator as a bare UNKNOWN.
+        _retrieval_status: dict[str, Any] = {}
+        sqlite_facts = _sqlite_canonical_facts(
+            question=question, agent="maestro", status_out=_retrieval_status
+        )
         # Insert canonical/doctrine facts AHEAD of the bulky read-model facts (but after
         # operator truth) so they survive format_maestro_context_packet's facts[:30] cap on
         # packet_text. Appending at the end risked silent truncation when truth+read-models
@@ -3185,7 +3192,29 @@ def build_maestro_context_packet(
             except Exception:
                 pass
 
+    _attach_retrieval_status(packet, locals().get("_retrieval_status"))
+
     return packet
+
+
+def attach_retrieval_status(packet: dict, status: Any) -> dict:
+    """Attach a real retrieval status to the packet; attach nothing otherwise.
+
+    Extracted so it is testable on its own: the pytest sandbox deliberately blocks
+    a full packet build (it isolates from live runtime truth), so the only way to
+    prove this behaviour under test is to reach it directly.
+
+    An absent key means "nothing to report", which is what keeps the reply egress
+    quiet on every ordinary turn instead of appending noise to every answer.
+    """
+
+    if isinstance(status, Mapping) and str(status.get("status") or ""):
+        packet["retrieval_status"] = dict(status)
+    return packet
+
+
+#: Internal alias kept so the call site above reads as a private detail.
+_attach_retrieval_status = attach_retrieval_status
 
 
 def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
