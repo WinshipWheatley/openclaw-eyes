@@ -1538,18 +1538,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_text.source_text or text,
                     safe_text,
                     reply_text.contract_receipt,
+                    agent="cassandra",
                 )
-                if enforced != safe_text:
-                    safe_text = _final_operator_reply(
-                        enforced,
-                        source_request=text,
-                    )
-                    enforced = enforce_vote_timeout_output(
-                        reply_text.source_text or text,
-                        safe_text,
-                        reply_text.contract_receipt,
-                    )
-                safe_text = enforced
+                # The egress runs LAST and unconditionally. It used to run in the
+                # middle: the bannered text was re-enforced and then overwritten by
+                # `safe_text = enforced`, which stripped the banner back off. That is
+                # exactly what the operator saw on 2026-07-28 — a bare routing
+                # clarification with no banner and no named reason. Enforcement
+                # decides the CONTENT; the egress decides how it leaves. Never the
+                # other way round.
+                safe_text = _final_operator_reply(enforced, source_request=text)
             except Exception:
                 pass
             safe_text = _rebind_delivered_contract_boundary(

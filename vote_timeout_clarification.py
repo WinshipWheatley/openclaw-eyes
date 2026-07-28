@@ -384,15 +384,28 @@ def enforce_vote_timeout_output(
     receipt_or_decision: Any,
     *,
     deterministic_digest_available: bool = False,
+    agent: str = "",
 ) -> str:
-    """Apply the visible-response invariant after all answer post-processing."""
+    """Apply the visible-response invariant after all answer post-processing.
+
+    Pass ``agent`` to get the named failure instead of the generic retry. Cassandra
+    and Chief both shipped the generic one to the operator on 2026-07-28: true,
+    safe, and it named no agent, no stage and no cause, while promising a retry that
+    could not help.
+    """
 
     clarification = warm_clarification_for_vote_timeout(
         text,
         receipt_or_decision,
         deterministic_digest_available=deterministic_digest_available,
     )
-    return clarification if clarification is not None else str(candidate or "")
+    if clarification is None:
+        return str(candidate or "")
+    if agent:
+        named = named_clarification_for_vote_failure(receipt_or_decision, agent=agent)
+        if named:
+            return named
+    return clarification
 
 
 __all__ = [

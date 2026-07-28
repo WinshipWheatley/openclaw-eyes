@@ -155,18 +155,12 @@ async def _send_reply(
                 contract_source,
                 safe_text,
                 contract_receipt,
+                agent="chief",
             )
-            if enforced != safe_text:
-                safe_text = _final_operator_text(
-                    enforced,
-                    source_request=request_text,
-                )
-                enforced = enforce_vote_timeout_output(
-                    contract_source,
-                    safe_text,
-                    contract_receipt,
-                )
-            safe_text = enforced
+            # Egress LAST and unconditional — same bypass as Cassandra's, same fix.
+            # `safe_text = enforced` used to overwrite the bannered text with the raw
+            # clarification, so the guard ran and was then discarded.
+            safe_text = _final_operator_text(enforced, source_request=request_text)
         except Exception:
             pass
     delivered_message = await update.message.reply_text(safe_text)

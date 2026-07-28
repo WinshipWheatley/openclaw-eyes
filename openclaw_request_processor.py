@@ -2196,6 +2196,59 @@ def _apply_high_risk_voice_override(author: str, reason: str, response: OpenClaw
     return "CHIEF", f"{reason}; high-risk creative request overridden to Chief", True
 
 
+def _chat_grounded_provenance(
+    response: "OpenClawResponseForMac", layered_fields: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Carry the operator's question, cited artifacts, and any retrieval failure.
+
+    This is the LIVE Telegram chat path — schema openclaw_request_processor_v0. It
+    was missed when the same three fields were wired into
+    workflow_package_request_consumer, because that consumer has two grounded
+    response paths and I stopped looking after finding both. The operator's
+    2026-07-28 acceptance test went through here and came back a bare UNKNOWN with
+    no evidence, which is precisely the failure the other wiring was meant to end.
+
+    Attached at the single serialization funnel rather than at the many
+    request_type="CHAT" construction sites, so a new one cannot be added without it.
+    Total by design: a response that fails to send is worse than one lacking a
+    citation.
+    """
+
+    payload: dict[str, Any] = {}
+    try:
+        question = str(
+            layered_fields.get("source_text")
+            or layered_fields.get("operator_message")
+            or getattr(response, "operator_message", "")
+            or ""
+        )
+        if question:
+            payload["source_text"] = question
+
+        refs: list[str] = []
+        for key in ("source_refs", "packet_source_refs", "proof_refs"):
+            value = layered_fields.get(key)
+            if isinstance(value, (list, tuple)):
+                refs.extend(str(v).strip() for v in value if str(v).strip())
+        for key in ("file_readback_refs", "card_mirror_refs"):
+            value = getattr(response, key, None)
+            if isinstance(value, (list, tuple)):
+                refs.extend(str(v).strip() for v in value if str(v).strip())
+        if refs:
+            payload["source_refs"] = list(dict.fromkeys(refs))
+
+        status = layered_fields.get("retrieval_status")
+        if isinstance(status, Mapping) and str(status.get("status") or ""):
+            payload["retrieval_status"] = {
+                "status": str(status.get("status") or ""),
+                "detail": str(status.get("detail") or ""),
+                "source_path": str(status.get("source_path") or ""),
+            }
+    except Exception:  # noqa: BLE001 - never break a response over provenance
+        return payload
+    return payload
+
+
 def _voice_authorship_fields(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> dict[str, Any]:
     author, reason = _initial_response_author(response, layered_fields)
     author, reason, high_risk_override = _apply_high_risk_voice_override(author, reason, response, layered_fields)
@@ -10994,6 +11047,7 @@ def build_payloads(
         "humor_health_gate": humor_health_gate,
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
+        **_chat_grounded_provenance(response, layered_fields),
     }
     response_payload["proof_artifacts"] = [
         dict(item) for item in response.proof_artifacts
