@@ -3058,6 +3058,14 @@ def build_maestro_context_packet(
             *truth_facts,
             *contacts_facts,
             *sqlite_facts,
+            # product_facts MUST be re-listed here. This branch REBUILDS the list
+            # from named components rather than appending to it, so anything added
+            # above and not named here is silently dropped. The live front door runs
+            # OPENCLAW_PACKET_SOURCE=sqlite, so this was the only path that mattered —
+            # and the only one my direct test did not take, because it defaults to
+            # flat. Two receipts stamped the same second proved it: the loader emitted
+            # three thesis facts and the packer never saw them.
+            *product_facts,
             *read_model_facts,
         ]
 

@@ -189,3 +189,48 @@ def test_the_receipt_records_the_final_prompt_not_the_packet(tmp_path, monkeypat
     assert payload["final_prompt_chars"] == len(text)
     assert payload["within_budget"] is True
     assert any("PRODUCT-THESIS" in r for r in payload["included_source_refs"])
+
+
+# ────────────────── the sqlite branch rebuilds the list, so it must re-list
+
+def test_the_sqlite_branch_does_not_drop_product_facts() -> None:
+    """The live front door runs OPENCLAW_PACKET_SOURCE=sqlite, and that branch
+    REBUILDS the fact list from named components instead of appending to it. Anything
+    added upstream and not named there vanishes silently — which is exactly what
+    happened: the loader emitted three thesis facts, the packer never saw them, and
+    both receipts stamped the same second proved it.
+
+    Structural, because the failure was structural: every component assembled before
+    the branch must appear inside it."""
+
+    import ast
+    import inspect
+
+    tree = ast.parse(inspect.getsource(mcp.build_maestro_context_packet))
+    rebuilds = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == "facts" for t in node.targets)
+        and isinstance(node.value, ast.List)
+    ]
+    assert rebuilds, "fact-list assembly moved; this guard needs updating"
+
+    required = {"pending_action_facts", "receivable_temporal_facts", "truth_facts",
+                "contacts_facts", "product_facts", "read_model_facts"}
+    # Only PRIMARY assemblies, identified by naming truth_facts. Later reorderings
+    # within a slice use different variables and are not assembly sites.
+    primaries = []
+    for node in rebuilds:
+        named = {
+            elt.value.id for elt in node.value.elts
+            if isinstance(elt, ast.Starred) and isinstance(elt.value, ast.Name)
+        }
+        if "truth_facts" in named:
+            primaries.append(named)
+    assert len(primaries) >= 2, "expected the flat and sqlite assemblies"
+    for named in primaries:
+        missing = required - named - {"sqlite_facts"}
+        assert not missing, (
+            f"a fact-list rebuild omits {sorted(missing)}; anything not re-listed "
+            "here is dropped without a trace"
+        )
