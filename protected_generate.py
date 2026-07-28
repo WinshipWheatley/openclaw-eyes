@@ -504,16 +504,45 @@ def _product_grounded_question(operator_prompt: Any, packet: Any) -> bool:
     the box. Every other turn routes exactly as before.
     """
 
+    # Decided from the RAW QUESTION, never from the packet.
+    #
+    # My first version inspected the packet for product facts — but by this point the
+    # packet is the already-projected one, which the PII filter has stripped to zero
+    # facts. It gated the external route on evidence the projection had removed, so it
+    # returned False every time. Circular, and invisible to unit tests that hand it a
+    # rich packet directly.
+    #
+    # The question survives the projection; the evidence does not. So the question is
+    # what decides. Same governed-index match as _product_evidence_for_request, so
+    # routing and evidence selection cannot disagree about what "product-related" means.
     try:
+        question = str(operator_prompt or "").strip()
+        if not question:
+            return False
+
+        from workflow_package_request_consumer import (
+            _enrich_system_answer_with_product_facts,
+            _is_general_question_text,
+        )
+
+        if not _is_general_question_text(question):
+            return False  # imperatives keep their existing route
+
+        enriched = _enrich_system_answer_with_product_facts({}, question)
+        if str((enriched or {}).get("product_artifact_evidence") or "").strip():
+            return True
+
+        # Belt and braces: if a rich packet IS in hand, honour it too.
         facts = packet.get("facts") if isinstance(packet, Mapping) else None
         if isinstance(facts, (list, tuple)):
             for row in facts:
                 if isinstance(row, Mapping) and row.get("topic") == "product_artifact":
                     return True
         refs = packet.get("source_refs") if isinstance(packet, Mapping) else None
-        if isinstance(refs, (list, tuple)):
-            if any("fleet_coord/PRODUCT/" in str(r) for r in refs):
-                return True
+        if isinstance(refs, (list, tuple)) and any(
+            "fleet_coord/PRODUCT/" in str(r) for r in refs
+        ):
+            return True
     except Exception:  # noqa: BLE001 - routing must never break on packet shape
         return False
     return False
