@@ -1029,7 +1029,38 @@ def stamp_proof_to_response_source_response_path(
                 stamped_layered["proof_to_response"] = stamp(stamped_layered["proof_to_response"])
             stamped_detail["layered_response_fields"] = stamped_layered
         payload["detail_disclosure"] = stamped_detail
+
+    # TEMPORARY DIAGNOSTIC. Stamped into the payload itself, not a side receipt,
+    # because this function's return value IS what gets written — so the evidence
+    # cannot be lost to whichever function performs the write. A separate receipt
+    # file failed exactly that way: the marker sat in a function the live turn never
+    # executed and captured nothing, which read as "no writer" instead of "wrong
+    # spot". Basename, function, line only: no locals, no arguments, no content.
+    payload["_diagnostic_producing_stack"] = _sanitized_producing_stack(
+        source_response_path
+    )
     return payload
+
+
+def _sanitized_producing_stack(source_response_path: str) -> dict[str, Any]:
+    """Frames that produced this response. Sanitized by construction."""
+
+    import inspect as _inspect
+    import os as _os
+
+    frames = []
+    try:
+        for frame in _inspect.stack()[1:26]:
+            frames.append(
+                f"{_os.path.basename(frame.filename)}:{frame.lineno}:{frame.function}"
+            )
+    except Exception:  # noqa: BLE001
+        pass
+    return {
+        "correlation": _os.path.basename(str(source_response_path or ""))[:120],
+        "at": utc_now(),
+        "frames": frames,
+    }
 
 
 def publish_response_for_mac_outbox(
