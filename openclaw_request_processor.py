@@ -1042,6 +1042,41 @@ def stamp_proof_to_response_source_response_path(
     return payload
 
 
+def _product_evidence_for_request(request_path: Any) -> str | None:
+    """Governed PRODUCT evidence for this request, or None. Never raises.
+
+    None is the default answer and the safe one: it makes the downstream call
+    byte-identical to before this existed.
+    """
+
+    try:
+        raw = _load_json_request(Path(request_path))
+        question = str(
+            (raw or {}).get("source_text") or (raw or {}).get("operator_message") or ""
+        ).strip()
+        if not question:
+            return None
+        from workflow_package_request_consumer import (
+            _enrich_system_answer_with_product_facts,
+            _is_general_question_text,
+        )
+
+        # Index match alone is NOT enough. "Prepare the monthly speaker rental
+        # invoice" shares tokens with the thesis's recurring-invoice section and
+        # drew 1,966 characters of evidence — an imperative, silently given context
+        # it never asked for. My byte-identity tests passed vacuously because the
+        # pytest sandbox cannot reach the index, so they proved nothing.
+        # An imperative must stay byte-identical, so form is checked first.
+        if not _is_general_question_text(question):
+            return None
+
+        enriched = _enrich_system_answer_with_product_facts({}, question)
+        evidence = str((enriched or {}).get("product_artifact_evidence") or "").strip()
+        return evidence or None
+    except Exception:  # noqa: BLE001 - evidence is optional; the answer is not
+        return None
+
+
 def _maybe_enrich_with_product_evidence(response_payload: Any) -> Any:
     """Add governed PRODUCT evidence to a product-related answer. Otherwise unchanged.
 
@@ -9605,7 +9640,15 @@ def _process_request_path_core(
     duplicate_check: bool = True,
     read_model_reader: ReadModelReader | None = None,
     _capsule: Any | None = None,
+    product_evidence: Any | None = None,
 ) -> OpenClawResponseForMac:
+    """``product_evidence`` defaults to None so every existing caller is byte-identical.
+
+    When present it is attached to raw_request AFTER normalisation and BEFORE
+    preflight, so the model reasons over it. Classification, staging, routing and
+    authority all run below this point and are untouched — the evidence is context,
+    never permission.
+    """
     classification = classify_request_filename(request_path.name)
     try:
         raw_request = _load_json_request(request_path)
@@ -9679,6 +9722,14 @@ def _process_request_path_core(
         if str(route_decision.get("request_kind") or "") in REQUEST_FAMILIES
         else classification
     )
+    # Governed PRODUCT evidence enters here: after every normalisation that rebuilds
+    # raw_request, before preflight and before the model. My first attempt attached
+    # it to the finished payload instead — the evidence reached the response file and
+    # the model had already written "packet content unavailable". Context has to
+    # precede reasoning.
+    if product_evidence:
+        raw_request = {**raw_request, "product_artifact_evidence": product_evidence}
+
     ok, blockers, fixes = preflight_request(raw_request, effective_classification.request_family)
     if not ok:
         return OpenClawResponseForMac(
@@ -10495,6 +10546,12 @@ def process_request_path(
                 }
         except Exception:
             _capsule = None  # never block the live path
+    # Derive the same conditional evidence the post-answer wire uses, but BEFORE the
+    # model runs. No match returns None, and None means the call below is byte-for-byte
+    # what it was — imperatives and gated requests cannot be affected, because they
+    # never match the governed index.
+    _product_evidence = _product_evidence_for_request(request_path)
+
     response = _process_request_path_core(
         request_path,
         export_root=export_root,
@@ -10502,6 +10559,7 @@ def process_request_path(
         duplicate_check=duplicate_check,
         read_model_reader=read_model_reader,
         _capsule=_capsule,
+        product_evidence=_product_evidence,
     )
     response = _enrich_operator_surface(response, request_path, export_root)
     # ── CONTINUITY CAPSULE write-back@turn-end + receipt (flag-gated) ────────
