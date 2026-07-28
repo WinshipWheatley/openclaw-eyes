@@ -289,6 +289,77 @@ def _bounded_question_text(source_text: str) -> str:
     return text[:240]
 
 
+#: Same shape as the grounded path: bounded sections, hashes, provenance. Kept here
+#: rather than imported so the system path cannot drift from the numbers it was
+#: proven with.
+PRODUCT_SYSTEM_MAX_SECTIONS = 5
+PRODUCT_SYSTEM_SECTION_CHARS = 320
+
+
+def _enrich_system_answer_with_product_facts(
+    answer_payload: Mapping[str, Any], question: str
+) -> dict[str, Any]:
+    """Give a product-related system question the governed PRODUCT evidence.
+
+    Strictly additive and strictly conditional. If the PRODUCT index has nothing that
+    matches the question, the payload is returned unchanged — so unrelated system
+    questions ("is the gateway up", "what services are running") are not broadened,
+    not slowed, and not given evidence they did not ask for.
+
+    A selected artifact that cannot be read contributes nothing and says so, exactly
+    as in the grounded path: drifted or missing bytes are never served as if they
+    were the indexed ones.
+    """
+
+    payload = dict(answer_payload) if isinstance(answer_payload, Mapping) else {}
+    try:
+        import product_artifact_index as pai
+
+        rows = pai.load_index_rows()
+        if not rows:
+            return payload
+        hits = pai.rank_sections_across(
+            rows, question, limit=PRODUCT_SYSTEM_MAX_SECTIONS,
+            clip=PRODUCT_SYSTEM_SECTION_CHARS,
+        )
+        if not hits:
+            return payload  # not product-related: unchanged, by design
+
+        lines: list[str] = []
+        refs: list[str] = []
+        verified: dict[str, bool] = {}
+        for row, section in hits:
+            if row.source_ref not in verified:
+                raw = next(
+                    (r for r in rows if str(r.get("source_ref")) == row.source_ref), None
+                )
+                status, _text, _detail = pai.load_artifact(raw or {})
+                verified[row.source_ref] = status not in pai.LOAD_FAILURES
+            if not verified[row.source_ref]:
+                continue
+            lines.append(
+                f"- {row.title} — {section.heading}: {section.text} "
+                f"[source={row.source_ref}; sha256={row.sha256[:23]}]"
+            )
+            if row.source_ref not in refs:
+                refs.append(row.source_ref)
+        if not lines:
+            return payload
+
+        answer = dict(payload.get("answer") or {}) if isinstance(payload.get("answer"), Mapping) else {}
+        existing = [str(r) for r in (answer.get("proof_refs") or ())]
+        answer["proof_refs"] = list(dict.fromkeys([*existing, *refs]))
+        answer["product_artifact_facts"] = lines
+        payload["answer"] = answer
+        payload["source_refs"] = list(
+            dict.fromkeys([*(str(r) for r in (payload.get("source_refs") or ())), *refs])
+        )
+        payload["product_artifact_evidence"] = "\n".join(lines)
+    except Exception:  # noqa: BLE001 - enrichment must never break a system answer
+        return dict(answer_payload) if isinstance(answer_payload, Mapping) else {}
+    return payload
+
+
 def is_system_question_request(raw_request: Mapping[str, Any]) -> bool:
     workflow_ref = str(raw_request.get("workflow_ref") or "").strip()
     if workflow_ref == system_question_answer.WORKFLOW_REF:
@@ -389,6 +460,18 @@ def _system_question_receipt(
         current_world_ref=route["current_world_ref"],
         current_thread_ref=route["current_thread_ref"],
     )
+    # ADDITIVE: a system question that is ALSO about the governed product corpus gets
+    # the same evidence the grounded path already proves it can deliver — bounded
+    # sections, source_ref and sha256, ranked against the question. The predicate,
+    # the local-answer semantics and every unrelated system question are untouched:
+    # if nothing in the PRODUCT index matches, this returns nothing and the payload
+    # is byte-identical to before.
+    #
+    # This is the additive half of the choice. The alternative was narrowing
+    # is_system_question_request so product questions stop being "system" questions,
+    # which re-litigates a predicate other paths depend on. Feeding the responder
+    # better evidence changes no routing at all.
+    answer_payload = _enrich_system_answer_with_product_facts(answer_payload, question)
     operator_display = _operator_display_from_system_question(answer_payload)
     proof_refs = (
         answer_payload.get("answer", {}).get("proof_refs", [])
