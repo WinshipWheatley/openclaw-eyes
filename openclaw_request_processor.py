@@ -6627,8 +6627,24 @@ def _lm1_interpreter_context_packet(rich_packet: Mapping[str, Any]) -> dict[str,
         try:
             from protected_generate import detect_pii_tier
 
+            # Tier the CONTENT, not the envelope.
+            #
+            # This serialized the whole fact — fact_id, source_ref path, provenance,
+            # freshness.sha256 — and graded that. The envelope alone reads LIGHT, so
+            # every fact was blocked regardless of what it said, and the external lane
+            # honestly reported no public facts because by this measure nothing ever
+            # was. A clean fact about nothing was refused identically to a private one.
+            #
+            # Only what a reader would actually see is graded. Provenance is preserved
+            # untouched below and still travels with any fact that passes, so audit is
+            # unchanged; it simply stops deciding privacy. Content that grades LIGHT or
+            # above is still blocked exactly as before — this narrows what is measured,
+            # never how strictly.
             fact_tier = detect_pii_tier(
-                json.dumps(dict(fact), sort_keys=True, default=str),
+                "\n".join(
+                    str(fact.get(key) or "")
+                    for key in ("label", "value", "topic")
+                ).strip(),
                 None,
             )
         except Exception:
