@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -485,7 +486,7 @@ def _system_question_receipt(
 
 
 _QUESTION_OPENERS = (
-    "who", "what", "when", "where", "which", "how",
+    "who", "what", "when", "where", "which", "how", "why",
     "does", "did", "is", "are", "can",
 )
 
@@ -498,7 +499,30 @@ def _is_general_question_text(text: str) -> bool:
     if normalized.endswith("?"):
         return True
     first_word = normalized.split(" ", 1)[0].rstrip("?,.!;:")
-    return first_word in _QUESTION_OPENERS
+    if first_word in _QUESTION_OPENERS:
+        return True
+
+    # A real message is rarely one clause. This looked only at the FIRST word and the
+    # LAST character, so anything that opened with a framing line and closed with a
+    # directive was read as an instruction even when it asked a question in the
+    # middle — and instruction staging performs no lookup, so the operator got
+    # UNKNOWN no matter how good the packet was.
+    #
+    # Now every sentence gets a vote. A question anywhere makes it a question,
+    # because the safe error is answering something that was an instruction (the
+    # answer path acts on nothing), not silently staging something that was a
+    # question. Imperatives with no interrogative clause are untouched and still
+    # stage, and the specific-client-workflow check above still runs first.
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", normalized):
+        clause = sentence.strip()
+        if not clause:
+            continue
+        if clause.endswith("?"):
+            return True
+        opener = clause.split(" ", 1)[0].rstrip("?,.!;:")
+        if opener in _QUESTION_OPENERS:
+            return True
+    return False
 
 
 def is_business_question_request(raw_request: Mapping[str, Any]) -> bool:
