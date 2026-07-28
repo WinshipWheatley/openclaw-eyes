@@ -1505,3 +1505,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_truth_input_failure_diagnosis.py
 !tests/test_receipt_correlation.py
 !tests/test_generate_receipt_per_call.py
+!tests/test_answer_boundary_receipt.py

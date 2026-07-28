@@ -2118,6 +2118,54 @@ def _answer_frontdoor_chat_impl(
     )
 
 
+#: Append-only. A single overwritten file showed only whichever call ran last, which
+#: is how the interpreter's tiny classification packet got reported three times as
+#: "the packet arriving at the model".
+import datetime as _dt
+
+ANSWER_GENERATE_RECEIPTS = Path("/home/openclaw/state/answer_generate_receipts.jsonl")
+
+
+def _answer_generate_receipt(
+    *, packet: Any, question: str, agent: str, injected: bool,
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Record what the ANSWER call is handed. Lengths, a hash, and refs — never text.
+
+    Returns the row so a test can assert on it without reading the file.
+    """
+
+    facts = []
+    packet_text = ""
+    packet_id = ""
+    if isinstance(packet, Mapping):
+        packet_text = str(packet.get("packet_text") or "")
+        packet_id = str(packet.get("packet_id") or "")
+        facts = [f for f in (packet.get("facts") or ()) if isinstance(f, Mapping)]
+    refs = sorted({str(f.get("source_ref") or "") for f in facts if f.get("source_ref")})
+    row = {
+        "call_type": "answer_brain",
+        "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "agent": str(agent or ""),
+        "packet_id": packet_id,
+        "question_head": str(question or "")[:120],
+        "packet_text_chars": len(packet_text),
+        "packet_text_sha256": hashlib.sha256(packet_text.encode("utf-8")).hexdigest()[:24],
+        "fact_count": len(facts),
+        "source_refs": refs[:12],
+        "product_artifact_present": any("fleet_coord/PRODUCT/" in r for r in refs),
+        "generate_fn_injected": bool(injected),
+    }
+    try:
+        target = Path(path) if path is not None else ANSWER_GENERATE_RECEIPTS
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+    except Exception:  # noqa: BLE001 - a receipt must never break an answer
+        pass
+    return row
+
+
 def _sanitize_packet_error(message: str) -> str:
     """Keep the diagnosis, drop anything that could carry a secret.
 
@@ -2328,6 +2376,16 @@ def _answer_status_capability_with_brain(
             )
         except Exception:  # noqa: BLE001 - a receipt must never break a reply
             pass
+
+    # THE ANSWER BOUNDARY. Instrumented at the call site that hands the packet to the
+    # model, not inside protected_generate — three diagnoses in a row measured that
+    # seam and described the interpreter's classification call, because only the
+    # interpreter reaches it. call_type is not inferred from prompt text: this code
+    # path IS the answer path, so the label is structural and cannot mislabel itself.
+    _answer_generate_receipt(
+        packet=context_packet, question=text, agent=agent,
+        injected=protected_generate_fn is not None,
+    )
 
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
@@ -2952,6 +3010,16 @@ def _answer_with_maestro_brain(
             "network_performed": False,
             "external_action_performed": False,
         }
+
+    # THE ANSWER BOUNDARY. Instrumented at the call site that hands the packet to the
+    # model, not inside protected_generate — three diagnoses in a row measured that
+    # seam and described the interpreter's classification call, because only the
+    # interpreter reaches it. call_type is not inferred from prompt text: this code
+    # path IS the answer path, so the label is structural and cannot mislabel itself.
+    _answer_generate_receipt(
+        packet=context_packet, question=text, agent=agent,
+        injected=protected_generate_fn is not None,
+    )
 
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
