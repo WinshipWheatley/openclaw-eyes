@@ -505,8 +505,32 @@ _KNOWN_READ_MODELS = (
 )
 
 
+def _selectable_read_models() -> tuple[str, ...]:
+    """The hardcoded ten, plus any governed product artifact that has been indexed.
+
+    The list used to be a literal, so an artifact outside it could not be chosen no
+    matter how well it matched — the operator's product question could only ever pick
+    the nearest of ten unrelated files. That is a selection failure disguised as a
+    retrieval failure, and no amount of ranking fixes it.
+
+    Additions are index-driven: nothing here names a document or a question.
+    """
+
+    names = list(_KNOWN_READ_MODELS)
+    try:
+        from product_artifact_index import load_index_rows
+
+        for row in load_index_rows():
+            ref = str(row.get("source_ref") or "").strip()
+            if ref and ref not in names:
+                names.append(ref)
+    except Exception:  # noqa: BLE001 - an unavailable index must not break classification
+        pass
+    return tuple(names)
+
+
 def _build_interpreter_prompt(text: str) -> str:
-    read_models_list = "\n".join(f"  - {m}" for m in _KNOWN_READ_MODELS)
+    read_models_list = "\n".join(f"  - {m}" for m in _selectable_read_models())
     invoice_context_needed = bool(re.search(r"\b(invoice|bill|billing)\b", text, re.IGNORECASE))
     invoice_clients_list = (
         _invoice_client_prompt_lines()
