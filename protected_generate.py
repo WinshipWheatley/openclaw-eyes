@@ -2010,9 +2010,21 @@ def protected_generate_with_receipt(
             if isinstance(row, Mapping) and str(row.get("source_ref") or "")
         ]
         _in_prompt = sorted({r for r in _refs if r and r in system_prompt})
+        # APPEND-ONLY, keyed by call type. A single overwritten file showed only
+        # whichever call ran last — the interpreter's classification call, whose
+        # packet is correctly tiny — and I twice reported that as "the packet
+        # arrives at the model empty". It was never the answer call. One file per
+        # process, one line per call, each naming which call it was.
+        _call_type = (
+            "interpreter"
+            if system_prompt.lstrip().startswith("You are the Maestro Interpreter LM")
+            else "answer_brain"
+        )
         _Path("/home/openclaw/state").mkdir(parents=True, exist_ok=True)
-        _Path("/home/openclaw/state/frontdoor_prompt_receipt.json").write_text(
-            _json.dumps(
+        with _Path("/home/openclaw/state/frontdoor_prompt_receipts.jsonl").open(
+            "a", encoding="utf-8"
+        ) as _fh:
+            _fh.write(_json.dumps({"call_type": _call_type}, sort_keys=True)[:-1] + ", " + _json.dumps(
                 {
                     "at": _now_iso() if "_now_iso" in globals() else "",
                     "agent": str(agent or ""),
@@ -2031,12 +2043,8 @@ def protected_generate_with_receipt(
                         "fleet_coord/PRODUCT/" in r for r in _in_prompt
                     ),
                 },
-                indent=2,
                 sort_keys=True,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+            )[1:] + "\n")
     except Exception:  # noqa: BLE001 - a receipt must never break a generate
         pass
 
