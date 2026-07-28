@@ -1502,3 +1502,4 @@ generated/system_knowledge/*.sqlite
 !generated/read_models/product_artifact_index.json
 !tests/test_prompt_packer_budget.py
 !tests/test_packet_build_failure_named.py
+!tests/test_truth_input_failure_diagnosis.py

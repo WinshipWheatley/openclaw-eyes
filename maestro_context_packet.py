@@ -3168,6 +3168,45 @@ def build_maestro_context_packet(
     )
 
     if require_real_truth and (not operator_truth_used or len(read_model_refs) < 2):
+        # The guard is correct and stays exactly as it is: without operator truth and
+        # real read-models, an answer would be ungrounded, and that is worth failing
+        # for. What was missing is WHY it fired. The same build succeeds from a shell
+        # under the service's own interpreter, cwd, and full environment — so the
+        # difference is the SESSION, which may override both roots. Record what was
+        # actually resolved, sanitized, so the concrete defect is nameable instead of
+        # inferred. This changes no condition and lets nothing through.
+        try:
+            _loc = locals()
+            _rm_root = _read_model_root(_loc.get('session'), _loc.get('read_model_root'))
+            _truth_path = _operator_truth_store_path(_loc.get('session'), _loc.get('operator_truth_store_path'))
+            _diag = {
+                "read_model_root": str(_rm_root),
+                "read_model_root_exists": bool(_rm_root) and Path(_rm_root).is_dir(),
+                "read_model_files": (
+                    len(list(Path(_rm_root).glob("*.json"))) if Path(_rm_root).is_dir() else 0
+                ),
+                "read_model_refs_found": len(read_model_refs),
+                "operator_truth_path": str(_truth_path) if _truth_path else "",
+                "operator_truth_resolved": bool(_truth_path),
+                "operator_truth_exists": bool(_truth_path) and Path(_truth_path).exists(),
+                "operator_truth_used": bool(operator_truth_used),
+                "session_supplied_root": bool(
+                    isinstance(_loc.get('session'), Mapping)
+                    and any(
+                        _loc['session'].get(k)
+                        for k in ("read_model_root", "read_model_root_path",
+                                  "generated_read_model_root")
+                    )
+                ),
+                "cwd": os.getcwd(),
+                "question_head": str(question or "")[:100],
+                "at": _utc_now(),
+            }
+            _p = Path("/home/openclaw/state/truth_input_failure_receipt.json")
+            _p.parent.mkdir(parents=True, exist_ok=True)
+            _p.write_text(json.dumps(_diag, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        except Exception:  # noqa: BLE001 - diagnosis must never mask the guard
+            pass
         raise MaestroContextPacketError(
             "Maestro context packet requires real truth inputs: operator truth plus generated read models."
         )
