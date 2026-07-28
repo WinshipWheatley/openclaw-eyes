@@ -2661,6 +2661,7 @@ def _sqlite_canonical_facts(
     agent: str = "maestro",
     ledger_path: str | None = None,
     limit: int = 12,
+    status_out: dict | None = None,
 ) -> list[dict[str, Any]]:
     """Pull relevant facts from the canonical_facts SQLite ledger.
 
@@ -2669,7 +2670,11 @@ def _sqlite_canonical_facts(
 
     Rules:
     - Opens READ-ONLY via URI mode (file:...?mode=ro).
-    - Returns [] gracefully on ANY error (missing file, locked db, etc.).
+    - Still returns [] on any error, so no caller breaks — but pass ``status_out``
+      to learn WHICH kind of empty this is. Zero facts with EMPTY_BY_QUERY is a
+      fact about the world; zero facts with LEDGER_MISSING/TABLES_MISSING/
+      QUERY_FAILED is a fact about us, and the answer must say so instead of
+      rendering a bare UNKNOWN.
     - Includes facts where allowed_actors contains agent name or "all".
     - Always includes doctrine facts regardless of query relevance.
     - Deduplicates by content_hash; caps at limit.
@@ -2679,9 +2684,27 @@ def _sqlite_canonical_facts(
         from business_ops_ledger import resolve_business_ops_ledger_path
         ledger_path = resolve_business_ops_ledger_path(None)
 
+    # status_out lets callers learn WHY a result was empty without changing this
+    # function's return type. Before this, a missing ledger, an absent table and a
+    # query that genuinely matched nothing all returned [], so "retrieval broke" and
+    # "nothing is relevant" were the same value and no consumer could tell them
+    # apart. That is what made Maestro answer a bare UNKNOWN while its named source
+    # file sat on disk at 30KB.
+    import packet_retrieval_status as _prs
+
+    def _record(status: str, detail: str = "") -> None:
+        if status_out is None:
+            return
+        status_out.clear()
+        status_out.update(
+            _prs.RetrievalResult(facts=[], status=status, detail=detail,
+                                 source_path=str(ledger_path or "")).to_dict()
+        )
+
     try:
         db_file = Path(ledger_path)
         if not db_file.exists():
+            _record(_prs.LEDGER_MISSING, f"no file at {db_file}")
             return []
 
         uri = f"file:{db_file.as_posix()}?mode=ro"
@@ -2700,6 +2723,7 @@ def _sqlite_canonical_facts(
         has_fts = "fts_canonical_facts" in tables
         if not has_canonical:
             conn.close()
+            _record(_prs.TABLES_MISSING, "canonical_facts table absent")
             return []
 
         candidate_ids: list[str] = []
@@ -2739,6 +2763,9 @@ def _sqlite_canonical_facts(
 
         if not candidate_ids:
             conn.close()
+            # The one honest empty: the ledger was opened and read, and held
+            # nothing relevant. Distinct from every failure above.
+            _record(_prs.EMPTY_BY_QUERY, "ledger read; no candidate facts matched")
             return []
 
         existing_columns = {
@@ -2829,9 +2856,17 @@ def _sqlite_canonical_facts(
             results.extend(fact_list)
 
         conn.close()
+        if status_out is not None:
+            status_out.clear()
+            status_out.update(
+                _prs.ok(results, source_path=str(ledger_path or "")).to_dict()
+            )
         return results
 
-    except Exception:  # noqa: BLE001 — never break packet building
+    except Exception as _exc:  # noqa: BLE001 — never break packet building
+        # Never break, but never be silent either: a locked database and a corrupt
+        # schema used to be indistinguishable from "nothing matched".
+        _record(_prs.QUERY_FAILED, f"{type(_exc).__name__}: {_exc}")
         return []
 
 

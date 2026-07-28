@@ -1482,3 +1482,11 @@ generated/system_knowledge/*.sqlite
 !tests/test_telegram_send_approval_engine.py
 !tests/test_telegram_approval_consumer.py
 !tests/test_maestro_approval_intent_transport.py
+
+# Battery repair: agent identity, packet retrieval status, grounded answer contract
+!agent_telegram_identity.py
+!packet_retrieval_status.py
+!grounded_answer_contract.py
+!tests/test_agent_telegram_identity.py
+!tests/test_packet_retrieval_status.py
+!tests/test_grounded_answer_contract.py
