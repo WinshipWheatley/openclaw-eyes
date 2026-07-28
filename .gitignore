@@ -1516,3 +1516,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_evidence_reaches_the_model.py
 !tests/test_pre_model_append_marker.py
 !tests/test_packet_build_counts.py
+!tests/test_product_questions_stay_local.py
