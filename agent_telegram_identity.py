@@ -253,9 +253,57 @@ def identity_proven(env: Mapping[str, str] | None = None) -> bool:
     return source.get(IDENTITY_PROOF_ENV, "") == "1"
 
 
+def all_lanes_verified() -> bool:
+    """True only when every registered agent has a live-proved lane.
+
+    Proof means the getMe / getMyName / getChat triple: the bot is who it says,
+    and the configured operator chat is a real private chat with that bot. Anything
+    less leaves the lane UNVERIFIED and this returns False.
+
+    Deliberately total — a missing database, an unreadable one, or a partial seed
+    all mean "not proven", never "assume yes".
+    """
+
+    try:
+        import agent_lanes_registry as lanes
+
+        if not lanes.DEFAULT_REGISTRY_PATH.exists():
+            return False
+        conn = lanes.connect()
+        try:
+            return all(
+                lanes.resolve_lane(conn, agent).ok for agent in AGENT_IDENTITIES
+            )
+        finally:
+            conn.close()
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def banner_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """On when identity is PROVEN, or when explicitly forced for a rehearsal.
+
+    Driving this from the lane proof rather than an environment variable means the
+    banner cannot be switched on by someone who has not done the work, and cannot
+    be left off by someone who has. The env var stays as an override for testing.
+
+    This is the banner only. The nonce interlock remains on its own separate
+    env-gated switch and is NOT affected: proving who a bot is does not prove it is
+    safe to release an approval through it.
+    """
+
     source = env if env is not None else os.environ
-    return source.get(IDENTITY_BANNER_ENV, "") == "1"
+    if source.get(IDENTITY_BANNER_ENV, "") == "1":
+        return True
+    if env is not None:
+        return False  # explicit env passed: do not consult the live registry
+    if source.get("OPENCLAW_TEST_MODE", "") == "1":
+        # A suite whose visible output depends on whether a production sqlite
+        # happens to exist on this machine is flaky by construction. Under test the
+        # banner is explicit-only; the proof-driven path is asserted directly
+        # against all_lanes_verified() instead.
+        return False
+    return all_lanes_verified()
 
 
 def nonce_preview_allowed(env: Mapping[str, str] | None = None) -> tuple[bool, str]:

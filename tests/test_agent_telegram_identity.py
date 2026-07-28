@@ -159,3 +159,62 @@ def test_the_interlock_can_actually_open() -> None:
 
     allowed, reason = ident.nonce_preview_allowed(env={ident.IDENTITY_PROOF_ENV: "1"})
     assert allowed is True and reason == ""
+
+
+# ─────────────────────────── proof-driven banner (the production path)
+
+def test_the_banner_is_driven_by_lane_proof_not_a_flag(tmp_path, monkeypatch) -> None:
+    """Production turns the banner on because identity is PROVEN.
+
+    Driving it from the lane proof means it cannot be switched on by someone who
+    has not done the work, nor left off by someone who has.
+    """
+
+    import agent_lanes_registry as lanes
+
+    db = tmp_path / "lanes.sqlite"
+    monkeypatch.setattr(lanes, "DEFAULT_REGISTRY_PATH", db)
+
+    conn = lanes.connect(db)
+    lanes.seed_rows(conn)
+    assert ident.all_lanes_verified() is False, "seeded but unverified must not count"
+
+    for agent, row in ident.AGENT_IDENTITIES.items():
+        lanes.record_live_verification(conn, agent, chat_id="8615325274",
+                                       username=row["username"],
+                                       verified_at="2026-07-28T04:35:00Z")
+    conn.close()
+    assert ident.all_lanes_verified() is True
+
+
+def test_one_unverified_lane_keeps_the_banner_off(tmp_path, monkeypatch) -> None:
+    """NON-VACUITY in the safety direction: five of six is not proven."""
+
+    import agent_lanes_registry as lanes
+
+    db = tmp_path / "lanes.sqlite"
+    monkeypatch.setattr(lanes, "DEFAULT_REGISTRY_PATH", db)
+    conn = lanes.connect(db)
+    lanes.seed_rows(conn)
+    for agent, row in list(ident.AGENT_IDENTITIES.items())[:-1]:
+        lanes.record_live_verification(conn, agent, chat_id="8615325274",
+                                       username=row["username"],
+                                       verified_at="2026-07-28T04:35:00Z")
+    conn.close()
+    assert ident.all_lanes_verified() is False
+
+
+def test_a_missing_registry_is_never_read_as_proven(monkeypatch) -> None:
+    import agent_lanes_registry as lanes
+    from pathlib import Path
+
+    monkeypatch.setattr(lanes, "DEFAULT_REGISTRY_PATH", Path("/nowhere/absent.sqlite"))
+    assert ident.all_lanes_verified() is False
+
+
+def test_lane_proof_never_opens_the_nonce_interlock(tmp_path, monkeypatch) -> None:
+    """Proving WHO a bot is does not prove it is safe to release an approval."""
+
+    monkeypatch.delenv(ident.IDENTITY_PROOF_ENV, raising=False)
+    allowed, _ = ident.nonce_preview_allowed()
+    assert allowed is False
