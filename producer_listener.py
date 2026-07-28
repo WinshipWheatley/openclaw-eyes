@@ -99,7 +99,13 @@ def _final_operator_reply(reply: str, *, source_request: str) -> str:
             source_request=source_request,
         )
         _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
-        return bounded.visible_text
+        # Niles is the agent that answered a technical exact-send question with
+        # "What's the main goal: groove, melody, or arrangement?" — so this funnel
+        # is where question dominance matters most.
+        from agent_reply_egress import finalize_agent_reply
+
+        return finalize_agent_reply("niles", bounded.visible_text,
+                                    question=source_request)
     except Exception:
         _OUTPUT_BOUNDARY_RECEIPT.set({
             "outcome": "adapter_boundary_error",

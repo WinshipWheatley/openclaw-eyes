@@ -159,13 +159,7 @@ def current_output_boundary_receipt() -> dict[str, Any] | None:
     return dict(receipt) if isinstance(receipt, dict) else None
 
 
-#: A nonce is what turns a message into an approval. It must never leave over a
-#: channel whose identity is unproven, so this is matched at the EGRESS rather than
-#: trusted to whoever built the text.
-_NONCE_IN_TEXT = re.compile(r"send-hold-graduation:[A-Za-z0-9:_-]{8,}")
-
-
-def _identity_gated_reply(text: str) -> str:
+def _identity_gated_reply(text: str, *, question: str = "") -> str:
     """Banner every reply, and refuse to emit a nonce while identity is unproven.
 
     Two things happen here, both learned on 2026-07-28. The banner is rendered from
@@ -178,27 +172,9 @@ def _identity_gated_reply(text: str) -> str:
     cannot forget to ask.
     """
 
-    body = str(text or "")
-    try:
-        import agent_telegram_identity as ident
-    except Exception:  # noqa: BLE001 - a missing contract must not eat the operator's reply
-        return body
+    from agent_reply_egress import finalize_agent_reply
 
-    if _NONCE_IN_TEXT.search(body):
-        allowed, reason = ident.nonce_preview_allowed()
-        if not allowed:
-            return (
-                "Withheld: this reply carried an approval nonce and Telegram agent "
-                f"identity is not proven. {reason} Nothing was sent, approved, or "
-                "authorised."
-            )
-    if not ident.banner_enabled():
-        return body
-    try:
-        banner = ident.identity_banner("maestro")
-    except Exception:  # noqa: BLE001
-        return body
-    return body if body.startswith(banner) else f"{banner}\n{body}"
+    return finalize_agent_reply("maestro", str(text or ""), question=question)
 
 
 def _final_operator_reply(
@@ -217,7 +193,7 @@ def _final_operator_reply(
             action_receipt_refs=action_receipt_refs,
         )
         _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
-        return _identity_gated_reply(bounded.visible_text)
+        return _identity_gated_reply(bounded.visible_text, question=source_request)
     except Exception:
         _OUTPUT_BOUNDARY_RECEIPT.set({
             "outcome": "adapter_boundary_error",

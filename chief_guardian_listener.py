@@ -166,7 +166,12 @@ def guardian_resilient_reply(text: str, *, source_request: str = "") -> str:
             )
             visible = _enforce_vote_timeout(bounded.visible_text)
         _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
-        return visible
+        # Shared egress. Guardian was the one PARTIAL in the battery — it reasoned
+        # correctly but cited nothing, which is exactly what the provenance and
+        # retrieval-status suffixes address.
+        from agent_reply_egress import finalize_agent_reply
+
+        return finalize_agent_reply("guardian", visible, question=source_request)
     except Exception:
         _OUTPUT_BOUNDARY_RECEIPT.set({
             "outcome": "adapter_boundary_error",

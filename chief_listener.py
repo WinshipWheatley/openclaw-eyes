@@ -81,7 +81,11 @@ def _final_operator_text(text: str, *, source_request: str) -> str:
             source_request=source_request,
         )
         _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
-        return bounded.visible_text
+        # Shared egress — Chief returned the generic "try again in a moment" in the
+        # 2026-07-28 battery; this funnel is where its replies are shaped.
+        from agent_reply_egress import finalize_agent_reply
+
+        return finalize_agent_reply("chief", bounded.visible_text, question=source_request)
     except Exception:
         _OUTPUT_BOUNDARY_RECEIPT.set({
             "outcome": "adapter_boundary_error",

@@ -1492,3 +1492,5 @@ generated/system_knowledge/*.sqlite
 !tests/test_grounded_answer_contract.py
 !agent_lanes_registry.py
 !tests/test_contract_wiring_integration.py
+!agent_reply_egress.py
+!tests/test_all_listener_egress_wiring.py

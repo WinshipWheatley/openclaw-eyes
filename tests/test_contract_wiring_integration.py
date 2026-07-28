@@ -57,7 +57,14 @@ def _calls_module(module, name: str) -> bool:
 # ─────────────────────────────────────────────── listener ↔ identity
 
 def test_the_listener_actually_imports_the_identity_contract() -> None:
-    assert _calls_module(listener, "agent_telegram_identity")
+    """After the shared-egress refactor the edge is listener -> egress -> identity.
+    Assert the whole chain rather than a direct import that no longer exists, so
+    this still fails if either link is cut."""
+
+    import agent_reply_egress as _egress
+
+    assert _calls_module(listener, "agent_reply_egress")
+    assert "agent_telegram_identity" in inspect.getsource(_egress)
 
 
 def test_every_operator_reply_carries_the_identity_banner(monkeypatch) -> None:

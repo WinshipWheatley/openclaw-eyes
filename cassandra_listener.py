@@ -148,7 +148,12 @@ def _final_operator_reply(reply: str, *, source_request: str) -> str:
             source_request=source_request,
         )
         _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
-        return bounded.visible_text
+        # Shared egress: question dominance, retrieval status, nonce interlock,
+        # identity banner. Placed at the funnel so no caller can bypass it.
+        from agent_reply_egress import finalize_agent_reply
+
+        return finalize_agent_reply("cassandra", bounded.visible_text,
+                                    question=source_request)
     except Exception:
         _OUTPUT_BOUNDARY_RECEIPT.set({
             "outcome": "adapter_boundary_error",
