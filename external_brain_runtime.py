@@ -104,6 +104,7 @@ def run_external_brain_request(
     guardian_bridge: GuardianBridge | None = None,
     guardian_notify_operator: bool = False,
     comparison_lane_id: str | None = None,
+    cheap_iteration_evidence: Mapping[str, Any] | None = None,
     packet_quality_db_path: str | Path | None = DEFAULT_LEDGER_PATH,
     usage_recorder: Callable[..., Mapping[str, Any]] | None = None,
 ) -> ExternalBrainRuntimeResult:
@@ -111,6 +112,50 @@ def run_external_brain_request(
 
     No alternative external model is attempted after any refusal or failure.
     """
+
+    # MEASUREMENT ONLY — 2026-07-28. Named by a live stack dump as the external-brain
+    # boundary. context_aid is the model-visible packet at the moment it leaves the
+    # box, which is the one quantity never observed: every prior number described a
+    # packet upstream of here. Counts, hashes and a timestamp; no content, no secrets.
+    # Nothing about this call's behaviour changes.
+    try:
+        import hashlib as _hl
+        import json as _json
+        import os as _os
+        from datetime import datetime as _dt, timezone as _tz
+        from pathlib import Path as _P
+
+        _aid = context_aid if isinstance(context_aid, Mapping) else {}
+        _facts = _aid.get("facts") if isinstance(_aid.get("facts"), (list, tuple)) else ()
+        _text = str(_aid.get("packet_text") or "")
+        _row = {
+            "at": _dt.now(_tz.utc).isoformat(timespec="seconds"),
+            "branch": "external_brain_runtime.run_external_brain_request",
+            "chain_lane": str(chain_lane or ""),
+            "role": str(role or ""),
+            "model_visible_packet_chars": len(_text),
+            "fact_count": len(_facts),
+            "public_fact_count": sum(
+                1 for f in _facts
+                if isinstance(f, Mapping)
+                and str(f.get("pii_tier") or "").upper() == "PUBLIC"
+            ),
+            "prompt_chars": len(str(raw_operator_prompt or "")),
+            "prompt_sha256": _hl.sha256(
+                str(raw_operator_prompt or "").encode("utf-8")
+            ).hexdigest()[:24],
+            "question_sha256": _hl.sha256(
+                str(original_operator_message or raw_operator_prompt or "").encode("utf-8")
+            ).hexdigest()[:24],
+            "packet_text_sha256": _hl.sha256(_text.encode("utf-8")).hexdigest()[:24],
+        }
+        if _os.environ.get("OPENCLAW_TEST_MODE") != "1":
+            _t = _P("/home/openclaw/state/external_brain_boundary_receipts.jsonl")
+            _t.parent.mkdir(parents=True, exist_ok=True)
+            with _t.open("a", encoding="utf-8") as _fh:
+                _fh.write(_json.dumps(_row, sort_keys=True) + "\n")
+    except Exception:  # noqa: BLE001 - a receipt must never break the lane
+        pass
 
     decision = route_external_brain_request(
         raw_operator_prompt=raw_operator_prompt,
@@ -123,6 +168,7 @@ def run_external_brain_request(
         effort_override=effort_override,
         activation_enabled=activation_enabled,
         comparison_lane_id=comparison_lane_id,
+        cheap_iteration_evidence=cheap_iteration_evidence,
     )
     receipt = build_safe_route_receipt(decision)
     receipt["response_source"] = "pending"
