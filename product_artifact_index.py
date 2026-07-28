@@ -195,8 +195,102 @@ def build_index(
     return tuple(rows)
 
 
+def _as_row(value: Any) -> ArtifactRow | None:
+    """Accept either a live ArtifactRow or a row read back from the read-model."""
+
+    if isinstance(value, ArtifactRow):
+        return value
+    if not isinstance(value, Mapping):
+        return None
+    sections = tuple(
+        ArtifactSection(str(s.get("heading") or ""), str(s.get("text") or ""))
+        for s in (value.get("sections") or ())
+        if isinstance(s, Mapping)
+    )
+    return ArtifactRow(
+        source_ref=str(value.get("source_ref") or ""),
+        path=str(value.get("path") or ""),
+        title=str(value.get("title") or ""),
+        sha256=str(value.get("sha256") or ""),
+        size_bytes=int(value.get("size_bytes") or 0),
+        modified_at=str(value.get("modified_at") or ""),
+        age_days=float(value.get("age_days") or 0.0),
+        sections=sections,
+        bounded_text=str(value.get("bounded_text") or ""),
+    )
+
+
+def rank_sections(
+    row: ArtifactRow, query: str, *, limit: int = 2, clip: int = 320
+) -> tuple[ArtifactSection, ...]:
+    """The query-relevant sections of one artifact, clipped hard.
+
+    A 1024-token front-door context cannot take a whole document, and injecting one
+    would starve every other fact in the packet. Sections are the unit that fits: a
+    heading is a claim about what its text answers, so ranking them against the
+    question is cheap and the result is small enough to share the budget.
+    """
+
+    query_tokens = _tokenize(query)
+    if not row.sections:
+        return ()
+    if not query_tokens:
+        return tuple(
+            ArtifactSection(s.heading, _clip(s.text, clip)) for s in row.sections[:limit]
+        )
+
+    def score(section: ArtifactSection) -> float:
+        heading_hits = len(query_tokens & _tokenize(section.heading))
+        body_hits = len(query_tokens & _tokenize(section.text))
+        return heading_hits * TITLE_MATCH_WEIGHT + body_hits
+
+    ranked = sorted(row.sections, key=lambda s: (-score(s), s.heading))
+    keep = [s for s in ranked if score(s) > 0][:limit] or list(ranked[:limit])
+    return tuple(ArtifactSection(s.heading, _clip(s.text, clip)) for s in keep)
+
+
+def rank_sections_across(
+    index: Sequence[Any], query: str, *, limit: int = 3, clip: int = 320
+) -> tuple[tuple[ArtifactRow, ArtifactSection], ...]:
+    """Rank SECTIONS across every artifact, not documents then sections.
+
+    Document-first ranking answers "which file is this question about", which is a
+    different question from "which passage answers it". The operator's real prompt
+    opens with an instruction preamble whose words legitimately match a document
+    about acceptance testing, so the document-first order put the report ahead of the
+    thesis the question was actually about — the ranker was right about the text and
+    wrong about the need.
+
+    Sections do not have that problem: a heading is a claim about what its passage
+    answers, so the passages that match the question win regardless of which file
+    they live in. Returning () on no overlap is unchanged — an honest empty still
+    beats dragging in a paragraph because it shares the word "the".
+    """
+
+    query_tokens = _tokenize(query)
+    rows = tuple(r for r in (_as_row(item) for item in index) if r is not None)
+    if not query_tokens or not rows:
+        return ()
+
+    scored: list[tuple[float, str, ArtifactRow, ArtifactSection]] = []
+    for row in rows:
+        freshness = 1.0 / (1.0 + (row.age_days / 30.0))
+        for section in row.sections:
+            heading_hits = len(query_tokens & _tokenize(section.heading))
+            body_hits = len(query_tokens & _tokenize(section.text))
+            score = (heading_hits * TITLE_MATCH_WEIGHT + body_hits) * freshness
+            if score > 0:
+                scored.append((score, f"{row.source_ref}|{section.heading}", row, section))
+
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    return tuple(
+        (row, ArtifactSection(section.heading, _clip(section.text, clip)))
+        for _s, _k, row, section in scored[:limit]
+    )
+
+
 def rank_artifacts(
-    index: Sequence[ArtifactRow], query: str, *, limit: int = 2
+    index: Sequence[Any], query: str, *, limit: int = 2
 ) -> tuple[ArtifactRow, ...]:
     """Deterministic token-evidence ranking. Empty query or no overlap returns ().
 
@@ -207,8 +301,10 @@ def rank_artifacts(
     """
 
     query_tokens = _tokenize(query)
-    if not query_tokens or not index:
+    rows = tuple(r for r in (_as_row(item) for item in index) if r is not None)
+    if not query_tokens or not rows:
         return ()
+    index = rows
 
     total = len(index) or 1
     frequency: dict[str, int] = {}

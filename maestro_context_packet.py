@@ -1495,6 +1495,88 @@ def _demand_selected_read_model_facts(
     return facts, refs, {"demand_selected_read_models": chosen}
 
 
+#: The front door runs at OPENCLAW_FRONTDOOR_NUM_CTX=1024 — roughly 4,000 characters
+#: for EVERYTHING: persona, doctrine, every other fact, the question and the answer.
+#: The thesis alone is 9,557 bytes. The tradeoff is therefore explicit and deliberate:
+#: the three most query-relevant SECTIONS across all governed artifacts, ~320
+#: characters each. That is under 1,000 characters of evidence — enough to answer from, small enough that the rest of
+#: the packet survives. Raising the ceiling would cost latency and VRAM on a 6GB card
+#: and is the operator's call, not a default; nothing here needs it.
+PRODUCT_FACT_MAX_ARTIFACTS = 1
+PRODUCT_FACT_MAX_SECTIONS = 3
+PRODUCT_FACT_SECTION_CHARS = 320
+
+
+def _product_artifact_facts(
+    *, question: str
+) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
+    """Load bounded sections of governed PRODUCT artifacts as first-class facts.
+
+    This exists because the interpreter's ``fact_selection`` can only ELEVATE facts
+    the packet already holds — ``_fact_matches_selection`` matches a name against the
+    source_ref of existing facts and loads nothing. So making the thesis selectable
+    by name was necessary and insufficient: with nothing loaded, the selector found
+    no match and dropped it silently, and the operator got a bare UNKNOWN.
+
+    A sibling of ``_demand_selected_read_model_facts``, not a layer on top of it. The
+    difference is granularity: that loader emits one fact carrying a whole read-model
+    as JSON, which for a document index would be clipped into noise. Here each fact
+    is one section, so what survives the clip is a readable claim with its own
+    heading rather than the first N characters of a blob.
+
+    A selected artifact that cannot be read produces a NAMED status in the proof, and
+    no fact. Serving stale or drifted bytes as if they were the indexed ones would be
+    worse than answering UNKNOWN.
+    """
+
+    facts: list[dict[str, Any]] = []
+    refs: list[str] = []
+    proof: dict[str, Any] = {"product_artifacts_selected": [], "product_artifact_status": "OK"}
+
+    try:
+        import product_artifact_index as pai
+    except Exception as exc:  # noqa: BLE001
+        proof["product_artifact_status"] = f"INDEX_UNAVAILABLE: {type(exc).__name__}"
+        return facts, refs, proof
+
+    rows = pai.load_index_rows()
+    if not rows:
+        proof["product_artifact_status"] = "INDEX_EMPTY"
+        return facts, refs, proof
+
+    verified: dict[str, bool] = {}
+    for row, section in pai.rank_sections_across(
+        rows, question, limit=PRODUCT_FACT_MAX_SECTIONS, clip=PRODUCT_FACT_SECTION_CHARS
+    ):
+        if row.source_ref not in verified:
+            raw = next((r for r in rows if str(r.get("source_ref")) == row.source_ref), None)
+            status, _text, detail = pai.load_artifact(raw or {})
+            verified[row.source_ref] = status not in pai.LOAD_FAILURES
+            if not verified[row.source_ref]:
+                # Named, not silent. The whole point: a selected artifact that cannot
+                # be read must say which failure, never quietly contribute nothing.
+                proof["product_artifact_status"] = f"{status}: {row.source_ref}"
+                proof.setdefault("product_artifact_failures", []).append(
+                    {"source_ref": row.source_ref, "status": status, "detail": detail}
+                )
+        if not verified[row.source_ref]:
+            continue
+        if row.source_ref not in proof["product_artifacts_selected"]:
+            proof["product_artifacts_selected"].append(row.source_ref)
+            refs.append(row.source_ref)
+        _append_fact(
+            facts,
+            topic="product_artifact",
+            label=f"{row.title} — {section.heading}",
+            value=section.text,
+            provenance="governed_product_artifact",
+            source_ref=row.source_ref,
+            freshness={"as_of": row.modified_at, "source_ref": row.source_ref,
+                       "sha256": row.sha256},
+        )
+    return facts, refs, proof
+
+
 def _read_model_facts(
     root: Path, *, question: str = ""
 ) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
@@ -2914,11 +2996,17 @@ def build_maestro_context_packet(
     contacts_facts, contacts_proof = _contacts_registry_facts(question)
     read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root, question=question)
     pending_action_facts = _guardian_action_state_facts()
+    product_facts, product_refs, product_proof = _product_artifact_facts(question=question)
     facts = [
         *pending_action_facts,
         *receivable_temporal_facts,
         *truth_facts,
         *contacts_facts,
+        # Ahead of the bulky read-model facts, for the same reason canonical facts
+        # are: format_maestro_context_packet caps facts at 30 for packet_text, and a
+        # governed artifact the operator explicitly asked about must not be the thing
+        # that falls off the end.
+        *product_facts,
         *read_model_facts,
     ]
 
@@ -3114,6 +3202,7 @@ def build_maestro_context_packet(
             **question_relevance_proof,
             **contacts_proof,
             **read_model_proof,
+            **product_proof,
         },
     }
     packet["packet_text"] = format_maestro_context_packet(packet)

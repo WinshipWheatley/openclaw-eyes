@@ -261,3 +261,104 @@ def test_the_index_read_model_round_trips(corpus: Path, tmp_path: Path) -> None:
     assert payload["read_model_id"] == pai.READ_MODEL_ID
     assert payload["artifact_count"] == 3
     assert len(pai.load_index_rows(out)) == 3
+
+
+# ───────────────────────── the packet loader seam (the one correct change)
+
+def _index_json(tmp_path: Path, corpus: Path) -> Path:
+    out = tmp_path / "idx.json"
+    pai.export_read_model(out, index=pai.build_index([corpus]))
+    return out
+
+
+def test_the_packet_loader_emits_bounded_per_section_facts(tmp_path, corpus, monkeypatch) -> None:
+    """The one correct change: selection can only elevate what is already loaded."""
+
+    import maestro_context_packet as mcp
+
+    monkeypatch.setattr(pai, "READ_MODEL_PATH", _index_json(tmp_path, corpus))
+    facts, refs, proof = mcp._product_artifact_facts(question=INTENTS["product_thesis"])
+
+    assert facts, "nothing was loaded, so the selector would have nothing to elevate"
+    assert any(THESIS in f["source_ref"] for f in facts)
+    for fact in facts:
+        assert fact["topic"] == "product_artifact"
+        assert fact["source_ref"].startswith("fleet_coord/PRODUCT/")
+        assert fact["freshness"]["sha256"].startswith("sha256:")
+        assert len(fact["value"]) <= mcp.PRODUCT_FACT_SECTION_CHARS + 4
+    assert proof["product_artifact_status"] == "OK"
+
+
+def test_the_loader_never_injects_a_whole_document(tmp_path, corpus, monkeypatch) -> None:
+    """1024-token front door: the budget is the design, not an afterthought."""
+
+    import maestro_context_packet as mcp
+
+    monkeypatch.setattr(pai, "READ_MODEL_PATH", _index_json(tmp_path, corpus))
+    facts, _refs, _proof = mcp._product_artifact_facts(question=INTENTS["product_thesis"])
+    total = sum(len(f["value"]) for f in facts)
+    assert total <= mcp.PRODUCT_FACT_MAX_SECTIONS * (mcp.PRODUCT_FACT_SECTION_CHARS + 4)
+    assert total < 1200, f"{total} chars would crowd the 1024-token context"
+
+
+def test_a_deleted_artifact_yields_a_named_status_and_no_facts(tmp_path, corpus, monkeypatch) -> None:
+    """MUTATION at the seam: unreadable must be named, never silently absent."""
+
+    import maestro_context_packet as mcp
+
+    model = _index_json(tmp_path, corpus)
+    monkeypatch.setattr(pai, "READ_MODEL_PATH", model)
+    for row in pai.load_index_rows(model):
+        Path(row["path"]).unlink()
+
+    facts, _refs, proof = mcp._product_artifact_facts(question=INTENTS["product_thesis"])
+    assert facts == []
+    assert proof["product_artifact_status"].startswith(pai.LOAD_MISSING)
+    assert proof["product_artifact_failures"]
+
+
+def test_a_drifted_artifact_is_not_served_as_indexed(tmp_path, corpus, monkeypatch) -> None:
+    import maestro_context_packet as mcp
+
+    model = _index_json(tmp_path, corpus)
+    monkeypatch.setattr(pai, "READ_MODEL_PATH", model)
+    for row in pai.load_index_rows(model):
+        Path(row["path"]).write_text("# Replaced\n\nDifferent content.\n", encoding="utf-8")
+
+    facts, _refs, proof = mcp._product_artifact_facts(question=INTENTS["product_thesis"])
+    assert facts == []
+    assert pai.LOAD_HASH_DRIFT in proof["product_artifact_status"]
+
+
+def test_a_missing_index_degrades_without_breaking_the_packet(tmp_path, monkeypatch) -> None:
+    """NON-VACUITY: no index must mean no facts, not an exception."""
+
+    import maestro_context_packet as mcp
+
+    monkeypatch.setattr(pai, "READ_MODEL_PATH", tmp_path / "absent.json")
+    facts, refs, proof = mcp._product_artifact_facts(question=INTENTS["product_thesis"])
+    assert facts == [] and refs == []
+    assert proof["product_artifact_status"] == "INDEX_EMPTY"
+
+
+def test_an_unrelated_question_loads_no_product_facts(tmp_path, corpus, monkeypatch) -> None:
+    """NON-VACUITY the other way: the loader must not attach itself to every packet."""
+
+    import maestro_context_packet as mcp
+
+    monkeypatch.setattr(pai, "READ_MODEL_PATH", _index_json(tmp_path, corpus))
+    facts, _refs, _proof = mcp._product_artifact_facts(question="what is the weather in Reykjavik")
+    assert facts == []
+
+
+def test_section_ranking_beats_document_ranking_on_the_real_prompt(corpus: Path) -> None:
+    """Why the design is section-first: the prompt's preamble legitimately matches a
+    document about acceptance testing, so document-first order buried the thesis."""
+
+    index = pai.build_index([corpus])
+    full_prompt = (
+        "MAESTRO ACCEPTANCE TEST — Use only grounded packets you can actually "
+        "retrieve. " + INTENTS["product_thesis"]
+    )
+    picked = {row.source_ref for row, _s in pai.rank_sections_across(index, full_prompt, limit=3)}
+    assert any(THESIS in ref for ref in picked), "section ranking still buried the thesis"
