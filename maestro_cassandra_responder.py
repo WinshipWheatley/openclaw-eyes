@@ -2128,6 +2128,7 @@ ANSWER_GENERATE_RECEIPTS = Path("/home/openclaw/state/answer_generate_receipts.j
 
 def _answer_generate_receipt(
     *, packet: Any, question: str, agent: str, injected: bool,
+    branch_id: str = "unknown",
     path: Path | None = None,
 ) -> dict[str, Any]:
     """Record what the ANSWER call is handed. Lengths, a hash, and refs — never text.
@@ -2143,12 +2144,20 @@ def _answer_generate_receipt(
         packet_id = str(packet.get("packet_id") or "")
         facts = [f for f in (packet.get("facts") or ()) if isinstance(f, Mapping)]
     refs = sorted({str(f.get("source_ref") or "") for f in facts if f.get("source_ref")})
+    product_facts = sum(
+        1 for f in facts if isinstance(f, Mapping) and f.get("topic") == "product_artifact"
+    )
     row = {
         "call_type": "answer_brain",
+        # Static per call site. _answer_status_capability_with_brain was assumed live
+        # for hours on no evidence; there are two brain functions and four invocation
+        # sites, and only a turn can say which one runs.
+        "branch_id": str(branch_id or "unknown"),
+        "question_sha256": hashlib.sha256(str(question or "").encode("utf-8")).hexdigest()[:24],
+        "product_artifact_facts": product_facts,
         "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
         "agent": str(agent or ""),
         "packet_id": packet_id,
-        "question_head": str(question or "")[:120],
         "packet_text_chars": len(packet_text),
         "packet_text_sha256": hashlib.sha256(packet_text.encode("utf-8")).hexdigest()[:24],
         "fact_count": len(facts),
@@ -2391,6 +2400,7 @@ def _answer_status_capability_with_brain(
     _answer_generate_receipt(
         packet=context_packet, question=text, agent=agent,
         injected=protected_generate_fn is not None,
+        branch_id="status_capability_with_brain",
     )
 
     if protected_generate_fn is None:
@@ -3025,6 +3035,7 @@ def _answer_with_maestro_brain(
     _answer_generate_receipt(
         packet=context_packet, question=text, agent=agent,
         injected=protected_generate_fn is not None,
+        branch_id="maestro_brain",
     )
 
     if protected_generate_fn is None:

@@ -21,7 +21,7 @@ PACKET = {
     "packet_id": "maestro_context_packet:abc123",
     "packet_text": "x" * 3703,
     "facts": [
-        {"source_ref": "fleet_coord/PRODUCT/PRODUCT-THESIS-PROVABLE-DELEGATION-20260728.md"},
+        {"topic": "product_artifact", "source_ref": "fleet_coord/PRODUCT/PRODUCT-THESIS-PROVABLE-DELEGATION-20260728.md"},
         {"source_ref": "generated/read_models/work_board.json"},
     ],
 }
@@ -122,3 +122,63 @@ def test_an_explicit_path_still_writes_under_test_mode(tmp_path, monkeypatch) ->
     mcr._answer_generate_receipt(packet=PACKET, question="q", agent="maestro",
                                  injected=False, path=log)
     assert log.exists() and log.read_text(encoding="utf-8").strip()
+
+
+# ─────────────────────── every reachable model site, distinctly labelled
+
+BRANCHES = ("status_capability_with_brain", "maestro_brain")
+
+
+def test_every_model_site_carries_a_distinct_branch_id() -> None:
+    """_answer_status_capability_with_brain was assumed live for hours on no
+    evidence. There are two brain functions and four invocation sites; only a live
+    turn can say which runs, and it can only say so if each is labelled."""
+
+    import inspect
+
+    src = inspect.getsource(mcr)
+    for branch in BRANCHES:
+        assert f'branch_id="{branch}"' in src, f"{branch} call site is unlabelled"
+    assert src.count("_answer_generate_receipt(") >= 3, "a model site lost its marker"
+
+
+def test_each_branch_id_is_recorded_verbatim(tmp_path) -> None:
+    log = tmp_path / "b.jsonl"
+    for branch in BRANCHES:
+        row = mcr._answer_generate_receipt(
+            packet=PACKET, question="q", agent="maestro", injected=False,
+            branch_id=branch, path=log,
+        )
+        assert row["branch_id"] == branch
+    rows = [json.loads(l) for l in log.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert {r["branch_id"] for r in rows} == set(BRANCHES), "branches collapsed together"
+
+
+def test_product_facts_are_counted_separately(tmp_path) -> None:
+    row = mcr._answer_generate_receipt(
+        packet=PACKET, question="q", agent="maestro", injected=False,
+        branch_id="maestro_brain", path=tmp_path / "b.jsonl",
+    )
+    assert row["fact_count"] == 2
+    assert row["product_artifact_facts"] == 1
+    assert row["packet_text_chars"] == 3703
+
+
+def test_a_stub_packet_shows_zero_product_facts(tmp_path) -> None:
+    """NON-VACUITY: the count must distinguish a real packet from a stub."""
+
+    row = mcr._answer_generate_receipt(
+        packet={"packet_id": "stub", "packet_text": "z" * 124, "facts": []},
+        question="q", agent="maestro", injected=False,
+        branch_id="maestro_brain", path=tmp_path / "b.jsonl",
+    )
+    assert row["product_artifact_facts"] == 0 and row["packet_text_chars"] == 124
+
+
+def test_the_question_hash_correlates_without_content(tmp_path) -> None:
+    row = mcr._answer_generate_receipt(
+        packet=PACKET, question="SENSITIVE-QUESTION", agent="maestro", injected=False,
+        branch_id="maestro_brain", path=tmp_path / "b.jsonl",
+    )
+    assert len(row["question_sha256"]) == 24
+    assert "SENSITIVE-QUESTION" not in json.dumps(row)
