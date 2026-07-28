@@ -2118,6 +2118,25 @@ def _answer_frontdoor_chat_impl(
     )
 
 
+def _sanitize_packet_error(message: str) -> str:
+    """Keep the diagnosis, drop anything that could carry a secret.
+
+    A packet-build error can quote a path, a token-shaped string, or an operator
+    line. This receipt has to be readable by whoever fixes it and safe to sit in a
+    reply, so token shapes are redacted and the rest is clipped. A redactor that
+    eats the error would be as useless as the silence it replaces.
+    """
+
+    text = str(message or "")
+    text = re.sub(r"\b\d{6,12}:[A-Za-z0-9_-]{20,}\b", "<REDACTED>", text)
+    text = re.sub(
+        r"(?i)\b(token|secret|password|api[_-]?key)\b\s*[=:]\s*\S+",
+        r"\1=<REDACTED>",
+        text,
+    )
+    return text[:240]
+
+
 def answer_frontdoor_chat(
     text: str,
     *,
@@ -2261,7 +2280,20 @@ def _answer_status_capability_with_brain(
             if part
         )
         context_packet["status_capability_focus"] = focus
-    except Exception:
+    except Exception as _packet_exc:
+        # This fallback has been silently swallowing a real error. The stub it
+        # builds is ~124 characters with zero facts, and the model dutifully
+        # answers "packet contents unavailable" — which is true, and gives nobody
+        # anything to fix. Every layer above this was repaired tonight and none of
+        # it reached the model, because the packet never arrived.
+        #
+        # The stub stays: a degraded answer beats a dead front door. What changes
+        # is that it now says WHY, in the packet the receipt already carries.
+        _packet_failure = {
+            "packet_build_failed": True,
+            "packet_build_error_type": type(_packet_exc).__name__,
+            "packet_build_error": _sanitize_packet_error(str(_packet_exc)),
+        }
         context_packet = {
             "schema_version": "status_capability_context_packet_v0",
             "packet_id": f"status_capability_{_short_hash_for_packet(text, fact_value, source_refs)}",
@@ -2269,15 +2301,33 @@ def _answer_status_capability_with_brain(
             "source_surface": source_surface,
             "facts": [fact] if fact_value else [],
             "source_refs": source_refs,
+            "packet_build_failure": _packet_failure,
+            "machine_proof": dict(_packet_failure),
             "packet_text": "\n".join(
                 part
                 for part in (
                     "STATUS/CAPABILITY FACTS FOR THIS ANSWER:",
                     fact_value,
+                    f"[PACKET BUILD FAILED: {_packet_failure['packet_build_error_type']}: "
+                    f"{_packet_failure['packet_build_error']}]",
                 )
                 if part
             ),
         }
+        try:
+            from pathlib import Path as _Path
+            import json as _json
+
+            _Path("/home/openclaw/state").mkdir(parents=True, exist_ok=True)
+            _Path("/home/openclaw/state/packet_build_failure_receipt.json").write_text(
+                _json.dumps(
+                    {**_packet_failure, "question_head": str(text or "")[:120]},
+                    indent=2, sort_keys=True,
+                ) + "\n",
+                encoding="utf-8",
+            )
+        except Exception:  # noqa: BLE001 - a receipt must never break a reply
+            pass
 
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
