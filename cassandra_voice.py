@@ -231,10 +231,11 @@ def _play_wav(win_path: str, wav_path: Path | None = None) -> tuple[bool, str | 
         f"$p = New-Object System.Media.SoundPlayer '{win_path}'; "
         "$p.PlaySync()"
     )
+    inner_cmd = child_cmd.replace('"', '`"')
     ps_cmd = (
         "$ErrorActionPreference = 'Stop'; "
         f"$child = \"{ps_exe}\"; "
-        f"$inner = \"{child_cmd.replace('\"', '`\"')}\"; "
+        f"$inner = \"{inner_cmd}\"; "
         "Start-Process -WindowStyle Hidden "
         "-FilePath $child "
         "-ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',$inner) "

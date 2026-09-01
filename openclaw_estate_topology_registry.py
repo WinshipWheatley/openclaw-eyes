@@ -1292,11 +1292,12 @@ def _sqlite_status_check() -> str:
 
 def sqlite_schema_sql() -> str:
     status_check = _sqlite_status_check()
-    local_status_check = f"CHECK(local_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
-    evidence_check = f"CHECK(evidence_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
-    remote_check = f"CHECK(remote_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
-    worktree_check = f"CHECK(worktree_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
-    access_check = f"CHECK(access_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
+    quoted_statuses = ", ".join(f"'{status}'" for status in STATUS_VALUES)
+    local_status_check = f"CHECK(local_status IN ({quoted_statuses}))"
+    evidence_check = f"CHECK(evidence_status IN ({quoted_statuses}))"
+    remote_check = f"CHECK(remote_status IN ({quoted_statuses}))"
+    worktree_check = f"CHECK(worktree_status IN ({quoted_statuses}))"
+    access_check = f"CHECK(access_status IN ({quoted_statuses}))"
     return f"""CREATE TABLE machine (
     machine_id TEXT PRIMARY KEY,
     display_name TEXT NOT NULL,

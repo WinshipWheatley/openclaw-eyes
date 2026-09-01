@@ -66,6 +66,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 
 - [Inner-Circle Specs](./specs/spec-inner-circle-correspondence.md) — Detailed workflow for identity-gated replies.
 - [Google Drive MCP Contract](./specs/google_drive_mcp_contract.md) — Candidate, non-canonical Drive MCP setup note pending live verification.
+- [Home Fabric v0](./specs/OPENCLAW_HOME_FABRIC_V0.md) — Tracked map of the PC/WSL and Mac fabric (SSH routes, E-drive shuttle, Tailscale), evidence-backed weak points, and a staged hardening path; agent-drafted, review required.
 - [AI Working Context](./_ai/AI_WORKING_CONTEXT.md) — High-density context for agentic loading.
 - [Producer Agent Contract](./producer/PRODUCER_ARCHETYPE.md) — Strict taste/review boundary defining the Six Pillars and blocking DAW/hardware execution without receipts.
 

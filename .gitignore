@@ -605,6 +605,8 @@
 !scripts/build_local_automation_registry.py
 !scripts/query_local_automation_registry.py
 !scripts/windows_install_read_model_import_task.ps1
+!scripts/windows_wsl_portproxy_resync.ps1
+!scripts/home_fabric_check.sh
 !scripts/run_legal_pipeline_v0.sh
 !scripts/demo_legal_synthetic_stress_pack.py
 !scripts/sync_project_packets_to_mac.sh
@@ -982,6 +984,9 @@
 !tests/test_local_automation_registry.py
 !tests/test_local_service_manager.py
 !tests/test_windows_read_model_import_task.py
+!tests/test_windows_wsl_portproxy_resync.py
+!tests/test_home_fabric_check_script.py
+!tests/test_tracked_files_secret_shapes.py
 !external_ai_context_packager.py
 !work_board.py
 !steel_thread_radar.py
