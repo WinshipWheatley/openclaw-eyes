@@ -28,6 +28,15 @@ _UNKNOWN_AMOUNT_STATUS_TOKENS = {"open_amount_unknown", "amount_unknown", "unkno
 EVENT_SOURCE_TOKENS = ("calendar", "gig", "schedule")
 DECISION_SOURCE_TOKENS = ("approval", "work_board", "attention", "reconcile", "review")
 ACTION_STATUSES = {"pending_approval", "needs_operator_review", "needs_reconcile", "approval_required"}
+PRACTICE_PLAN_FILENAME = "practice_plan.json"
+OPEN_AR_AGING_FILENAME = "open_ar_aging.json"
+_NEXT_ACTION_WORDS = {
+    "request_or_confirm_po": "request or confirm the PO",
+    "reconcile_amount": "reconcile the amount",
+    "follow_up_draft": "follow-up draft ready",
+    "watch": "watch it",
+    "wait": "not due yet",
+}
 
 
 @dataclass(frozen=True)
@@ -53,8 +62,10 @@ def build_morning_brief(*, read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT
     events = collect_today_events(root, today_value)
     decisions = collect_decision_items(root)
     health = system_health_line(root)
+    aging = aging_line(root, today=today_value)
+    practice = practice_line(root)
 
-    if not money_items and not events and not decisions:
+    if not money_items and not events and not decisions and not aging and not practice:
         parts = ["Morning."]
         if health:
             parts.append("System: " + health + ".")
@@ -75,6 +86,12 @@ def build_morning_brief(*, read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT
 
     if decisions:
         parts.append("Decisions to review: " + "; ".join(decisions[:4]) + ".")
+
+    if aging:
+        parts.append(aging)
+
+    if practice:
+        parts.append(practice)
 
     if health:
         system_sentence = "System: " + health + "."
@@ -162,6 +179,97 @@ def collect_decision_items(root: Path) -> list[str]:
             if label:
                 decisions.append(_strip_terminal_punctuation(_compact(label)))
     return _dedupe_strings(decisions)
+
+
+def aging_line(root: Path, *, today: date | None = None) -> str:
+    """One sentence from the open AR aging read model: who is past due and what to do.
+
+    Amounts are spoken only when the row says amount_known; otherwise the client,
+    month, days past due and next action carry the line (money doctrine: never
+    certainty from unknown data).
+    """
+    payload = _load_json(root / OPEN_AR_AGING_FILENAME)
+    if not isinstance(payload, Mapping):
+        return ""
+    today_value = today or date.today()
+    as_of = _first_text(payload.get("money_source_generated_at"), payload.get("generated_at"))
+    if not as_of or _money_fact_is_stale(as_of, today=today_value):
+        return ""
+    rows = [row for row in payload.get("rows", ()) if isinstance(row, Mapping)]
+    spoken: list[str] = []
+    for row in rows:
+        days = row.get("days_past_due")
+        try:
+            days_value = int(days) if days is not None else 0
+        except (TypeError, ValueError):
+            days_value = 0
+        action = str(row.get("next_action") or "").strip()
+        if days_value <= 0 and action not in {"request_or_confirm_po", "reconcile_amount", "follow_up_draft"}:
+            continue
+        client = _first_text(row.get("client_display_name"), row.get("client_ref"))
+        if not client:
+            continue
+        pieces = [client]
+        month = _first_text(row.get("month"))
+        if month:
+            pieces.append(_month_display(month))
+        amount = _structured_amount(row) if bool(row.get("amount_known")) else None
+        if amount is not None:
+            pieces.append(_format_amount(amount, str(row.get("currency_iso") or row.get("currency") or "USD")))
+        if days_value > 0:
+            pieces.append(f"{days_value} days past due")
+        words = _NEXT_ACTION_WORDS.get(action)
+        if words:
+            pieces.append(words)
+        spoken.append(", ".join(pieces))
+        if len(spoken) == 2:
+            break
+    if not spoken:
+        return ""
+    return "Aging: " + "; ".join(spoken) + "."
+
+
+def practice_line(root: Path) -> str:
+    """One sentence from the practice plan read model: what to play today."""
+    payload = _load_json(root / PRACTICE_PLAN_FILENAME)
+    if not isinstance(payload, Mapping):
+        return ""
+    plan = payload.get("plan")
+    if not isinstance(plan, list):
+        plan = payload.get("rows") if isinstance(payload.get("rows"), list) else []
+    items: list[str] = []
+    for entry in plan:
+        if not isinstance(entry, Mapping):
+            continue
+        title = _first_text(entry.get("title"), entry.get("song"))
+        if not title:
+            continue
+        piece = title
+        minutes = entry.get("minutes")
+        try:
+            minutes_value = int(minutes) if minutes is not None else 0
+        except (TypeError, ValueError):
+            minutes_value = 0
+        if minutes_value > 0:
+            piece += f" {minutes_value} min"
+        reason = _first_text(entry.get("reason"))
+        if reason:
+            piece += f" ({reason})"
+        items.append(piece)
+        if len(items) == 3:
+            break
+    if not items:
+        return ""
+    line = "Practice today: " + "; ".join(items) + "."
+    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    streak = summary.get("streak_days")
+    try:
+        streak_value = int(streak) if streak is not None else 0
+    except (TypeError, ValueError):
+        streak_value = 0
+    if streak_value >= 2:
+        line += f" Streak: {streak_value} days."
+    return line
 
 
 def system_health_line(root: Path) -> str:

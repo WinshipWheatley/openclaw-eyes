@@ -1,0 +1,9 @@
+{
+  "schema_version": "receivable_terms_v1",
+  "default_terms_days": 30,
+  "clients": {
+    "capital_hilton": {"terms_days": 30, "purchase_order_required": true},
+    "st_annes": {"terms_days": 30, "purchase_order_required": false},
+    "live_arts_md": {"terms_days": 30, "purchase_order_required": false}
+  }
+}
