@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenClaw Prepare the Capital Hilton PO cycle read model and draft (draft only, no send)
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/env python3 @REPO_ROOT@/scripts/export_capital_hilton_po_cycle.py --format operator
+NoNewPrivileges=true
+TimeoutStartSec=180

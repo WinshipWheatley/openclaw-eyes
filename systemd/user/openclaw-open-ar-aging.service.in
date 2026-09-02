@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenClaw Export the open AR aging read model (read-only)
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/env python3 @REPO_ROOT@/scripts/export_open_ar_aging.py --format operator
+NoNewPrivileges=true
+TimeoutStartSec=180

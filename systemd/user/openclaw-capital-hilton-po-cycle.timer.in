@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenClaw capital-hilton-po-cycle daily before the morning brief
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Timer]
+OnBootSec=8min
+OnCalendar=*-*-* 07:40:00
+AccuracySec=5min
+Persistent=true
+Unit=openclaw-capital-hilton-po-cycle.service
+
+[Install]
+WantedBy=timers.target

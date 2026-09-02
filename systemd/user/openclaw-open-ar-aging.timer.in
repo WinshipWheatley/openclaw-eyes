@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenClaw open-ar-aging daily before the morning brief
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Timer]
+OnBootSec=8min
+OnCalendar=*-*-* 07:35:00
+AccuracySec=5min
+Persistent=true
+Unit=openclaw-open-ar-aging.service
+
+[Install]
+WantedBy=timers.target

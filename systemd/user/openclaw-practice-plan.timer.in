@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenClaw practice-plan daily before the morning brief
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Timer]
+OnBootSec=8min
+OnCalendar=*-*-* 07:45:00
+AccuracySec=5min
+Persistent=true
+Unit=openclaw-practice-plan.service
+
+[Install]
+WantedBy=timers.target

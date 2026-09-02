@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenClaw Export today's practice plan read model
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/env python3 @REPO_ROOT@/scripts/export_practice_plan.py --format operator
+NoNewPrivileges=true
+TimeoutStartSec=180
