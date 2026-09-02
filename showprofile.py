@@ -40,9 +40,10 @@ _RULES = [
     ("vox",   "WH", 45,  ["talkback", "talk"]),                  # talkback = utility white
     ("mic",   "WH", 51,  ["wireless mic", "wl mic", "handheld"]),
     ("mic",   "WH", 47,  ["mic", "sm57", "sm58", "beta", "e609", "md421", " 57", " 58"]),
-    ("playback", "WH", 60, ["usb", "tape", "playback", "track", "click", "metronome"]),
+    ("playback", "WH", 60, ["usb", "tape", "playback", "track", "click", "cue", "metronome"]),
     ("fx",    "CY", 61,  ["fx", "reverb", "delay", "verb", "echo"]),   # FX = cyan / "ice blue"
     ("pc",    "WH", 62,  ["pc ", "computer", " mac", "daw", "ableton", "logic", "reaper", "pro tools"]),
+    ("looper", "CYi", 60, ["looper", "loop", "rc-505", "rc505"]),   # hardware looper returns = inverted cyan, playback icon
 ]
 _DEFAULT = ("other", "OFF", 1)   # uncategorized = no color -> visibly flags channels to set on a fresh build
 

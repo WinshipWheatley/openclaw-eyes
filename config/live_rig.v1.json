@@ -1,0 +1,103 @@
+{
+  "schema_version": "live_rig_v1",
+  "source_ref": "LIVE-RIG.md@2026-08-24",
+  "status": "pre_pitch_nothing_purchased",
+  "last_updated": "2026-08-24",
+  "currency_iso": "USD",
+  "deal": {
+    "client_ref": "capital_hilton",
+    "counterpart_contact_ref": "lawrence-valcovic",
+    "pitch": "show-development fee, upfront, covering about seven weeks of build plus the two missing pieces of gear",
+    "fee_minor_units_low": 200000,
+    "fee_minor_units_high": 300000,
+    "fee_covers_device_ids": ["studiologic_sl88_grand", "boss_rc505_mk2"],
+    "terms": [
+      "Gear is bought by me and stays mine; the fee funds development, ownership does not transfer.",
+      "After the build: a run of shows in consecutive-night blocks.",
+      "The full show then stays in my catalog."
+    ],
+    "catalog_rates": {"full_rig_night_minor_units": 112500, "acoustic_night_minor_units": 40000},
+    "pitch_sequence": ["call Will", "send three short recap texts"],
+    "synth_software_role": "differentiator only; not a line item; never billed to clients"
+  },
+  "gear_to_buy": [
+    {"device_id": "studiologic_sl88_grand", "label": "Studiologic SL88 Grand", "price_minor_units_low": 85000, "price_minor_units_high": 100000, "why": "Wooden-key Fatar action. Kawai VPC1 ruled out at $2,999.", "funded_by": "hilton_fee"},
+    {"device_id": "boss_rc505_mk2", "label": "Boss RC-505 MK2", "price_minor_units_low": 59900, "price_minor_units_high": 59900, "why": "Hardware looper; loops survive a computer crash.", "funded_by": "hilton_fee"},
+    {"device_id": "motu_m4", "label": "MOTU M4", "price_minor_units_low": 25000, "price_minor_units_high": 25000, "why": "Swapped from the M2 plan: four outputs (mains pair plus in-ear pair).", "funded_by": "self"}
+  ],
+  "gear_owned": [
+    {"device_id": "nektar_lx49", "label": "Nektar LX49", "note": "pads are dull; repurposing as Ableton control surface"},
+    {"device_id": "mpc_one_plus_live_looping", "label": "MPC One+", "note": "pad/beat station"},
+    {"device_id": "behringer_x32_rack", "label": "Behringer X32 Rack (spare)", "note": "the console the scene below targets"},
+    {"device_id": "drums_mics_pa", "label": "Drums, mics, PA", "note": ""},
+    {"device_id": "ableton_11_suite", "label": "Ableton 11 Suite, Logic", "note": "Ableton is clock master"},
+    {"device_id": "moog_plugins", "label": "Moog Model D + Model 15 plugins", "note": "fallback sound source if the synth audition fails"}
+  ],
+  "signal_flow": [
+    {"from": "SL88 Grand", "to": "Mac / Ableton 11", "via": "USB MIDI"},
+    {"from": "Nektar LX49", "to": "Mac / Ableton 11", "via": "USB MIDI (control surface)"},
+    {"from": "MPC One+", "to": "Mac / Ableton 11", "via": "USB MIDI"},
+    {"from": "Mac / Ableton 11", "to": "MOTU M4", "via": "USB audio"},
+    {"from": "MOTU M4 outs 1/2", "to": "X32 Rack", "via": "synth audio"},
+    {"from": "MOTU M4 outs 3/4", "to": "In-ears", "via": "click and cue markers; monitor bus only, never mains"},
+    {"from": "MOTU M4 5-pin MIDI out", "to": "RC-505 MK2", "via": "clock; quantized to bar"},
+    {"from": "X32 matrix send (stereo)", "to": "MOTU M4 inputs", "via": "record and stream feed"},
+    {"from": "X32 Rack", "to": "PA / mains", "via": "LR"}
+  ],
+  "design_rules": [
+    "No aggregate devices: one interface, the M4.",
+    "Loops live in hardware so a computer hiccup cannot kill accumulated loop state.",
+    "Buffer stays tight, 64 to 128 samples, for synth latency under the keyboard."
+  ],
+  "routing_questions": [
+    {"id": "rc505_x32_io", "question": "Which X32 channels take the looper outs, and what feeds its inputs?"},
+    {"id": "x32_scene", "question": "X32 scene: channel map, monitor bus assignments, matrix config for the record feed."}
+  ],
+  "proposed_x32": {
+    "scene_name": "Winship Loop v0",
+    "confirmation_status": "proposed_not_confirmed",
+    "principle": "Keep the doc's flow (M4 to console) and make the looper a send/return: the console keeps separate faders for dry sources and loop returns, loops still live in hardware, and the vocal never has to pass through the looper to reach the PA.",
+    "channels": [
+      {"ch": 1, "name": "Lead Vox", "source": "vocal mic (SM58/Beta 58) into X32 XLR in 1", "to_main": true, "to_looper_send": true, "to_iem": true},
+      {"ch": 3, "name": "Synth L", "source": "MOTU M4 out 1", "to_main": true, "to_looper_send": true, "to_iem": true},
+      {"ch": 4, "name": "Synth R", "source": "MOTU M4 out 2", "to_main": true, "to_looper_send": true, "to_iem": true},
+      {"ch": 5, "name": "Looper L", "source": "RC-505 MK2 MAIN OUT L", "to_main": true, "to_looper_send": false, "to_iem": true},
+      {"ch": 6, "name": "Looper R", "source": "RC-505 MK2 MAIN OUT R", "to_main": true, "to_looper_send": false, "to_iem": true},
+      {"ch": 7, "name": "Click L", "source": "MOTU M4 out 3", "to_main": false, "to_looper_send": false, "to_iem": true},
+      {"ch": 8, "name": "Cue R", "source": "MOTU M4 out 4", "to_main": false, "to_looper_send": false, "to_iem": true}
+    ],
+    "buses": [
+      {"bus": "1/2", "name": "Looper Send", "feeds": "aux out 1/2 to RC-505 MK2 INST 1 L/R (post-fader from ch 1, 3, 4; never from ch 5/6 so loops do not re-loop)"},
+      {"bus": "5/6", "name": "IEM", "feeds": "aux out 5/6 to the in-ear pack; ch 7/8 pre-fader; ch 7/8 are NOT assigned to LR"}
+    ],
+    "matrix": [
+      {"matrix": "1/2", "name": "Record", "feeds": "matrix out 1/2 to MOTU M4 inputs 1/2 (LR post-fader copy)"}
+    ],
+    "answers": {
+      "rc505_x32_io": "Looper MAIN OUT L/R into X32 ch 5/6. Its INST 1 L/R input is fed from X32 bus 1/2 (aux out 1/2) carrying vocal and synth; the vocal mic goes to the console, not straight into the looper.",
+      "x32_scene": "Channels 1, 3-8 as above; bus 1/2 looper send; bus 5/6 in-ears with click/cue never on LR; matrix 1/2 record feed to the M4."
+    },
+    "caveats": [
+      "The .scn artifact carries channel names, colors, and icons only. Bus, matrix, and LR assignments are written here as instructions and must be set on the console by hand on first load.",
+      "Loading a scene on the real console is refused by the machine; the operator loads it."
+    ]
+  },
+  "also_in_motion": [
+    {"id": "49_west_cobill", "what": "49 West co-bill with Josh, any night Oct 15-18 (Annapolis Sailboat Show weekend)", "waiting_on": "Sarah's reply", "contact_hint": "Sarah", "window": ["2026-10-15", "2026-10-18"]},
+    {"id": "josh_drum_tracking", "what": "Josh wants to fly me down to track drums", "waiting_on": "scheduling", "contact_hint": "Josh", "window": ["2026-09-20", "2026-10-31"]}
+  ],
+  "open_loops": [
+    {"id": "call_will", "text": "Call Will, then send three recap texts", "owner": "me", "opened": "2026-08-24", "unblocks": ["order_gear"]},
+    {"id": "sarah_reply", "text": "Sarah's reply on the Oct 15-18 co-bill", "owner": "sarah", "opened": "2026-08-24", "unblocks": []},
+    {"id": "order_gear", "text": "Order SL88 + RC-505 MK2 + M4 (after the fee lands, or decide to self-fund)", "owner": "me", "opened": "2026-08-24", "blocked_on": "call_will", "unblocks": ["synth_audition"]},
+    {"id": "synth_mac_port", "text": "Synth Mac port must exist before the audition window opens", "owner": "synth_dev", "opened": "2026-08-24", "unblocks": ["synth_audition"]},
+    {"id": "routing_scene", "text": "Pin down RC-505 to X32 routing and the X32 scene", "owner": "me", "opened": "2026-08-24", "proposal": "proposed_x32"},
+    {"id": "josh_trip", "text": "Schedule the Josh drum-tracking trip (late Sept/Oct)", "owner": "me", "opened": "2026-08-24", "unblocks": []}
+  ],
+  "synth_audition": {
+    "window": "the SL88 delivery window, about two weeks",
+    "pass_requires_all": ["runs one hour with no crash", "silent patch changes", "feels right at the tight buffer (64 to 128)"],
+    "on_pass": "it is my one instrument",
+    "on_fail": "fall back to Moog plugins and Ableton sounds"
+  }
+}
