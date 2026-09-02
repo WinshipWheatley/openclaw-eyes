@@ -31,6 +31,9 @@ def _fake_systemctl(
     disabled_unit: str = "",
     extra_failure: str = "",
 ) -> Path:
+    injected_failure = (
+        f"printf '%s\\n' '{extra_failure} loaded failed failed injected'" if extra_failure else ":"
+    )
     return _executable(
         tmp_path / "systemctl",
         f"""
@@ -40,7 +43,7 @@ def _fake_systemctl(
         args=" $* "
         if [[ "$args" == *" --failed "* ]]; then
           printf '%s\n' 'getty@tty1.service loaded failed failed Getty on tty1'
-          {f"printf '%s\\n' '{extra_failure} loaded failed failed injected'" if extra_failure else ":"}
+          {injected_failure}
           exit 0
         fi
         if [[ "$args" == *" is-enabled "* ]]; then
@@ -84,12 +87,13 @@ def _fake_loginctl(tmp_path: Path, *, linger: str = "yes") -> Path:
 
 
 def _fake_curl(tmp_path: Path, *, succeeds: bool) -> Path:
+    curl_body = "printf '%s\\n' '{\"models\":[]}'" if succeeds else "exit 7"
     return _executable(
         tmp_path / "curl",
         f"""
         #!/usr/bin/env bash
         printf '%s\n' "$*" >> "{tmp_path / 'curl.calls'}"
-        {"printf '%s\\n' '{\"models\":[]}'" if succeeds else "exit 7"}
+        {curl_body}
         """,
     )
 

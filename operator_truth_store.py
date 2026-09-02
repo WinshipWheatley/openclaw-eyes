@@ -165,6 +165,11 @@ def _stable_hash(text: str) -> str:
     return hashlib.sha256(str(text or "").encode("utf-8")).hexdigest()
 
 
+def _null_joined_hash(*parts: object) -> str:
+    """Stable hash of parts joined by NUL; kept out of f-string expressions for Python 3.11."""
+    return _stable_hash("\0".join(str(part) for part in parts))
+
+
 def _file_digest(path: Path) -> str:
     try:
         return _stable_hash(path.read_text(encoding="utf-8"))
@@ -320,9 +325,10 @@ def upsert_operator_truth(
     after_file_hash = _file_digest(target)
     record_hash = _stable_hash(json.dumps(record, sort_keys=True, ensure_ascii=False))
     business_state_mutation = previous_record != record
+    receipt_digest = _stable_hash(entity_key + "\0" + record_hash)
     receipt = {
         "schema_version": "operator_truth_write_receipt_v0",
-        "receipt_id": f"operator_truth_write_receipt:{_stable_hash(f'{entity_key}\0{record_hash}')[:20]}",
+        "receipt_id": f"operator_truth_write_receipt:{receipt_digest[:20]}",
         "status": "committed",
         "entity_key": entity_key,
         "record_hash": record_hash,
@@ -604,7 +610,8 @@ def quarantine_unsafe_operator_truth_records(
 
     before_hash = _file_digest(store_path)
     entity_keys = sorted(entity_key for entity_key, _record, _reason, _hash in unsafe)
-    receipt_id = f"operator_truth_quarantine_receipt:{_stable_hash(f'{at}\0{source_ref}\0{entity_keys}')[:20]}"
+    quarantine_digest = _stable_hash("\0".join((str(at), str(source_ref), str(entity_keys))))
+    receipt_id = f"operator_truth_quarantine_receipt:{quarantine_digest[:20]}"
     receipt: dict[str, Any] = {
         "schema_version": "operator_truth_quarantine_receipt_v0",
         "receipt_id": receipt_id,
@@ -697,7 +704,7 @@ def repair_quarantined_operator_truth(
     intended_value_hash = _stable_hash(_compact(value))
     repair_receipt = {
         "schema_version": "operator_truth_repair_receipt_v0",
-        "receipt_id": f"operator_truth_repair_receipt:{_stable_hash(f'{entity_key}\0{repaired_at}\0{intended_value_hash}')[:20]}",
+        "receipt_id": f"operator_truth_repair_receipt:{_null_joined_hash(entity_key, repaired_at, intended_value_hash)[:20]}",
         "status": "pending",
         "entity_key": entity_key,
         "quarantine_receipt_id": str(quarantined.get("quarantine_receipt_id") or ""),
