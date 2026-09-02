@@ -1,0 +1,26 @@
+{
+  "schema_version": "capital_hilton_po_cycle_v1",
+  "client_ref": "capital_hilton",
+  "client_display_name": "Capital Hilton",
+  "currency_iso": "USD",
+  "rate_minor_units_per_performance": 40000,
+  "standard_po_performances": 5,
+  "request_when_uninvoiced_reaches": 1,
+  "purchase_orders": [
+    {
+      "po_number": "DCASH01147910",
+      "cap_minor_units": 200000,
+      "invoiced_minor_units": 200000,
+      "source_ref": "operator_statement_2026-06",
+      "note": "Five performances at $400; fully invoiced against this PO."
+    }
+  ],
+  "performances": [],
+  "ap_contact_refs": ["annette-sunga"],
+  "requester_contact_refs": ["lawrence-valcovic"],
+  "notes": [
+    "PO numbers and caps are operator-stated facts. Confirm in Coupa before invoicing against a PO.",
+    "Add a performance row the day it happens: {\"date\": \"YYYY-MM-DD\", \"description\": \"...\", \"invoiced_under_po\": null}.",
+    "Set invoiced_under_po to the PO number once the invoice is issued against it; the cycle then counts it as covered."
+  ]
+}
