@@ -6918,6 +6918,28 @@ class _TypedContractReply(str):
         value.source_text = str(source_text or "")
         return value
 
+# ── Practice loop (deterministic, no model) ──────────────────────────────────
+
+PRACTICE_DB_ENV_VAR = "OPENCLAW_PRACTICE_DB"
+
+
+def _handle_practice_text_safely(query: str) -> str | None:
+    """Answer practice messages from the practice store before any model runs.
+
+    Returns None for anything that is not a practice message so the rest of the
+    brain proceeds unchanged. Fails open: any error here means "not handled".
+    """
+    try:
+        import practice_loop
+        from datetime import timezone as _tz
+
+        db_path = os.environ.get(PRACTICE_DB_ENV_VAR, "").strip() or str(practice_loop.DEFAULT_DB_PATH)
+        store = practice_loop.PracticeStore(db_path)
+        return practice_loop.handle_practice_text(query, store=store, now=datetime.now(_tz.utc))
+    except Exception:
+        return None
+
+
 def handle(text: str, session: dict | None = None) -> list[str]:
     """Task 144 (CLASS #5): operator-surface-guarded entry point. Wraps _handle_unguarded
     so every exit path of the real handler -- refusal guard, ops-status, general LLM
@@ -7409,6 +7431,27 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
                 "runtime_mutation_performed": False,
                 "calendar_or_contact_mutation_performed": False,
                 "invoice_send_performed": False,
+                "money_or_ledger_mutation_performed": False,
+            },
+        )
+        return reply
+
+    practice_reply = _handle_practice_text_safely(query)
+    if practice_reply is not None:
+        reply = [practice_reply]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="practice_loop",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "model_called": False,
+                "external_calls_performed": False,
+                "runtime_mutation_performed": False,
+                "practice_store_written": True,
+                "email_send_performed": False,
                 "money_or_ledger_mutation_performed": False,
             },
         )

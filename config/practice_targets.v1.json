@@ -1,0 +1,18 @@
+{
+  "schema_version": "practice_targets_v1",
+  "source_ref": "LIVE-RIG.md@2026-08-24; hilton_proposal_email_2026-08-17",
+  "targets": [
+    {
+      "name": "hilton_build",
+      "description": "Live looping show for the Capital Hilton: fifteen songs chosen from Will's list, playable from memory in any configuration, acoustic through full rig",
+      "target_date_iso": null,
+      "song_count_goal": 15
+    },
+    {
+      "name": "album",
+      "description": "The twelve-song record: every song playable live before release",
+      "target_date_iso": "2026-12-31",
+      "song_count_goal": 12
+    }
+  ]
+}
