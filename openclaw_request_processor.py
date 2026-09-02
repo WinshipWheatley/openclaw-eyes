@@ -6625,7 +6625,7 @@ def _lm1_interpreter_context_packet(rich_packet: Mapping[str, Any]) -> dict[str,
         if pii_tier != "PUBLIC":
             continue
         try:
-            from protected_generate import detect_pii_tier
+            from protected_generate import content_may_cross_public, detect_pii_tier
 
             # Tier the CONTENT, not the envelope.
             #
@@ -6641,12 +6641,19 @@ def _lm1_interpreter_context_packet(rich_packet: Mapping[str, Any]) -> dict[str,
             # above is still blocked exactly as before — this narrows what is measured,
             # never how strictly.
             fact_tier = detect_pii_tier(
-                "\n".join(
-                    str(fact.get(key) or "")
-                    for key in ("label", "value", "topic")
-                ).strip(),
+                (
+                    reader_visible := "\n".join(
+                        str(fact.get(key) or "")
+                        for key in ("label", "value", "topic")
+                    ).strip()
+                ),
                 None,
             )
+            # The projection never tokenizes, so a fact the tokenizer would have
+            # redacted at any tier (email, phone, card, account, org, money, long
+            # number, street address, listed name) must not cross verbatim either.
+            if not content_may_cross_public(reader_visible):
+                fact_tier = "HIGH"
         except Exception:
             fact_tier = "HIGH"
         if fact_tier != "PUBLIC":

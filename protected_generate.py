@@ -100,6 +100,90 @@ LEGAL_RAW_PATTERNS = (
     re.compile(r"\battorney[- ]client\b", re.IGNORECASE),
 )
 
+# --- Content detectors the keyword cues cannot see -----------------------------
+#
+# Two consumers grade text before it may leave the box:
+#   * the front door (`protected_generate_with_receipt`) tokenizes the prompt, so
+#     emails, phones, cards, SSNs, secrets and labelled account numbers are already
+#     redacted at every tier; the tier only decides what ELSE gets tokenized and
+#     whether the packet is eligible to travel;
+#   * the external-brain projection (`openclaw_request_processor`) never tokenizes:
+#     a fact either crosses verbatim or is dropped, so it must refuse anything the
+#     tokenizer would have touched at any tier.
+# `detect_pii_tier` lifts the tier only for content the tokenizer cannot redact
+# (street addresses, listed names, bare long numbers, bare money) and
+# `content_may_cross_public` is the projection's stricter verdict.
+STREET_ADDRESS_PATTERN = re.compile(
+    r"\b\d{1,6}\s+(?:[A-Z][A-Za-z]+\.?\s+){1,3}"
+    r"(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Way|Pl|Place|"
+    r"Ter|Terrace|Pkwy|Parkway|Hwy|Highway)\b\.?"
+)
+_TIER_RANK = {PUBLIC: 0, LIGHT: 1, MED: 2, HIGH: 3, MAX: 4}
+# Optional operator-maintained list of people/org names (one per line), kept out of
+# the repository. Any match grades MED and never crosses the projection.
+PII_NAME_LIST_ENV = "OPENCLAW_PII_NAME_LIST"
+
+
+def _person_name_patterns() -> tuple[re.Pattern[str], ...]:
+    path = os.environ.get(PII_NAME_LIST_ENV, "").strip()
+    if not path:
+        return ()
+    try:
+        lines = Path(path).expanduser().read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return ()
+    patterns: list[re.Pattern[str]] = []
+    for line in lines:
+        name = line.strip()
+        if not name or name.startswith("#"):
+            continue
+        patterns.append(re.compile(r"\b" + re.escape(name) + r"\b", re.IGNORECASE))
+    return tuple(patterns)
+
+
+def _max_tier(*tiers: str) -> str:
+    return max(tiers, key=lambda tier: _TIER_RANK.get(str(tier or PUBLIC).upper(), 0))
+
+
+def _redacted_at_public(text: str) -> tuple[str, int]:
+    """Text after the always-on token patterns, plus how many tokens they produced."""
+    redacted, ledger = tokenize_text_for_tier(str(text or ""), PUBLIC)
+    return redacted, ledger.token_count()
+
+
+def unredactable_content_tier(text: str) -> str:
+    """Tier demanded by reader-visible content that no token pattern would redact."""
+    raw = str(text or "")
+    if _contains(LEGAL_RAW_PATTERNS, raw):
+        return MAX
+    redacted, _count = _redacted_at_public(raw)
+    # Runs the always-on patterns do not redact (7-8 digits, 14+ digits) are
+    # identifiers or amounts; the tokenizer only masks them at HIGH, so grade HIGH.
+    if LONG_NUMBER_PATTERN.search(redacted):
+        return HIGH
+    if STREET_ADDRESS_PATTERN.search(redacted) or _contains(_person_name_patterns(), redacted):
+        return MED
+    if MONEY_PATTERN.search(redacted):
+        return LIGHT
+    return PUBLIC
+
+
+def content_may_cross_public(text: str) -> bool:
+    """Projection verdict: True only when nothing in the text would ever be redacted."""
+    raw = str(text or "")
+    if detect_pii_tier(raw, None) != PUBLIC:
+        return False
+    redacted, count = _redacted_at_public(raw)
+    if count:
+        return False
+    if any(pattern.search(redacted) for _kind, pattern in ORG_PATTERNS):
+        return False
+    if MONEY_PATTERN.search(redacted) or LONG_NUMBER_PATTERN.search(redacted):
+        return False
+    if STREET_ADDRESS_PATTERN.search(redacted) or _contains(_person_name_patterns(), redacted):
+        return False
+    return True
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -156,12 +240,12 @@ def detect_pii_tier(prompt: str, context_packet: Mapping[str, Any] | str | None 
     if "MAX" in tiers or _contains(LEGAL_RAW_PATTERNS, text):
         return MAX
     if "HIGH" in tiers or re.search(r"\b(ssn|social security|medical|health|tax id)\b", text, re.IGNORECASE):
-        return HIGH
+        return _max_tier(HIGH, unredactable_content_tier(prompt))
     if "MED" in tiers or re.search(r"\b(email|gmail|calendar|meeting|invoice|recipient)\b", text, re.IGNORECASE):
-        return MED
+        return _max_tier(MED, unredactable_content_tier(prompt))
     if "LIGHT" in tiers or re.search(r"\b(bank|finance|financial|ledger|payment|paid|owed|coupa|receivable)\b", text, re.IGNORECASE):
-        return LIGHT
-    return PUBLIC
+        return _max_tier(LIGHT, unredactable_content_tier(prompt))
+    return unredactable_content_tier(prompt)
 
 
 def _apply_patterns(text: str, ledger: _TokenLedger, patterns: tuple[tuple[str, re.Pattern[str]], ...]) -> str:
@@ -2709,6 +2793,8 @@ __all__ = [
     "ProtectedGenerateBlocked",
     "ProtectedGenerateOutcome",
     "detect_pii_tier",
+    "content_may_cross_public",
+    "unredactable_content_tier",
     "protected_generate",
     "protected_generate_with_receipt",
     "tokenize_text_for_tier",

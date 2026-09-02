@@ -1517,3 +1517,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_pre_model_append_marker.py
 !tests/test_packet_build_counts.py
 !tests/test_projection_tiers_content_not_envelope.py
+!tests/test_pii_tier_content_detectors.py
